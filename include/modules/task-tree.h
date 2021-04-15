@@ -16,7 +16,7 @@ typedef union tt_node_id_t {
 // task tree functions
 bool tt_init_tree(void);
 bool tt_write_tree(const char *fname);
-bool tt_destroy_tree(void);
+void tt_destroy_tree(void);
 
 // task tree node functions
 tt_node_t *tt_new_node(tt_node_id_t node_ref);

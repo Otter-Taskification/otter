@@ -1,0 +1,24 @@
+DATA STRUCTURES
+
+Data structures to implement to support other modules
+
+- queue
+- dynamic array
+
+
+
+QUEUE FEATURES:
+new
+enqueue
+dequeue
+get_length
+is_empty
+destroy
+
+
+
+DYNAMIC ARRAY FEATURES:
+new
+destroy
+push_back
+get_data

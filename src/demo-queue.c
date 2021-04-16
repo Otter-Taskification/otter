@@ -1,12 +1,12 @@
+#if !defined(DEBUG_LEVEL)
+#define DEBUG_LEVEL 3
+#endif
+
 #include <stdlib.h>
 #include <stdbool.h>
 #include <assert.h>
 
 #include <dtypes/queue.h>
-
-#if !defined(DEBUG_LEVEL)
-#define DEBUG_LEVEL 2
-#endif
 #include <macros/debug.h>
 
 #define NITEMS 5

@@ -1,7 +1,7 @@
 CC=clang
 CFLAGS=-Iinclude/
 LDFLAGS=-Llib/ -Wl,-rpath=`pwd`/lib/
-DEBUG=-g -DDEBUG_LEVEL=3
+DEBUG=-g
 LIB=lib/libqueue.so
 EXE=demo-queue
 

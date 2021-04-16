@@ -16,10 +16,11 @@ struct queue_t {
     node_t      *head;
     node_t      *tail;
     size_t       length;
+    destroy_callback_t destroy;
 };
 
 queue_t *
-qu_create(void)
+qu_create(destroy_callback_t callback)
 {
     queue_t *q = malloc(sizeof(*q));
     if (q == NULL)
@@ -30,6 +31,8 @@ qu_create(void)
     LOG_DEBUG("created queue: %p", q);
     q->head = q->tail = NULL;
     q->length = 0;
+    LOG_DEBUG_IF(callback == NULL, "no data destructor provided, using free()");
+    q->destroy = callback == NULL ? &free : callback;
     return q;
 }
 
@@ -38,7 +41,7 @@ qu_enqueue(queue_t *q, queue_data_t data)
 {
     if (q == NULL)
     {
-        LOG_DEBUG("tried to enqueue with null queue");
+        LOG_WARN("tried to enqueue with null queue");
         return false;
     }
 
@@ -72,7 +75,7 @@ qu_dequeue(queue_t *q, queue_data_t *data)
 {
     if (q == NULL)
     {
-        LOG_DEBUG("tried to dequeue from null queue");
+        LOG_WARN("tried to dequeue from null queue");
         return false;
     }
 
@@ -89,7 +92,7 @@ qu_dequeue(queue_t *q, queue_data_t *data)
     q->length -= 1;
     LOG_DEBUG("head of %p is now %p (length=%lu)", q, q->head, q->length);
 
-    LOG_DEBUG("freeing node %p", node);
+    LOG_DEBUG("destroying node %p", node);
     free(node);
 
     return (q->head == NULL) ? false : true ;
@@ -108,12 +111,27 @@ qu_is_empty(queue_t *q)
 }
 
 void           
-qu_destroy(queue_t *q)
+qu_destroy(queue_t *q, bool nodes, bool data)
 {
-    LOG_DEBUG("destroying queue: %p", q);
     if (q == NULL) return;
-    LOG_WARN_IF(q->length != 0,
-        "destroying non-empty queue %p may cause memory leak", q);
+    if (data)
+    {
+        LOG_DEBUG("destroying queue %p%s", q, ", nodes & data");
+        queue_data_t d;
+        while(qu_dequeue(q, &d))
+        {
+            LOG_DEBUG("destroying data %p", d.ptr);
+            q->destroy(d.ptr);
+        }
+    } else if (nodes) {
+        LOG_DEBUG("destroying queue %p%s", q, " & nodes");
+        while(qu_dequeue(q, NULL));
+    } else {
+        LOG_DEBUG("destroying queue %p%s", q, " only");
+        LOG_WARN_IF(((q->length != 0)),
+            "destroying queue %p without destroying nodes or data may cause "
+            "memory leak", q);
+    }
     free(q);
     return;
 }

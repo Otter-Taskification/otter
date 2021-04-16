@@ -52,7 +52,8 @@ da_push_back(dynamic_array_t *array, array_element_t elem)
 {
     if (array == NULL) {LOG_ERROR("null array pointer"); return NULL;}
     LOG_DEBUG("appending value %p to array %p", elem.ptr,  array);
-    if (array->end >= array->tail) {
+    if (array->end >= array->tail)
+    {
         size_t length = da_get_length(array);
         void *new_data = da_extend(array, length + DEFAULT_INCREMENT);
         if (new_data == NULL) return false;
@@ -117,8 +118,8 @@ array_element_t *
 da_extend(dynamic_array_t *array, size_t new_length)
 {
     if (array == NULL) {LOG_ERROR("null array pointer"); return NULL;}
-    LOG_DEBUG("extending array %p from %lu to %lu elements",
-        array, da_get_length(array), new_length);
+    LOG_DEBUG("extending array %p to %lu elements",
+        array, new_length);
     void *new_data = reallocarray(array->begin, new_length, sizeof(array_element_t));
     if (new_data == NULL)
         {LOG_ERROR("failed to extend array %p", array); return NULL; }

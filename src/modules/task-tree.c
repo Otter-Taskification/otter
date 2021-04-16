@@ -27,6 +27,15 @@ static task_tree_t Tree = {
     .node_queue = NULL
 };
 
+void destroy_tree_node(void *ptr)
+{
+    tt_node_t *node = (tt_node_t*) ptr;
+    LOG_DEBUG("callback: destroying tree node %p", node);
+    da_destroy(node->children);
+    free(node);
+    return;
+}
+
 bool 
 tt_init_tree(void)
 {
@@ -36,7 +45,7 @@ tt_init_tree(void)
         return Tree.initialised;
     }
     LOG_INFO("initialising task tree");
-    if (NULL == (Tree.node_queue = qu_create()))
+    if (NULL == (Tree.node_queue = qu_create(&destroy_tree_node)))
     {
         LOG_ERROR("failed to initialise task tree, aborting");
         abort();
@@ -66,7 +75,7 @@ tt_destroy_tree(void)
         return;
     }
     LOG_INFO("destroying task tree");
-    qu_destroy(Tree.node_queue);
+    qu_destroy(Tree.node_queue, true, true);
     Tree.node_queue = NULL;
     pthread_mutex_destroy(&Tree.lock);
     Tree.initialised = false;

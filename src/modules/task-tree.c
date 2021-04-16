@@ -1,3 +1,7 @@
+#if !defined(DEBUG_LEVEL)
+#define DEBUG_LEVEL 0
+#endif
+
 #include <stdlib.h>
 #include <pthread.h>
 #include <errno.h>
@@ -101,8 +105,9 @@ tt_new_node(tt_node_id_t parent_id, size_t n_children)
     }
 
     pthread_mutex_lock(&Tree.lock);
-    LOG_ERROR_IF(false == qu_enqueue(
-            Tree.node_queue,(queue_data_t){.ptr = node}),
+    bool node_was_enqueued = qu_enqueue(
+            Tree.node_queue,(queue_data_t){.ptr = node});
+    LOG_ERROR_IF(false == node_was_enqueued,
         "failed to add parent %p to task tree", parent_id.ptr);
     pthread_mutex_unlock(&Tree.lock);
 

@@ -19,7 +19,7 @@ bool tt_write_tree(const char *fname);
 void tt_destroy_tree(void);
 
 // task tree node functions
-tt_node_t *tt_new_node(tt_node_id_t node_ref);
-bool tt_add_child_to_node(tt_node_t *node, tt_node_id_t child_ref);
+tt_node_t *tt_new_node(tt_node_id_t parent_id, size_t n_children);
+bool tt_add_child_to_node(tt_node_t *parent_node, tt_node_id_t child_id);
 
 #endif // TASK_TREE_H

@@ -32,4 +32,4 @@ run: $(EXE) $(LIBS)
 	./$(EXE)
 
 clean:
-	@rm -rf $(LIBS) $(EXE)
+	@rm -rf $(LIBS) $(BINS)

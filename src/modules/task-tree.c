@@ -65,7 +65,6 @@ tt_init_tree(void)
 bool 
 tt_write_tree(const char *fname)
 {
-    
     /* First write any children the root node has (it may have 0) */
     size_t n_children = 0;
     array_element_t *child_ids = da_detach_data(Tree.root_node.children, &n_children);
@@ -73,13 +72,12 @@ tt_write_tree(const char *fname)
         "task tree got null pointer from root node");
     if (n_children > 0)
     {
-        fprintf(stderr, "PARENT=%p ", Tree.root_node.parent_id.ptr);
+        fprintf(stderr, "%lx: ", Tree.root_node.parent_id.value);
         for (int i=0; i<n_children; i++)
             fprintf(stderr, "%12p ", (child_ids + i*sizeof(array_element_t))->ptr);
         fprintf(stderr, "\n");
     }
-    da_destroy(Tree.root_node.children);
-    Tree.root_node.children = NULL;
+    if (child_ids != NULL) free(child_ids);
 
     /* then write the children of each node in the queue */
     tt_node_t *node = NULL;
@@ -88,11 +86,12 @@ tt_write_tree(const char *fname)
         child_ids = da_detach_data(node->children, &n_children);
         LOG_ERROR_IF(child_ids == NULL,
             "task tree got null pointer from node id %p", node->parent_id.ptr);
-        fprintf(stderr, "PARENT=%lx ", node->parent_id.value);
+        fprintf(stderr, "%lx: ", node->parent_id.value);
         for (int i=0; i<n_children; i++)
-            fprintf(stderr, "%12lx ", (child_ids + i*sizeof(array_element_t))->value);
+            fprintf(stderr, "%lx ", child_ids[i].value);
         fprintf(stderr, "\n");
         destroy_tree_node(node);
+        if (child_ids != NULL) free(child_ids);
     }
     return true;
 }
@@ -170,6 +169,9 @@ tt_add_child_to_node(tt_node_t *parent_node, tt_node_id_t child_id)
         if (parent_node == NULL) pthread_mutex_unlock(&Tree.lock);
         return false;
     }
+    #if DEBUG_LEVEL >= 3
+    da_print_array(children);
+    #endif
     LOG_DEBUG("task tree added child %p to node %p (len=%lu)",
         child_id.ptr, parent_node, da_get_length(parent_node->children));
     if (parent_node == NULL) pthread_mutex_unlock(&Tree.lock);

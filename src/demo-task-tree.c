@@ -5,7 +5,8 @@
 #include <modules/task-tree.h>
 #include <macros/debug.h>
 
-#define NCHILDREN 6
+#define NPARENTS 200
+#define NCHILDREN 30
 
 int main(void)
 {
@@ -16,19 +17,25 @@ int main(void)
     assert(tt_init_tree());
     assert(tt_init_tree());
 
-    tt_node_t *parent = tt_new_node(
-        (tt_node_id_t){.ptr = (void*) 0xBEEF}, NCHILDREN/2);
-    assert(parent != NULL);
+    tt_node_t *parents[NPARENTS] = {0};
 
-    for (int i=0; i<NCHILDREN; i++)
+    for (int k=0; k<NPARENTS; k++)
     {
-        assert(tt_add_child_to_node(parent, (tt_node_id_t){.value = i}));
+        parents[k] = tt_new_node((tt_node_id_t){.value = 0xAABBCCDD + 17171*k},
+            NCHILDREN/2);
+        assert(parents[k] != NULL);
     }
 
-    assert(false == tt_write_tree(""));
+    for (int k=0; k<NPARENTS; k++)
+    {
+        for (uint64_t i=0; i<NCHILDREN; i++)
+        {
+            assert(tt_add_child_to_node(parents[k],
+                (tt_node_id_t){.value = i+k+NPARENTS}));
+        }
+    }
 
-    tt_destroy_tree();
-    assert(tt_init_tree());
+    assert(tt_write_tree(""));
 
     tt_destroy_tree();
 

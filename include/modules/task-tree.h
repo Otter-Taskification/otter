@@ -4,6 +4,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/* Default number of child references the root node starts with */
+#define DEFAULT_ROOT_CHILDREN 1000
+
 /* Task tree node - maintains list of its child nodes */
 typedef struct tt_node_t tt_node_t;
 

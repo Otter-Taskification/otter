@@ -6,7 +6,7 @@
 #include <macros/debug.h>
 #include <dtypes/dynamic-array.h>
 
-#define NITEMS 6
+#define NITEMS 16
 
 int main(void)
 {
@@ -16,11 +16,13 @@ int main(void)
     assert(da_peek_data(array, &length) == NULL);
     assert(da_get_length(array) == 0);
 
+    da_print_array(array);
+
     for (int i=0; i<NITEMS; i++)
     {
         assert(da_push_back(array, (array_element_t){.value=i}));
+        da_print_array(array);
     }
-    assert(da_get_length(array) == NITEMS);
 
     assert(da_peek_data(array, NULL) == NULL);
     assert(da_peek_data(array, &length) != NULL);

@@ -1,6 +1,6 @@
 CC=clang
 CFLAGS=-Wall -Werror -Iinclude/
-DEBUG=-g -DDEBUG_LEVEL=3
+DEBUG=-g
 LDFLAGS=
 EXE=demo-debug-macros
 

@@ -65,8 +65,36 @@ tt_init_tree(void)
 bool 
 tt_write_tree(const char *fname)
 {
-    LOG_ERROR("TODO");
-    return false;
+    
+    /* First write any children the root node has (it may have 0) */
+    size_t n_children = 0;
+    array_element_t *child_ids = da_detach_data(Tree.root_node.children, &n_children);
+    LOG_ERROR_IF(child_ids == NULL,
+        "task tree got null pointer from root node");
+    if (n_children > 0)
+    {
+        fprintf(stderr, "PARENT=%p ", Tree.root_node.parent_id.ptr);
+        for (int i=0; i<n_children; i++)
+            fprintf(stderr, "%12p ", (child_ids + i*sizeof(array_element_t))->ptr);
+        fprintf(stderr, "\n");
+    }
+    da_destroy(Tree.root_node.children);
+    Tree.root_node.children = NULL;
+
+    /* then write the children of each node in the queue */
+    tt_node_t *node = NULL;
+    while(qu_dequeue(Tree.node_queue, (queue_data_t*) &node))
+    {
+        child_ids = da_detach_data(node->children, &n_children);
+        LOG_ERROR_IF(child_ids == NULL,
+            "task tree got null pointer from node id %p", node->parent_id.ptr);
+        fprintf(stderr, "PARENT=%lx ", node->parent_id.value);
+        for (int i=0; i<n_children; i++)
+            fprintf(stderr, "%12lx ", (child_ids + i*sizeof(array_element_t))->value);
+        fprintf(stderr, "\n");
+        destroy_tree_node(node);
+    }
+    return true;
 }
 
 void 

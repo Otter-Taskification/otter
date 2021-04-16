@@ -28,10 +28,11 @@ qu_create(destroy_callback_t callback)
         LOG_ERROR("failed to create queue");
         return NULL;
     }
-    LOG_DEBUG("created queue: %p", q);
+    LOG_DEBUG("queue created: %p", q);
     q->head = q->tail = NULL;
     q->length = 0;
-    LOG_DEBUG_IF(callback == NULL, "no data destructor provided, using free()");
+    LOG_DEBUG_IF(callback == NULL,
+        "queue item destructor not provided, using free()");
     q->destroy = callback == NULL ? &free : callback;
     return q;
 }
@@ -41,7 +42,7 @@ qu_enqueue(queue_t *q, queue_data_t data)
 {
     if (q == NULL)
     {
-        LOG_WARN("tried to enqueue with null queue");
+        LOG_WARN("queue is null, can't enqueue item");
         return false;
     }
 
@@ -49,7 +50,7 @@ qu_enqueue(queue_t *q, queue_data_t data)
 
     if (node == NULL)
     {
-        LOG_ERROR("failed to create node for queue %p", q);
+        LOG_ERROR("queue node creation failed for queue %p", q);
         return false;
     }
 
@@ -66,7 +67,7 @@ qu_enqueue(queue_t *q, queue_data_t data)
         q->length += 1;
     }
 
-    LOG_DEBUG("tail of %p is now %p (length=%lu)", q, q->tail, q->length);
+    LOG_DEBUG("enqueued item (queue %p: tail=%p, length=%lu)", q, q->tail, q->length);
     return true;
 }
 
@@ -75,7 +76,7 @@ qu_dequeue(queue_t *q, queue_data_t *data)
 {
     if (q == NULL)
     {
-        LOG_WARN("tried to dequeue from null queue");
+        LOG_WARN("queue is null, can't dequeue item");
         return false;
     }
 
@@ -86,16 +87,16 @@ qu_dequeue(queue_t *q, queue_data_t *data)
     }
 
     if (data != NULL) *data = q->head->data;
-    LOG_DEBUG_IF(data == NULL, "null pointer passed as data argument");
+    LOG_DEBUG_IF(data == NULL,
+        "dequeing item with null data pointer, data not written");
     node_t *node = q->head;
     q->head = q->head->next;
     q->length -= 1;
-    LOG_DEBUG("head of %p is now %p (length=%lu)", q, q->head, q->length);
-
-    LOG_DEBUG("destroying node %p", node);
+    LOG_DEBUG("dequeued item (queue %p: head=%p, length=%lu) - destroying node",    
+        q, q->head, q->length);
     free(node);
 
-    return (q->head == NULL) ? false : true ;
+    return true;
 }
 
 size_t         
@@ -120,7 +121,7 @@ qu_destroy(queue_t *q, bool nodes, bool data)
         queue_data_t d;
         while(qu_dequeue(q, &d))
         {
-            LOG_DEBUG("destroying data %p", d.ptr);
+            LOG_DEBUG("destroying node data %p", d.ptr);
             q->destroy(d.ptr);
         }
     } else if (nodes) {
@@ -129,8 +130,8 @@ qu_destroy(queue_t *q, bool nodes, bool data)
     } else {
         LOG_DEBUG("destroying queue %p%s", q, " only");
         LOG_WARN_IF(((q->length != 0)),
-            "destroying queue %p without destroying nodes or data may cause "
-            "memory leak", q);
+            "destroying queue %p (len=%lu) without destroying nodes or data may cause "
+            "memory leak", q, q->length);
     }
     free(q);
     return;

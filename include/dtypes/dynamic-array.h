@@ -19,4 +19,6 @@ array_element_t   *da_peek_data(dynamic_array_t *arr, size_t *length);
 array_element_t   *da_detach_data(dynamic_array_t *arr, size_t *length);
 void               da_destroy(dynamic_array_t *arr);
 
+void               da_print_array(dynamic_array_t *arr);
+
 #endif // DYNAMIC_ARRAY_H

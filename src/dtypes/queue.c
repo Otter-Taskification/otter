@@ -95,7 +95,7 @@ qu_dequeue(queue_t *q, queue_data_t *data)
     LOG_DEBUG("destroying node %p", node);
     free(node);
 
-    return (q->head == NULL) ? false : true ;
+    return true;
 }
 
 size_t         

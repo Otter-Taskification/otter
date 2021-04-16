@@ -14,6 +14,7 @@
 void data_destructor(void *data)
 {
     LOG_INFO("destroyed data %p", data);
+    free(data);
     return;
 }
 
@@ -81,6 +82,12 @@ bool check_null_queue_length_is_0()
     return true;
 }
 
+bool check_queue_is_empty(queue_t *q)
+{
+    assert(qu_get_length(q) == 0);
+    return true;
+}
+
 int main(void)
 {
     queue_t *q;
@@ -110,6 +117,14 @@ int main(void)
     LOG_INFO(">>> check creating queue with callback for destroying data");
     assert(check_create_queue_with_destructor(&q, data_destructor));
     assert(check_enqueue_ptr_is_true(q, NITEMS));
+    qu_destroy(q, false, true);
+    q = NULL;
+
+    LOG_INFO(">>> check queue with 1 item correctly emptied");
+    assert(check_create_queue(&q));    
+    assert(check_enqueue_is_true(q, 1));
+    while(qu_dequeue(q, NULL));
+    assert(check_queue_is_empty(q));
     qu_destroy(q, false, true);
     q = NULL;
 

@@ -28,7 +28,7 @@ array_create(size_t length)
     array_t *array = malloc(sizeof(*array));
     if (array == NULL)
     {
-        LOG_ERROR("failed to create dynamic array");
+        LOG_ERROR("failed to create array");
         return NULL;
     }
     if (length == 0) {
@@ -37,14 +37,14 @@ array_create(size_t length)
     }
     array->begin = malloc(length * sizeof(array_element_t));
     if (array->begin == NULL) {
-        LOG_ERROR("failed to allocate dynamic array block of size %lu",
+        LOG_ERROR("failed to allocate array block of size %lu",
             length*sizeof(array_element_t));
         free(array);
         return NULL;
     }    
     array->tail = array->begin + length;
     array->end = array->begin;
-    LOG_DEBUG("new dynamic array at %p", array);
+    LOG_DEBUG("array created at %p", array);
     return array;
 }
 
@@ -53,7 +53,7 @@ array_push_back(array_t *array, array_element_t elem)
 {
     if (array == NULL)
     {
-        LOG_ERROR("null array pointer");
+        LOG_ERROR("array pointer is null");
         return false;
     }
     if (array->end >= array->tail)
@@ -64,8 +64,8 @@ array_push_back(array_t *array, array_element_t elem)
     }
     *(array->end) = elem;
     array->end = array->end + 1;
-    LOG_DEBUG("array %p appended value %p at %p",
-        array, elem.ptr, array->end - 1);
+    LOG_DEBUG("array appended value (array %p: value=0x%lx addr=%p)",
+        array, elem.value, array->end - 1);
     return true;
 }
 
@@ -83,7 +83,7 @@ array_peek_data(array_t *array, size_t *length)
 {
     if ((array == NULL) || (length == NULL))
     {
-        LOG_WARN("null pointer (array=%p, length=%p)", array, length);
+        LOG_WARN("null pointer argument (array=%p, length=%p)", array, length);
         return NULL;
     } else {
         *length = array_length(array);
@@ -98,7 +98,7 @@ array_detach_data(array_t *array, size_t *length)
 {
     if ((array == NULL) || (length == NULL))
     {
-        LOG_WARN("null pointer (array=%p, length=%p)", array, length);
+        LOG_WARN("null pointer argument (array=%p, length=%p)", array, length);
         return NULL;
     }
     array_element_t *data = array_peek_data(array, length);
@@ -170,7 +170,7 @@ array_print(array_t *arr)
     fprintf(stderr, "%12s%s%-10s%s%-6s\n", "index", " | ", "address", " | ", "value");
     for (int i=0; i<items; i++)
     {
-        fprintf(stderr, "%12d%s%010p%s0x%06lx\n", i, " | ", &array[i], " | ", array[i].value);
+        fprintf(stderr, "%12d%s%10p%s0x%06lx\n", i, " | ", &array[i], " | ", array[i].value);
     }
     fprintf(stderr, "\n");
 

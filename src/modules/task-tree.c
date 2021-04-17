@@ -21,17 +21,17 @@ struct tt_node_t {
 /* Task tree - maintains queue of tree nodes */
 typedef struct task_tree_t {
     bool                initialised;
-    queue_t            *node_queue;
+    queue_t            *queue;
     pthread_mutex_t     lock;
     tt_node_t           root_node;
 } task_tree_t;
 
 /* Global task tree - singleton */
 static task_tree_t Tree = {
-    .initialised = false,
-    .node_queue = NULL,
-    .lock = PTHREAD_MUTEX_INITIALIZER,
-    .root_node = {.parent_id = {.ptr = NULL}, .children = NULL}
+    .initialised  = false,
+    .queue        = NULL,
+    .lock         = PTHREAD_MUTEX_INITIALIZER,
+    .root_node    = {.parent_id = {.ptr = NULL}, .children = NULL}
 };
 
 void destroy_tree_node(void *ptr)
@@ -52,9 +52,9 @@ tt_init_tree(void)
         return Tree.initialised;
     }
     LOG_INFO("task tree initialising");
-    Tree.node_queue = qu_create(&destroy_tree_node);
+    Tree.queue = queue_create(&destroy_tree_node);
     Tree.root_node.children = da_create(DEFAULT_ROOT_CHILDREN);
-    if ((Tree.node_queue == NULL) || (Tree.root_node.children == NULL))
+    if ((Tree.queue == NULL) || (Tree.root_node.children == NULL))
     {
         LOG_ERROR("task tree failed to initialise, aborting");
         abort();
@@ -81,7 +81,7 @@ tt_write_tree(const char *fname)
 
     /* then write the children of each node in the queue */
     tt_node_t *node = NULL;
-    while(qu_dequeue(Tree.node_queue, (queue_data_t*) &node))
+    while(queue_pop(Tree.queue, (queue_item_t*) &node))
     {
         child_ids = da_detach_data(node->children, &n_children);
         LOG_ERROR_IF(child_ids == NULL,
@@ -105,9 +105,9 @@ tt_destroy_tree(void)
         return;
     }
     LOG_INFO("destroying task tree");
-    qu_destroy(Tree.node_queue, true, true);
+    queue_destroy(Tree.queue, true);
     da_destroy(Tree.root_node.children);
-    Tree.node_queue = NULL;
+    Tree.queue = NULL;
     Tree.root_node.children = NULL;
     pthread_mutex_destroy(&Tree.lock);
     Tree.initialised = false;
@@ -140,9 +140,11 @@ tt_new_node(tt_node_id_t parent_id, size_t n_children)
     }
     LOG_DEBUG("task tree created node for parent %p with %lu elements",
         parent_id.ptr, n_children);
-    bool node_was_enqueued = qu_enqueue(
-            Tree.node_queue, (queue_data_t){.ptr = node});
-    LOG_ERROR_IF(false == node_was_enqueued,
+    bool node_was_queued = queue_push(Tree.queue, (queue_item_t){.ptr = node});
+    #if DEBUG_LEVEL >= 4
+    queue_print(Tree.queue);
+    #endif
+    LOG_ERROR_IF(false == node_was_queued,
         "task tree failed to add parent %p", parent_id.ptr);
 
 unlock_and_exit:
@@ -169,7 +171,7 @@ tt_add_child_to_node(tt_node_t *parent_node, tt_node_id_t child_id)
         if (parent_node == NULL) pthread_mutex_unlock(&Tree.lock);
         return false;
     }
-    #if DEBUG_LEVEL >= 3
+    #if DEBUG_LEVEL >= 4
     da_print_array(children);
     #endif
     LOG_DEBUG("task tree added child %p to node %p (len=%lu)",

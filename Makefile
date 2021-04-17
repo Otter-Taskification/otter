@@ -1,7 +1,7 @@
 CC=clang
 CFLAGS=-Iinclude/
 LDFLAGS=-Llib/ -Wl,-rpath=`pwd`/lib/
-DEBUG=-g -DDEBUG_LEVEL=2 -DDA_LEN=5 -DDA_INC=5
+DEBUG=-g -DDEBUG_LEVEL=3 -DDA_LEN=5 -DDA_INC=5
 LIBS=lib/libqueue.so lib/libdynamic-array.so lib/libtask-tree.so
 BINS=demo-queue demo-dynamic-array demo-task-tree
 EXE=demo-task-tree

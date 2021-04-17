@@ -2,30 +2,30 @@
 #include <dtypes/dynamic-array.h>
 #include <macros/debug.h>
 
-#if !defined(DA_LEN)
+#if !defined(ARRAY_LEN)
 #define DEFAULT_LENGTH 1000
 #else
-#define DEFAULT_LENGTH DA_LEN
+#define DEFAULT_LENGTH array_LEN
 #endif
 
-#if !defined(DA_INC)
+#if !defined(ARRAY_INC)
 #define DEFAULT_INCREMENT 1000
 #else
-#define DEFAULT_INCREMENT DA_INC
+#define DEFAULT_INCREMENT ARRAY_INC
 #endif
 
-array_element_t *da_extend(dynamic_array_t *array, size_t new_length);
+array_element_t *array_extend(array_t *array, size_t new_length);
 
-struct dynamic_array_t {
+struct array_t {
     array_element_t *begin;
     array_element_t *end;
     array_element_t *tail;
 };
 
-dynamic_array_t *
-da_create(size_t length)
+array_t *
+array_create(size_t length)
 {
-    dynamic_array_t *array = malloc(sizeof(*array));
+    array_t *array = malloc(sizeof(*array));
     if (array == NULL)
     {
         LOG_ERROR("failed to create dynamic array");
@@ -49,7 +49,7 @@ da_create(size_t length)
 }
 
 bool             
-da_push_back(dynamic_array_t *array, array_element_t elem)
+array_push_back(array_t *array, array_element_t elem)
 {
     if (array == NULL)
     {
@@ -58,8 +58,8 @@ da_push_back(dynamic_array_t *array, array_element_t elem)
     }
     if (array->end >= array->tail)
     {
-        size_t length = da_get_length(array);
-        void *new_data = da_extend(array, length + DEFAULT_INCREMENT);
+        size_t length = array_length(array);
+        void *new_data = array_extend(array, length + DEFAULT_INCREMENT);
         if (new_data == NULL) return false;
     }
     *(array->end) = elem;
@@ -70,7 +70,7 @@ da_push_back(dynamic_array_t *array, array_element_t elem)
 }
 
 size_t           
-da_get_length(dynamic_array_t *array)
+array_length(array_t *array)
 {
     if (array == NULL) return 0;
     LOG_DEBUG("array %p has length %lu", array, array->end - array->begin);
@@ -79,14 +79,14 @@ da_get_length(dynamic_array_t *array)
 }
 
 array_element_t *
-da_peek_data(dynamic_array_t *array, size_t *length)
+array_peek_data(array_t *array, size_t *length)
 {
     if ((array == NULL) || (length == NULL))
     {
         LOG_WARN("null pointer (array=%p, length=%p)", array, length);
         return NULL;
     } else {
-        *length = da_get_length(array);
+        *length = array_length(array);
         LOG_DEBUG("array %p holds data %p:%p",
             array, array->begin, array->end == NULL ? NULL : array->end-1);
         return array->begin;
@@ -94,14 +94,14 @@ da_peek_data(dynamic_array_t *array, size_t *length)
 }
 
 array_element_t *
-da_detach_data(dynamic_array_t *array, size_t *length)
+array_detach_data(array_t *array, size_t *length)
 {
     if ((array == NULL) || (length == NULL))
     {
         LOG_WARN("null pointer (array=%p, length=%p)", array, length);
         return NULL;
     }
-    array_element_t *data = da_peek_data(array, length);
+    array_element_t *data = array_peek_data(array, length);
     if (data == NULL) return NULL;
     array->begin = array->end = array->tail = NULL;
     LOG_DEBUG("array %p detached data", array);
@@ -109,7 +109,7 @@ da_detach_data(dynamic_array_t *array, size_t *length)
 }
 
 void             
-da_destroy(dynamic_array_t *array)
+array_destroy(array_t *array)
 {
     if (array == NULL) {LOG_ERROR("null array pointer"); return;}
     LOG_DEBUG("destroying array %p and data %p", array, array->begin);
@@ -119,7 +119,7 @@ da_destroy(dynamic_array_t *array)
 }
 
 array_element_t *
-da_extend(dynamic_array_t *array, size_t new_length)
+array_extend(array_t *array, size_t new_length)
 {
     if (array == NULL)
     {
@@ -146,9 +146,9 @@ da_extend(dynamic_array_t *array, size_t new_length)
 }
 
 void
-da_print_array(dynamic_array_t *arr)
+array_print(array_t *arr)
 {
-    size_t items = da_get_length(arr);
+    size_t items = array_length(arr);
     array_element_t *array = arr->begin;
 
     fprintf(stderr, "\n" 
@@ -167,10 +167,10 @@ da_print_array(dynamic_array_t *arr)
 
     if (items == 0) return;
 
-    fprintf(stderr, "%12s   %-11s %-s\n", "index", "address", "value");
+    fprintf(stderr, "%12s%s%-10s%s%-6s\n", "index", " | ", "address", " | ", "value");
     for (int i=0; i<items; i++)
     {
-        fprintf(stderr, "%12d - %p - 0x%06lx\n", i, &array[i], array[i].value);
+        fprintf(stderr, "%12d%s%010p%s0x%06lx\n", i, " | ", &array[i], " | ", array[i].value);
     }
     fprintf(stderr, "\n");
 

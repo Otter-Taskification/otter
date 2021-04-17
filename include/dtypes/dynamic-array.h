@@ -19,6 +19,8 @@ array_element_t   *array_peek_data(array_t *arr, size_t *length);
 array_element_t   *array_detach_data(array_t *arr, size_t *length);
 void               array_destroy(array_t *arr);
 
+#if DEBUG_LEVEL >= 4
 void               array_print(array_t *arr);
+#endif
 
 #endif // DYNAMIC_ARRAY_H

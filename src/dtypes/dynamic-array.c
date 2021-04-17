@@ -145,6 +145,7 @@ array_extend(array_t *array, size_t new_length)
     return array->begin;
 }
 
+#if DEBUG_LEVEL >= 4
 void
 array_print(array_t *arr)
 {
@@ -176,3 +177,4 @@ array_print(array_t *arr)
 
     return;
 }
+#endif

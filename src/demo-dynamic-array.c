@@ -16,12 +16,16 @@ int main(void)
     assert(array_peek_data(array, &length) == NULL);
     assert(array_length(array) == 0);
 
+    #if DEBUG_LEVEL >= 4
     array_print(array);
+    #endif
 
     for (int i=0; i<NITEMS; i++)
     {
         assert(array_push_back(array, (array_element_t){.value=i}));
+        #if DEBUG_LEVEL >= 4
         array_print(array);
+        #endif
     }
 
     assert(array_peek_data(array, NULL) == NULL);

@@ -15,7 +15,7 @@ lib/libqueue.so: src/dtypes/queue.c include/dtypes/queue.h
 demo-queue: src/demo-queue.c include/dtypes/queue.h lib/libqueue.so
 	$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG) -lqueue $(DEBUG) $< -o $@
 
-run:
+run: $(EXE)
 	./$(EXE)
 
 clean:

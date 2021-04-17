@@ -8,7 +8,7 @@
 typedef struct node_t node_t;
 
 struct node_t {
-    queue_data_t    data;
+    queue_item_t    data;
     node_t         *next;
 };
 
@@ -16,11 +16,11 @@ struct queue_t {
     node_t      *head;
     node_t      *tail;
     size_t       length;
-    destroy_callback_t destroy;
+    data_destructor_t destroy;
 };
 
 queue_t *
-qu_create(destroy_callback_t callback)
+queue_create(data_destructor_t destructor)
 {
     queue_t *q = malloc(sizeof(*q));
     if (q == NULL)
@@ -31,18 +31,18 @@ qu_create(destroy_callback_t callback)
     LOG_DEBUG("queue created: %p", q);
     q->head = q->tail = NULL;
     q->length = 0;
-    LOG_DEBUG_IF(callback == NULL,
+    LOG_DEBUG_IF(destructor == NULL,
         "queue item destructor not provided, using free()");
-    q->destroy = callback == NULL ? &free : callback;
+    q->destroy = destructor == NULL ? &free : destructor;
     return q;
 }
 
 bool           
-qu_enqueue(queue_t *q, queue_data_t data)
+queue_push(queue_t *q, queue_item_t item)
 {
     if (q == NULL)
     {
-        LOG_WARN("queue is null, can't enqueue item");
+        LOG_WARN("queue is null, can't add item");
         return false;
     }
 
@@ -54,7 +54,7 @@ qu_enqueue(queue_t *q, queue_data_t data)
         return false;
     }
 
-    node->data = data;
+    node->data = item;
     node->next = NULL;
 
     if (q->length == 0)
@@ -67,73 +67,106 @@ qu_enqueue(queue_t *q, queue_data_t data)
         q->length += 1;
     }
 
-    LOG_DEBUG("enqueued item (queue %p: tail=%p, length=%lu)", q, q->tail, q->length);
+    LOG_DEBUG("queue added item 0x%lx (queue %p: tail node=%p, length=%lu)",
+        item.value, q, q->tail, q->length);
     return true;
 }
 
 bool   
-qu_dequeue(queue_t *q, queue_data_t *data)
+queue_pop(queue_t *q, queue_item_t *dest)
 {
     if (q == NULL)
     {
-        LOG_WARN("queue is null, can't dequeue item");
+        LOG_WARN("queue is null");
         return false;
     }
 
     if (q->head == NULL)
     {
-        LOG_DEBUG("empty queue");
+        LOG_DEBUG("queue empty (queue: %p)", q);
         return false;
     }
 
-    if (data != NULL) *data = q->head->data;
-    LOG_DEBUG_IF(data == NULL,
-        "dequeing item with null data pointer, data not written");
+    if (dest != NULL) *dest = q->head->data;
     node_t *node = q->head;
     q->head = q->head->next;
     q->length -= 1;
-    LOG_DEBUG("dequeued item (queue %p: head=%p, length=%lu) - destroying node",    
-        q, q->head, q->length);
+    LOG_DEBUG("queue popped item 0x%lx (queue %p: head node=%p, length=%lu)",
+        node->data.value, q, q->head, q->length);
+    LOG_WARN_IF(dest == NULL,
+        "queue popped item without returning value (null destination pointer)");
     free(node);
 
     return true;
 }
 
 size_t         
-qu_get_length(queue_t *q)
+queue_length(queue_t *q)
 {
     return (q == NULL) ? 0 : q->length;
 }
 
 bool           
-qu_is_empty(queue_t *q)
+queue_is_empty(queue_t *q)
 {
     return (q == NULL) ? true : ((q->length == 0) ? true : false) ;
 }
 
 void           
-qu_destroy(queue_t *q, bool nodes, bool data)
+queue_destroy(queue_t *q, bool items)
 {
     if (q == NULL) return;
-    if (data)
+    if (items)
     {
-        LOG_DEBUG("destroying queue %p%s", q, ", nodes & data");
-        queue_data_t d;
-        while(qu_dequeue(q, &d))
+        LOG_DEBUG("destroying queue %p%s", q, " and items");
+        queue_item_t d = {.value = 0};
+        while(queue_pop(q, &d))
         {
-            LOG_DEBUG("destroying node data %p", d.ptr);
+            LOG_DEBUG("destroying queue item %p", d.ptr);
             q->destroy(d.ptr);
         }
-    } else if (nodes) {
-        LOG_DEBUG("destroying queue %p%s", q, " & nodes");
-        while(qu_dequeue(q, NULL));
     } else {
-        LOG_DEBUG("destroying queue %p%s", q, " only");
+        LOG_DEBUG("destroying queue %p", q);
         LOG_WARN_IF(((q->length != 0)),
-            "destroying queue %p (len=%lu) without destroying nodes or data may cause "
+            "destroying queue %p (len=%lu) without destroying items may cause "
             "memory leak", q, q->length);
     }
     free(q);
     return;
 }
 
+void
+queue_print(queue_t *q)
+{
+    if (q == NULL)
+    {
+        fprintf(stderr, "\n%12s\n", "<null queue>");
+        return;
+    }
+
+    node_t *node = q->head;
+
+    fprintf(stderr, "\n"
+                    "%12s %p\n"
+                    "%12s %p\n"
+                    "%12s %p\n"
+                    "%12s %lu\n"
+                    "%12s %p\n\n",
+                    "QUEUE",        q,
+                    "head node",    q->head,
+                    "tail node",    q->tail,
+                    "length",       q->length,
+                    "destructor",   q->destroy);
+
+    const char *sep = " | ";
+    fprintf(stderr, "%12s%s%-12s%s%-8s\n", "position", sep, "node", sep, "item");
+    int position = 0;
+    while (node != NULL)
+    {
+        fprintf(stderr, "%12d%s%-12p%s0x%06lx (%lu)\n", position, sep, node, sep, node->data.value, node->data.value);
+        node = node->next;
+        position++;
+    }
+    fprintf(stderr, "\n");
+    return;
+}

@@ -96,7 +96,9 @@ int main(void)
             "again returns false");
     assert(check_create_queue(&q));
     assert(check_enqueue_is_true(q, NITEMS));
+    #if DEBUG_LEVEL >= 4
     queue_print(q);
+    #endif
     assert(check_dequeue_all_is_true(q));
     assert(queue_is_empty(q) == true);
     assert(check_dequeue_empty_queue_is_false(q));
@@ -105,7 +107,9 @@ int main(void)
     /* check re-queing then destroying nodes but not data */
     LOG_INFO(">>> check re-queing then destroying nodes but not data");
     assert(check_enqueue_is_true(q, NITEMS));
+    #if DEBUG_LEVEL >= 4
     queue_print(q);
+    #endif
     queue_destroy(q, false);
     q = NULL;
     
@@ -113,7 +117,9 @@ int main(void)
             "data (should imply destroying nodes");
     assert(check_create_queue(&q));
     assert(check_enqueue_ptr_is_true(q, NITEMS));
+    #if DEBUG_LEVEL >= 4
     queue_print(q);
+    #endif
     queue_destroy(q, true);
     q = NULL;
 

@@ -15,7 +15,7 @@
 /* Task tree node - dynamic array of a task's children */
 struct tt_node_t {
     tt_node_id_t      parent_id;
-    dynamic_array_t  *children;
+    array_t  *children;
 };
 
 /* Task tree - maintains queue of tree nodes */
@@ -38,7 +38,7 @@ void destroy_tree_node(void *ptr)
 {
     tt_node_t *node = (tt_node_t*) ptr;
     LOG_DEBUG("task tree callback: destroying tree node %p", node);
-    da_destroy(node->children);
+    array_destroy(node->children);
     free(node);
     return;
 }
@@ -53,7 +53,7 @@ tt_init_tree(void)
     }
     LOG_INFO("task tree initialising");
     Tree.queue = queue_create(&destroy_tree_node);
-    Tree.root_node.children = da_create(DEFAULT_ROOT_CHILDREN);
+    Tree.root_node.children = array_create(DEFAULT_ROOT_CHILDREN);
     if ((Tree.queue == NULL) || (Tree.root_node.children == NULL))
     {
         LOG_ERROR("task tree failed to initialise, aborting");
@@ -67,7 +67,7 @@ tt_write_tree(const char *fname)
 {
     /* First write any children the root node has (it may have 0) */
     size_t n_children = 0;
-    array_element_t *child_ids = da_detach_data(Tree.root_node.children, &n_children);
+    array_element_t *child_ids = array_detach_data(Tree.root_node.children, &n_children);
     LOG_ERROR_IF(child_ids == NULL,
         "task tree got null pointer from root node");
     if (n_children > 0)
@@ -83,7 +83,7 @@ tt_write_tree(const char *fname)
     tt_node_t *node = NULL;
     while(queue_pop(Tree.queue, (queue_item_t*) &node))
     {
-        child_ids = da_detach_data(node->children, &n_children);
+        child_ids = array_detach_data(node->children, &n_children);
         LOG_ERROR_IF(child_ids == NULL,
             "task tree got null pointer from node id %p", node->parent_id.ptr);
         fprintf(stderr, "%lx: ", node->parent_id.value);
@@ -106,7 +106,7 @@ tt_destroy_tree(void)
     }
     LOG_INFO("destroying task tree");
     queue_destroy(Tree.queue, true);
-    da_destroy(Tree.root_node.children);
+    array_destroy(Tree.root_node.children);
     Tree.queue = NULL;
     Tree.root_node.children = NULL;
     pthread_mutex_destroy(&Tree.lock);
@@ -130,7 +130,7 @@ tt_new_node(tt_node_id_t parent_id, size_t n_children)
         goto unlock_and_exit;
     }
     node->parent_id = parent_id;
-    if (NULL == (node->children = da_create(n_children)))
+    if (NULL == (node->children = array_create(n_children)))
     {
         LOG_ERROR("task tree failed to create dynamic array for parent %p",
             parent_id.ptr);
@@ -155,7 +155,7 @@ unlock_and_exit:
 bool 
 tt_add_child_to_node(tt_node_t *parent_node, tt_node_id_t child_id)
 {
-    dynamic_array_t *children = NULL;
+    array_t *children = NULL;
     if (parent_node == NULL)
     {
         LOG_DEBUG("task tree appending child %p to root node", child_id.ptr);
@@ -164,7 +164,7 @@ tt_add_child_to_node(tt_node_t *parent_node, tt_node_id_t child_id)
     } else {
         children = parent_node->children;
     }
-    if (false == da_push_back(children, (array_element_t){.ptr = child_id.ptr}))
+    if (false == array_push_back(children, (array_element_t){.ptr = child_id.ptr}))
     {
         LOG_ERROR("task tree failed to add child %p to parent node %p",
             child_id.ptr, parent_node);
@@ -172,10 +172,10 @@ tt_add_child_to_node(tt_node_t *parent_node, tt_node_id_t child_id)
         return false;
     }
     #if DEBUG_LEVEL >= 4
-    da_print_array(children);
+    array_print(children);
     #endif
     LOG_DEBUG("task tree added child %p to node %p (len=%lu)",
-        child_id.ptr, parent_node, da_get_length(parent_node->children));
+        child_id.ptr, parent_node, array_length(parent_node->children));
     if (parent_node == NULL) pthread_mutex_unlock(&Tree.lock);
     return true;
 }

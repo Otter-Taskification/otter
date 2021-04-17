@@ -12,17 +12,17 @@ int main(void)
 {
     LOG_INFO("running task tree demo...");
 
-    tt_destroy_tree();
+    tree_destroy();
 
-    assert(tt_init_tree());
-    assert(tt_init_tree());
+    assert(tree_init());
+    assert(tree_init());
 
-    tt_node_t *parents[NPARENTS] = {0};
+    tree_node_t *parents[NPARENTS] = {0};
 
     for (int k=0; k<NPARENTS; k++)
     {
-        parents[k] = tt_new_node((tt_node_id_t){.value = 0xAABBCCDD + 17171*k},
-            NCHILDREN/2);
+        parents[k] = tree_add_node(
+            (tree_node_id_t){.value = 0xAABBCCDD + 17171*k}, NCHILDREN/2);
         assert(parents[k] != NULL);
     }
 
@@ -30,14 +30,14 @@ int main(void)
     {
         for (uint64_t i=0; i<NCHILDREN; i++)
         {
-            assert(tt_add_child_to_node(parents[k],
-                (tt_node_id_t){.value = i+k+NPARENTS}));
+            assert(tree_add_child_to_node(parents[k],
+                (tree_node_id_t){.value = i+k+NPARENTS}));
         }
     }
 
-    assert(tt_write_tree(""));
+    assert(tree_write(""));
 
-    tt_destroy_tree();
+    tree_destroy();
 
     return 0;
 }

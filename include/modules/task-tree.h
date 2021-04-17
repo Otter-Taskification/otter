@@ -8,21 +8,22 @@
 #define DEFAULT_ROOT_CHILDREN 1000
 
 /* Task tree node - maintains list of its child nodes */
-typedef struct tt_node_t tt_node_t;
+typedef struct tree_node_t tree_node_t;
 
 /* Node identifier */
-typedef union tt_node_id_t {
+typedef union tree_node_id_t {
     void        *ptr;
     uint64_t     value;
-} tt_node_id_t;
+} tree_node_id_t;
 
 // task tree functions
-bool tt_init_tree(void);
-bool tt_write_tree(const char *fname);
-void tt_destroy_tree(void);
+bool         tree_init(void);
+bool         tree_write(const char *fname);
+void         tree_destroy(void);
 
 // task tree node functions
-tt_node_t *tt_new_node(tt_node_id_t parent_id, size_t n_children);
-bool tt_add_child_to_node(tt_node_t *parent_node, tt_node_id_t child_id);
+tree_node_t *tree_add_node(tree_node_id_t parent_id, size_t n_children);
+bool         tree_add_child_to_node(tree_node_t *parent_node, 
+                tree_node_id_t child_id);
 
 #endif // TASK_TREE_H

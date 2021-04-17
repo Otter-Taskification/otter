@@ -135,6 +135,7 @@ queue_destroy(queue_t *q, bool items)
     return;
 }
 
+#if DEBUG_LEVEL >= 4
 void
 queue_print(queue_t *q)
 {
@@ -170,3 +171,4 @@ queue_print(queue_t *q)
     fprintf(stderr, "\n");
     return;
 }
+#endif

@@ -22,6 +22,9 @@ bool           queue_pop(queue_t *q, queue_item_t *dest);
 size_t         queue_length(queue_t *q);
 bool           queue_is_empty(queue_t *q);
 void           queue_destroy(queue_t *q, bool items);
+
+#if DEBUG_LEVEL >= 4
 void           queue_print(queue_t *q);
+#endif
 
 #endif // QUEUE_H

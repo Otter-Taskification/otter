@@ -5,8 +5,8 @@
 #include <modules/task-tree.h>
 #include <macros/debug.h>
 
-#define NPARENTS 200
-#define NCHILDREN 30
+#define NPARENTS 5
+#define NCHILDREN 3
 
 int main(void)
 {
@@ -22,7 +22,7 @@ int main(void)
     for (int k=0; k<NPARENTS; k++)
     {
         parents[k] = tree_add_node(
-            (tree_node_id_t){.value = 0xAABBCCDD + 17171*k}, NCHILDREN/2);
+            (tree_node_id_t){.value = k}, NCHILDREN/2);
         assert(parents[k] != NULL);
     }
 

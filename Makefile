@@ -16,7 +16,7 @@ LDFLAGS=
 OMPTLIB=lib/libompt-core.so
 EXE=omp-demo$(EXE_POSTFIX)
 BINS=$(OMPTLIB) $(EXE)
-DEBUG=-g
+DEBUG=-g -DDEBUG_LEVEL=3
 
 .PHONY: all clean run
 

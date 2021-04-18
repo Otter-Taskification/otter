@@ -32,6 +32,7 @@
 #define implements_callback_task_create    
 #define implements_callback_task_schedule  
 #define implements_callback_implicit_task
+#define implements_callback_work
 #include "ompt-callback-prototypes.h"
 
 /* Used as an array index to keep track of unique id's for different entities */

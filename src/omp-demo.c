@@ -8,7 +8,7 @@ int main(void)
         #pragma omp task
         {
             #pragma omp taskloop
-            for (int i=0; i<3; i++)
+            for (int i=0; i<5; i++)
             {
             }
         }

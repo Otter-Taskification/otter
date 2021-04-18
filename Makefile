@@ -11,7 +11,7 @@ else
 endif
 
 CC             = clang
-CFLAGS         = -Wall -Werror -Iinclude/ -Wno-unused-function -Wno-unused-variable
+CFLAGS         = -Wall -Werror -Iinclude/ -I/usr/include/graphviz/ -Wno-unused-function -Wno-unused-variable
 LDFLAGS        = -Llib/ -Wl,-rpath=`pwd`/lib/
 
 OMPTLIB        = lib/libompt-core.so
@@ -19,7 +19,7 @@ OMPTSRC        = $(patsubst lib/lib%-core.so, src/%*.c,  $(OMPTLIB))
 OMPTHEAD       = $(wildcard include/ompt-*.h)
 
 TTLIB          = lib/libtask-tree.so
-TTSRC          = $(patsubst lib/lib%.so, src/modules/%.c, $(TTLIB))
+TTSRC          = $(patsubst lib/lib%.so, src/modules/%*.c, $(TTLIB))
 TTHEAD         = $(patsubst lib/lib%.so, include/modules/%.h, $(TTLIB))
 
 LIBS           = lib/libqueue.so lib/libdynamic-array.so
@@ -54,7 +54,7 @@ $(OMPTLIB): $(OMPTSRC) $(TTLIB)
 
 $(TTLIB): $(TTSRC) $(TTHEAD) $(LIBS)
 	@echo COMPILING: $@
-	@$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG) -lpthread -lqueue -ldynamic-array $(TTSRC) -shared -fPIC -o $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG) -lgvc -lcgraph -lcdt -lpthread -lqueue -ldynamic-array $(TTSRC) -shared -fPIC -o $@
 
 lib/libqueue.so: src/dtypes/queue.c include/dtypes/queue.h
 	@echo COMPILING: $@

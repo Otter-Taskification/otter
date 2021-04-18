@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include <modules/task-tree.h>
+#include <modules/task-tree-graphviz.h>
 #include <dtypes/queue.h>
 #include <dtypes/dynamic-array.h>
 #include <macros/debug.h>
@@ -105,6 +106,8 @@ tree_init(void)
 bool 
 tree_write(const char *fname)
 {
+    Agraph_t *graph = gv_new_graph(NULL);
+
     /* First write any children the root node has (it may have 0)... */
     size_t n_children = 0;
 
@@ -118,10 +121,8 @@ tree_write(const char *fname)
     /* If there are any children, write their IDs */
     if (n_children > 0)
     {
-        fprintf(stderr, "%lx: ", Tree.root_node.parent_id.value);
-        for (int i=0; i<n_children; i++)
-            fprintf(stderr, "0x%lx ", child_ids[i].value);
-        fprintf(stderr, "\n");
+        gv_add_children_to_graph(graph, Tree.root_node.parent_id,
+            child_ids, n_children);
     }
 
     /* ... then write the children of each node in the queue */
@@ -136,15 +137,17 @@ tree_write(const char *fname)
         LOG_ERROR_IF(child_ids == NULL,
             "task tree got null pointer from node id %p", node->parent_id.ptr);
 
-        /* Write the parent ID followed by its children */
-        fprintf(stderr, "%lx: ", node->parent_id.value);
-        for (int i=0; i<n_children; i++)
-            fprintf(stderr, "0x%lx ", child_ids[i].value);
-        fprintf(stderr, "\n");
+        /* Add the parent task and its children to the graph */
+        gv_add_children_to_graph(graph, node->parent_id,
+            child_ids, n_children);
 
         /* destroy the node & the array it contains */
         destroy_tree_node(node);
     }
+
+    gv_write_graph(graph);
+    gv_finalise(graph);
+
     return true;
 }
 

@@ -1,2 +1,6 @@
 workspace*
 omp-demo
+*.dot
+*.ps
+*.png
+*.svg

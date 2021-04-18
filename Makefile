@@ -1,6 +1,8 @@
 CC=clang
 CFLAGS=-Iinclude/
 LDFLAGS=-Llib/ -Wl,-rpath=`pwd`/lib/
+LDGRAPHVIZ=-lgvc -lcgraph -lcdt
+INCLUDEGRAPHVIZ=-I/usr/include/graphviz/
 DEBUG=-g -DDEBUG_LEVEL=3 -DDA_LEN=5 -DDA_INC=5
 LIBS=lib/libqueue.so lib/libdynamic-array.so lib/libtask-tree.so
 BINS=demo-queue demo-dynamic-array demo-task-tree
@@ -16,8 +18,16 @@ lib/libqueue.so: src/dtypes/queue.c include/dtypes/queue.h
 lib/libdynamic-array.so: src/dtypes/dynamic-array.c include/dtypes/dynamic-array.h
 	$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG) $< -shared -fPIC -o $@
 
-lib/libtask-tree.so: src/modules/task-tree.c include/modules/task-tree.h lib/libqueue.so lib/libdynamic-array.so
-	$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG) -lqueue -ldynamic-array $< -shared -fPIC -o $@
+lib/libtask-tree.so:                          \
+		src/modules/task-tree.c               \
+		src/modules/task-tree-graphviz.c      \
+		include/modules/task-tree.h           \
+		lib/libqueue.so                       \
+		lib/libdynamic-array.so
+	$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG) -lqueue -ldynamic-array \
+	src/modules/task-tree.c src/modules/task-tree-graphviz.c -shared -fPIC \
+	$(LDGRAPHVIZ) $(INCLUDEGRAPHVIZ) \
+	-o $@
 
 demo-queue: src/demo-queue.c include/dtypes/queue.h lib/libqueue.so
 	$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG) -lqueue $(DEBUG) $< -o $@

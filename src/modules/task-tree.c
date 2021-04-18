@@ -120,8 +120,7 @@ tree_write(const char *fname)
     {
         fprintf(stderr, "%lx: ", Tree.root_node.parent_id.value);
         for (int i=0; i<n_children; i++)
-            fprintf(stderr, "0x%lx ",
-                (child_ids + i*sizeof(array_element_t))->value);
+            fprintf(stderr, "0x%lx ", child_ids[i].value);
         fprintf(stderr, "\n");
     }
 
@@ -140,7 +139,7 @@ tree_write(const char *fname)
         /* Write the parent ID followed by its children */
         fprintf(stderr, "%lx: ", node->parent_id.value);
         for (int i=0; i<n_children; i++)
-            fprintf(stderr, "%lx ", child_ids[i].value);
+            fprintf(stderr, "0x%lx ", child_ids[i].value);
         fprintf(stderr, "\n");
 
         /* destroy the node & the array it contains */
@@ -267,14 +266,17 @@ bool
 tree_add_child_to_node(tree_node_t *parent_node, tree_node_id_t child_id)
 {
     array_t *children = NULL;
+    tree_node_t *parent = NULL;
 
     /* Add a child to parent_node, or to the root node if it has no parent */
     if (parent_node == NULL)
     {
         LOG_DEBUG("task tree appending child %p to root node", child_id.ptr);
         pthread_mutex_lock(&Tree.lock);
+        parent = &Tree.root_node;
         children = Tree.root_node.children;
     } else {
+        parent = parent_node;
         children = parent_node->children;
     }
 
@@ -282,10 +284,10 @@ tree_add_child_to_node(tree_node_t *parent_node, tree_node_id_t child_id)
     if (false == array_push_back(children, (array_element_t){.ptr = child_id.ptr}))
     {
         LOG_ERROR("task tree failed to add child %p to parent node %p",
-            child_id.ptr, parent_node);
+            child_id.ptr, parent);
 
         /* Only need to unlock if we were adding to the root node */
-        if (parent_node == NULL) pthread_mutex_unlock(&Tree.lock);
+        if (parent == &Tree.root_node) pthread_mutex_unlock(&Tree.lock);
         return false;
     }
 
@@ -294,10 +296,10 @@ tree_add_child_to_node(tree_node_t *parent_node, tree_node_id_t child_id)
     #endif
 
     LOG_DEBUG("task tree added child %p to node %p (len=%lu)",
-        child_id.ptr, parent_node, array_length(parent_node->children));
+        child_id.ptr, parent, array_length(parent->children));
     
     /* Only need to unlock if we were adding to the root node */
-    if (parent_node == NULL) pthread_mutex_unlock(&Tree.lock);
+    if (parent == &Tree.root_node) pthread_mutex_unlock(&Tree.lock);
     return true;
 }
 

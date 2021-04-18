@@ -12,6 +12,8 @@
 
 #include <macros/core-callback.h>
 
+#include <modules/task-tree.h>
+
 ompt_get_thread_data_t get_thread_data;
 
 /* Register the tool's callbacks with ompt-core which will pass them on to OMP
@@ -32,12 +34,16 @@ tool_setup(
 
     get_thread_data = (ompt_get_thread_data_t) lookup("ompt_get_thread_data");
 
+    tree_init();
+
     return;
 }
 
 void
 tool_finalise(void)
 {
+    tree_write("");
+    tree_destroy();
     print_resource_usage();
     return;
 }
@@ -72,7 +78,7 @@ on_ompt_callback_thread_begin(
     thread_data_t *thread_data = malloc(sizeof(*thread_data));
     thread->ptr = thread_data;
     thread_data->id = get_unique_thread_id();
-    // LOG_DEBUG_THREAD_TYPE(thread_type, "begin", thread_data->id);
+    LOG_DEBUG_THREAD_TYPE(thread_type, "begin", thread_data->id);
     return;
 }
 
@@ -96,7 +102,7 @@ on_ompt_callback_thread_end(
     if ((thread != NULL) && (thread->ptr != NULL)) 
     {
         thread_data_t *thread_data = thread->ptr;
-        // LOG_DEBUG_THREAD_TYPE(ompt_thread_unknown, "end", thread_data->id);
+        LOG_DEBUG_THREAD_TYPE(ompt_thread_unknown, "end", thread_data->id);
         free (thread_data);
     }
     return;
@@ -121,10 +127,19 @@ on_ompt_callback_parallel_begin(
     int                      flags,
     const void              *codeptr_ra)
 {
+    /* get data of encountering task */
+    task_data_t *encountering_task_data = (task_data_t*) encountering_task->ptr;
+
+    /* assign space for this parallel region */
     parallel_data_t *parallel_data = malloc(sizeof(*parallel_data));
+    *parallel_data = (parallel_data_t) {
+        .id = get_unique_parallel_id(),
+        .encountering_task_data = encountering_task_data
+    };
+
+    LOG_DEBUG_PARALLEL_RGN_TYPE(flags, "begin", parallel_data->id);
+
     parallel->ptr = parallel_data;
-    parallel_data->id = get_unique_parallel_id();
-    // LOG_DEBUG_PARALLEL_RGN_TYPE(flags, "begin", parallel_data->id);
     return;
 }
 
@@ -144,7 +159,7 @@ on_ompt_callback_parallel_end(
     if ((parallel != NULL) && (parallel->ptr != NULL))
     {
         parallel_data_t *parallel_data = parallel->ptr;
-        // LOG_DEBUG_PARALLEL_RGN_TYPE(flags, "end", parallel_data->id);
+        LOG_DEBUG_PARALLEL_RGN_TYPE(flags, "end", parallel_data->id);
         free (parallel_data);
     }
     return;
@@ -200,7 +215,56 @@ on_ompt_callback_task_create(
     const void              *codeptr_ra)
 {
     LOG_DEBUG_TASK_TYPE(flags);
+
+    /* make space for the newly-created task */
+    task_data_t *task_data = malloc(sizeof(*task_data));
+    *task_data = (task_data_t) {
+        .id         = get_unique_task_id(),
+        .type       = flags & TASK_TYPE_BITS,
+        .tree_node  = NULL,
+        .lock       = NULL
+    };
+
+    new_task->ptr = task_data;
+
+    /* get the task data of the parent, if it exists */
+    task_data_t *parent_task_data = NULL;
+
+    if (encountering_task == NULL)
+    {
+        /* add this task as a child of the root node if it is a child of an
+           initial task
+         */
+
+        OTTER_DEBUG("adding to tree as child of root (encountering task null)");
+        
+        tree_add_child_to_node(NULL, (tree_node_id_t) task_data->id);
+
+    } else {
+        
+        parent_task_data = (task_data_t*) encountering_task->ptr;
+
+        /* if the parent task doesn't have a tree node yet, this is the 1st 
+           child task - create the node then use it to add the child
+         */
+
+        OTTER_DEBUG("adding to tree as child of task");
+
+        if (parent_task_data->tree_node == NULL)
+        {
+            OTTER_DEBUG("... first child, requesting tree node");
+            parent_task_data->tree_node = 
+                tree_add_node((tree_node_id_t) parent_task_data->id, 100);
+        }
+
+        /* add task as a child of the parent (encountering) task */
+        tree_add_child_to_node(parent_task_data->tree_node,
+            (tree_node_id_t) task_data->id);
+
+    }
+
     return;
+
 }
 
 static void
@@ -210,14 +274,25 @@ on_ompt_callback_task_schedule(
     ompt_data_t             *next_task)
 {
     LOG_DEBUG_PRIOR_TASK_STATUS(prior_task_status);
+
+    if ((prior_task_status == ompt_task_complete) 
+            || (prior_task_status == ompt_task_cancel))
+    {
+        if (prior_task != NULL)
+        {
+            free (prior_task->ptr);
+            prior_task->ptr = NULL;
+        }
+    }
     return;
 }
 
 /* 
 
    Events:
-   implicit-task-begin/implicit-task-end
    initial-task-begin/initial-task-end
+   implicit-task-begin/implicit-task-end
+
  */
 static void
 on_ompt_callback_implicit_task(
@@ -229,6 +304,96 @@ on_ompt_callback_implicit_task(
     int                      flags)
 {
     LOG_DEBUG_IMPLICIT_TASK(flags, endpoint==ompt_scope_begin?"begin":"end");
+
+    task_data_t *task_data = NULL;
+    parallel_data_t *parallel_data = NULL;
+    thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
+
+    if (endpoint == ompt_scope_begin)
+    {
+        /* make space for this initial or implicit task */
+        task_data = malloc(sizeof(*task_data));
+        *task_data = (task_data_t) {
+            .id         = get_unique_task_id(),
+            .type       = flags & TASK_TYPE_BITS,
+            .tree_node  = NULL,
+            .lock       = NULL
+        };
+
+        /* get the encompassing parallel region data (doesn't exist for initial
+           tasks) and register this task in the task tree
+         */
+        if (task_data->type == ompt_task_initial)
+        {
+            /* initialise the task's mutex so any child implicit tasks can
+               have atomic access to the initial task's data
+             */
+            OTTER_DEBUG("initialising mutex of initial task");
+            
+            task_data->lock = malloc(sizeof(*task_data->lock));
+            pthread_mutex_init(task_data->lock, NULL);
+
+            // register an initial task as a child of the root node
+            tree_add_child_to_node(NULL, (tree_node_id_t) task_data->id);
+
+        } else if (task_data->type == ompt_task_implicit) {
+            
+            /* implicit tasks register themselves as children of their parent
+               initial task because there is no implicit task create event that
+               happens in the context of the initial task - must do so
+               atomically
+             */
+
+            OTTER_DEBUG("implicit task registering as child of initial task");
+
+            /* get task data of encountering initial task via parallel data */
+            parallel_data = (parallel_data_t*) parallel->ptr;
+            task_data_t *parent_task_data = 
+                parallel_data->encountering_task_data;
+
+            OTTER_DEBUG("thread %lu attempting to lock initial task mutex %p",
+                thread_data->id, parent_task_data->lock);
+
+            /* lock before accessing parent initial task data */
+            pthread_mutex_lock(parent_task_data->lock);
+
+            OTTER_DEBUG("thread %lu acquired inital task mutex %p",
+                thread_data->id, parent_task_data->lock);
+
+            OTTER_DEBUG("thread %lu registering with tree node %p",
+                thread_data->id, parent_task_data->tree_node);
+
+            if (parent_task_data->tree_node == NULL)
+            {
+                OTTER_DEBUG("... first child, requesting tree node");
+                parent_task_data->tree_node = 
+                    tree_add_node((tree_node_id_t) parent_task_data->id, 100);
+            }
+
+            tree_add_child_to_node(parent_task_data->tree_node,
+                (tree_node_id_t) task_data->id);
+
+            OTTER_DEBUG("thread %lu releasing inital task mutex %p",
+                thread_data->id, parent_task_data->lock);
+
+            pthread_mutex_unlock(parent_task_data->lock);
+            
+        } else {
+            // Think this shouldn't happen
+            fprintf(stderr, "UNEXPECTED IMPLICIT TASK CALLBACK");
+            fprintf(stderr, "flags=%d actual_parallelism=%u index=%u",
+                flags, actual_parallelism, index);
+            abort();
+        }
+
+        /* register this task in the task tree */
+
+        task->ptr = task_data;
+    } else {
+        if (task != NULL) task_data = (task_data_t*) task->ptr;
+        if (task_data != NULL) free(task_data);
+    }
+
     return;
 }
 
@@ -479,6 +644,10 @@ static unique_id_t
 get_unique_id(
     unique_id_type_t         id_type)
 {
-    static unique_id_t id[NUM_ID_TYPES] = {0};
-    return __sync_fetch_and_add(&id[id_type], 1);
+    /* start counting tasks from 1 so that the initial task is always #1, and
+       the root node of the task tree will have ID 0 not attached to any real
+       task
+     */
+    static unique_id_t id[NUM_ID_TYPES] = {0,0,0,1};
+    return __sync_fetch_and_add(&id[id_type], 1L);
 }

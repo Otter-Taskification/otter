@@ -2,7 +2,7 @@
 
 int main(void)
 {
-    #pragma omp parallel num_threads(1)
+    #pragma omp parallel num_threads(4)
     {
         #pragma omp single
         #pragma omp task

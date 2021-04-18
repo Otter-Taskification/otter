@@ -1,5 +1,7 @@
 #include <macros/debug.h>
 
+#define OTTER_DEBUG(fmt, ...) LOG_DEBUG("[OTTer] " fmt __VA_OPT__(,) __VA_ARGS__);
+
 #define MSG_IF(pred, fmt, ...)\
     LOG_DEBUG_IF(pred, "[OTTer] " fmt __VA_OPT__(,) __VA_ARGS__)
 
@@ -15,14 +17,14 @@ do {                                                                           \
 /* print thread type in on_ompt_callback_thread_begin/end */
 #define LOG_DEBUG_THREAD_TYPE(thread_type, endpoint, id)                       \
 do {                                                                           \
-    MSG_IF(thread_type & ompt_thread_initial,                                  \
-        "%-8s %-12s %3lu %-9s %23s", endpoint, "thread", id, "(initial)", ""); \
-    MSG_IF(thread_type & ompt_thread_worker,                                   \
-        "%-8s %-12s %3lu %-9s %23s", endpoint, "thread", id, "(worker)", "");  \
-    MSG_IF(thread_type & ompt_thread_other,                                    \
-        "%-8s %-12s %3lu %-9s %23s", endpoint, "thread", id, "(other)", "");   \
-    MSG_IF(thread_type & ompt_thread_unknown,                                  \
-        "%-8s %-12s %3lu %-9s %23s", endpoint, "thread", id, "(unknown)", ""); \
+    MSG_IF(thread_type == ompt_thread_initial,                                  \
+        "%-8s %-12s %lu %-9s %23s", endpoint, "thread", id, "(initial)", ""); \
+    MSG_IF(thread_type == ompt_thread_worker,                                   \
+        "%-8s %-12s %lu %-9s %23s", endpoint, "thread", id, "(worker)", "");  \
+    MSG_IF(thread_type == ompt_thread_other,                                    \
+        "%-8s %-12s %lu %-9s %23s", endpoint, "thread", id, "(other)", "");   \
+    MSG_IF(thread_type == ompt_thread_unknown,                                  \
+        "%-8s %-12s %lu %-9s %23s", endpoint, "thread", id, "(unknown)", ""); \
 } while (0);
 
 /* print task type in on_ompt_callback_task_create */

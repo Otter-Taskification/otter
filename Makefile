@@ -11,14 +11,26 @@ else
 endif
 
 CC             = clang
-CFLAGS         = -Wall -Werror -Iinclude/ -Wno-unused-function
+CFLAGS         = -Wall -Werror -Iinclude/ -Wno-unused-function -Wno-unused-variable
 LDFLAGS        = -Llib/ -Wl,-rpath=`pwd`/lib/
+
 OMPTLIB        = lib/libompt-core.so
+OMPTSRC        = $(patsubst lib/lib%-core.so, src/%*.c,  $(OMPTLIB))
+OMPTHEAD       = $(wildcard include/ompt-*.h)
+
 TTLIB          = lib/libtask-tree.so
+TTSRC          = $(patsubst lib/lib%.so, src/modules/%.c, $(TTLIB))
+TTHEAD         = $(patsubst lib/lib%.so, include/modules/%.h, $(TTLIB))
+
 LIBS           = lib/libqueue.so lib/libdynamic-array.so
 EXE            = omp-demo$(EXE_POSTFIX)
 BINS           = $(OMPTLIB) $(TTLIB) $(LIBS) $(EXE)
 DEBUG          = -g -DDEBUG_LEVEL=3 -DDA_LEN=5 -DDA_INC=5
+
+DTYPESRC       = $(wildcard src/dtypes/*.c)
+
+
+DTYPEHEAD      = $(wildcard include/dtypes/*.h)
 
 .PHONY: all clean run
 
@@ -36,13 +48,13 @@ omp-%$(EXE_POSTFIX): src/omp-%.c
 ### 1. OMP tool as a dynamic tool to be loaded by the runtime
 
 # Link into .so
-$(OMPTLIB): src/ompt-core.c src/ompt-core-callbacks.c
+$(OMPTLIB): $(OMPTSRC) $(TTLIB)
 	@echo COMPILING: $@
-	@$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG) $^ -shared -fPIC -o $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) -ltask-tree $(DEBUG) $(OMPTSRC) -shared -fPIC -o $@
 
-$(TTLIB): src/modules/task-tree.c include/modules/task-tree.h $(LIBS)
+$(TTLIB): $(TTSRC) $(TTHEAD) $(LIBS)
 	@echo COMPILING: $@
-	@$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG) -lqueue -ldynamic-array $< -shared -fPIC -o $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG) -lpthread -lqueue -ldynamic-array $(TTSRC) -shared -fPIC -o $@
 
 lib/libqueue.so: src/dtypes/queue.c include/dtypes/queue.h
 	@echo COMPILING: $@

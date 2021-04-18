@@ -3,64 +3,69 @@ CUSTOM_OMP_POSTFIX=.co
 # Decide whether to link to a custom OMP runtime when linking OMP executable
 ifeq ($(OMP_LIB), )
 else
-	$(info using custom OMP lib at $(OMP_LIB))
-	# Link to a custom OMP runtime
-	EXE_POSTFIX     = $(CUSTOM_OMP_POSTFIX)
-	CPP_OMP_FLAGS   = -I$(OMP_LIB)/include
-	LD_OMP_FLAGS    = -L$(OMP_LIB)/lib/ -Wl,-rpath=$(OMP_LIB)/lib/
+  $(info using custom OMP lib at $(OMP_LIB))
+  # Link to a custom OMP runtime
+  EXE_POSTFIX   = $(CUSTOM_OMP_POSTFIX)
+  CPP_OMP_FLAGS = -I$(OMP_LIB)/include
+  LD_OMP_FLAGS  = -L$(OMP_LIB)/lib/ -Wl,-rpath=$(OMP_LIB)/lib/
 endif
 
-CC             = clang
-CFLAGS         = -Wall -Werror -Iinclude/ -I/usr/include/graphviz/ -Wno-unused-function -Wno-unused-variable
-LDFLAGS        = -Llib/ -Wl,-rpath=`pwd`/lib/
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 
-OMPTLIB        = lib/libompt-core.so
-OMPTSRC        = $(patsubst lib/lib%-core.so, src/%*.c,  $(OMPTLIB))
-OMPTHEAD       = $(wildcard include/ompt-*.h)
+# Global options
+CC         = clang
+INCLUDE    = -Iinclude/ -I/usr/include/graphviz/
+TURNEDOFF  = -Wno-unused-function -Wno-unused-variable 
+CFLAGS     = -Wall -Werror $(TURNEDOFF) $(INCLUDE)
+LDFLAGS    = -Llib/ -Wl,-rpath=`pwd`/lib/
+DEBUG      = -g -DDEBUG_LEVEL=3 -DDA_LEN=5 -DDA_INC=5
 
-TTLIB          = lib/libtask-tree.so
-TTSRC          = $(patsubst lib/lib%.so, src/modules/%*.c, $(TTLIB))
-TTHEAD         = $(patsubst lib/lib%.so, include/modules/%.h, $(TTLIB))
+# MAIN OUTPUT
+OMPTLIB    = lib/libompt-core.so
 
-LIBS           = lib/libqueue.so lib/libdynamic-array.so
-EXE            = omp-demo$(EXE_POSTFIX)
-BINS           = $(OMPTLIB) $(TTLIB) $(LIBS) $(EXE)
-DEBUG          = -g -DDEBUG_LEVEL=3 -DDA_LEN=5 -DDA_INC=5
+# SUPPORTING COMPONENTS
+TTLIB      = lib/libtask-tree.so
+DSLIBS     = lib/libqueue.so lib/libdynamic-array.so
+EXE        = omp-demo$(EXE_POSTFIX)
 
-DTYPESRC       = $(wildcard src/dtypes/*.c)
+# Linker commands
+LD_DSLIBS  = $(patsubst lib/lib%.so, -l%,  $(DSLIBS))
+LD_TTLIB   = $(patsubst lib/lib%.so, -l%,  $(TTLIB))
+LD_TTDEPS  = -lgvc -lcgraph -lcdt -lpthread $(LD_DSLIBS)
 
+# Source & header paths
+OMPTSRC    = $(patsubst lib/lib%-core.so, src/%*.c,  $(OMPTLIB))
+OMPTHEAD   = $(patsubst lib/lib%-core.so, include/%*.h,  $(OMPTLIB))
+TTSRC      = $(patsubst lib/lib%.so, src/modules/%*.c, $(TTLIB))
+TTHEAD     = $(patsubst lib/lib%.so, include/modules/%.h, $(TTLIB))
+OMPSRC     = $(wildcard src/omp-*.c)
+OMPEXE     = $(patsubst src/omp-%.c, omp-%,  $(OMPSRC))
 
-DTYPEHEAD      = $(wildcard include/dtypes/*.h)
+BINS = $(OMPTLIB) $(TTLIB) $(DSLIBS) $(OMPEXE)
 
 .PHONY: all clean run
 
 all: $(BINS)
 
-### 0. Standalone OMP app
-
-omp-%$(EXE_POSTFIX): src/omp-%.c
-	@$(CC) $(CFLAGS) $(DEBUG) $(CPP_OMP_FLAGS) $(LD_OMP_FLAGS) -fopenmp $< -o $@
+### Standalone OMP app
+$(OMPEXE)$(EXE_POSTFIX): $(OMPSRC)
 	@echo COMPILING: $@
+	@$(CC) $(CFLAGS) $(DEBUG) $(CPP_OMP_FLAGS) $(LD_OMP_FLAGS) -fopenmp $< -o $@
 	@echo
 	@echo $@ links to OMP at: `ldd $@ | grep "libomp"`
 	@echo
 
-### 1. OMP tool as a dynamic tool to be loaded by the runtime
-
-# Link into .so
+### OMP tool as a dynamic tool to be loaded by the runtime
 $(OMPTLIB): $(OMPTSRC) $(TTLIB)
 	@echo COMPILING: $@
-	@$(CC) $(CFLAGS) $(LDFLAGS) -ltask-tree $(DEBUG) $(OMPTSRC) -shared -fPIC -o $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) $(LD_TTLIB) $(DEBUG) $(OMPTSRC) -shared -fPIC -o $@
 
-$(TTLIB): $(TTSRC) $(TTHEAD) $(LIBS)
+### Task-tree lib (support component of OMPTLIB)
+$(TTLIB): $(TTSRC) $(TTHEAD) $(DSLIBS)
 	@echo COMPILING: $@
-	@$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG) -lgvc -lcgraph -lcdt -lpthread -lqueue -ldynamic-array $(TTSRC) -shared -fPIC -o $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) $(LD_TTDEPS) $(DEBUG) $(TTSRC) -shared -fPIC -o $@
 
-lib/libqueue.so: src/dtypes/queue.c include/dtypes/queue.h
-	@echo COMPILING: $@
-	@$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG) $< -shared -fPIC -o $@
-
-lib/libdynamic-array.so: src/dtypes/dynamic-array.c include/dtypes/dynamic-array.h
+lib/lib%.so: src/dtypes/%.c include/dtypes/%.h
 	@echo COMPILING: $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG) $< -shared -fPIC -o $@
 

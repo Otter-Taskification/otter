@@ -7,18 +7,24 @@
 #include <stdint.h>
 #include <stddef.h>
 
+typedef void (*data_destructor_t)(void *);
+
 typedef struct queue_t queue_t;
 
 typedef union {
     void       *ptr;
     uint64_t    value;
-} queue_data_t;
+} queue_item_t;
 
-queue_t       *qu_create(void);
-bool           qu_enqueue(queue_t *q, queue_data_t data);
-bool           qu_dequeue(queue_t *q, queue_data_t *data);
-size_t         qu_get_length(queue_t *q);
-bool           qu_is_empty(queue_t *q);
-void           qu_destroy(queue_t *q);
+queue_t       *queue_create(data_destructor_t destructor);
+bool           queue_push(queue_t *q, queue_item_t item);
+bool           queue_pop(queue_t *q, queue_item_t *dest);
+size_t         queue_length(queue_t *q);
+bool           queue_is_empty(queue_t *q);
+void           queue_destroy(queue_t *q, bool items);
+
+#if DEBUG_LEVEL >= 4
+void           queue_print(queue_t *q);
+#endif
 
 #endif // QUEUE_H

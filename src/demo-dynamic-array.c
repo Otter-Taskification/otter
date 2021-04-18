@@ -6,34 +6,40 @@
 #include <macros/debug.h>
 #include <dtypes/dynamic-array.h>
 
-#define NITEMS 6
+#define NITEMS 16
 
 int main(void)
 {
     size_t length = 0;
-    dynamic_array_t *array = da_create(0);
+    array_t *array = array_create(0);
     assert(array != NULL);
-    assert(da_peek_data(array, &length) == NULL);
-    assert(da_get_length(array) == 0);
+    assert(array_peek_data(array, &length) == NULL);
+    assert(array_length(array) == 0);
+
+    #if DEBUG_LEVEL >= 4
+    array_print(array);
+    #endif
 
     for (int i=0; i<NITEMS; i++)
     {
-        assert(da_push_back(array, (array_element_t){.value=i}));
+        assert(array_push_back(array, (array_element_t){.value=i}));
+        #if DEBUG_LEVEL >= 4
+        array_print(array);
+        #endif
     }
-    assert(da_get_length(array) == NITEMS);
 
-    assert(da_peek_data(array, NULL) == NULL);
-    assert(da_peek_data(array, &length) != NULL);
+    assert(array_peek_data(array, NULL) == NULL);
+    assert(array_peek_data(array, &length) != NULL);
 
-    assert(da_detach_data(NULL, NULL) == NULL);
-    assert(da_detach_data(NULL, &length) == NULL);
-    free(da_detach_data(array, &length));
-    assert(da_get_length(array) == 0);
-    assert(da_peek_data(array, &length) == NULL);
+    assert(array_detach_data(NULL, NULL) == NULL);
+    assert(array_detach_data(NULL, &length) == NULL);
+    free(array_detach_data(array, &length));
+    assert(array_length(array) == 0);
+    assert(array_peek_data(array, &length) == NULL);
 
-    da_destroy(array);
+    array_destroy(array);
 
-    assert(da_push_back(NULL, (array_element_t){.value=3}) == false);
+    assert(array_push_back(NULL, (array_element_t){.value=3}) == false);
 
     return 0;
 }

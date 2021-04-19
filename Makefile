@@ -12,8 +12,10 @@ endif
 
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 
+$(info Compiler: $(CC) [$(shell which $(CC))])
+
 # Global options
-CC         = clang
+#C         = clang <- pass in as environment variable instead
 INCLUDE    = -Iinclude/ -I/usr/include/graphviz/
 TURNEDOFF  = -Wno-unused-function -Wno-unused-variable 
 CFLAGS     = -Wall -Werror $(TURNEDOFF) $(INCLUDE)
@@ -52,7 +54,7 @@ $(OMPEXE)$(EXE_POSTFIX): $(OMPSRC)
 	@echo COMPILING: $@
 	@$(CC) $(CFLAGS) $(DEBUG) $(CPP_OMP_FLAGS) $(LD_OMP_FLAGS) -fopenmp $< -o $@
 	@echo
-	@echo $@ links to OMP at: `ldd $@ | grep "libomp"`
+	@echo $@ links to OMP at: `ldd $@ | grep "[lib|libi]omp"`
 	@echo
 
 ### OMP tool as a dynamic tool to be loaded by the runtime

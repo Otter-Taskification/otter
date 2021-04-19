@@ -3,7 +3,12 @@
 #include <limits.h>
 #include <sys/time.h>       // getrusage
 #include <sys/resource.h>   // getrusage
+
+#if defined(__INTEL_COMPILER)
+#include <omp-tools.h>
+#else
 #include <ompt.h>
+#endif
 
 #include <ompt-tool-generic.h> // For the prototypes of tool_setup/tool_finalise
 #include <ompt-common.h>       // Definitions relevant to all parts of a tool

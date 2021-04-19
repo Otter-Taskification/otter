@@ -1,7 +1,12 @@
 #if !defined(OMPT_CORE_TYPES_H)
 #define OMPT_CORE_TYPES_H
 
+#if defined(__INTEL_COMPILER)
+#include <omp-tools.h>
+#else
 #include <ompt.h>
+#endif
+
 #include <ompt-common.h>
 #include <pthread.h>
 

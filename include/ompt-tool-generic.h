@@ -1,7 +1,11 @@
 #if !defined(OMPT_TOOL_GENERIC_H)
 #define OMPT_TOOL_GENERIC_H
 
+#if defined(__INTEL_COMPILER)
+#include <omp-tools.h>
+#else
 #include <ompt.h>
+#endif
 
 /* Defines how any OMPT tool can register callbacks via ompt-core. The tool
    should implement tool_setup so that it registers its callbacks with 

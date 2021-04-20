@@ -10,6 +10,11 @@
 #include <ompt.h>
 #endif
 
+/* number of child tasks a parent task initially has space for */
+#if !defined(N_TASK_CHLD_DEFAULT)
+#define N_TASK_CHLD_DEFAULT 100
+#endif
+
 #include <otter-core/ompt-tool-generic.h> // For the prototypes of tool_setup/tool_finalise
 #include <otter-core/ompt-common.h>       // Definitions relevant to all parts of a tool
 #include <otter-core/ompt-core-callbacks.h>
@@ -259,7 +264,8 @@ on_ompt_callback_task_create(
         {
             OTTER_DEBUG("... first child, requesting tree node");
             parent_task_data->tree_node = 
-                tree_add_node((tree_node_id_t) parent_task_data->id, 100);
+                tree_add_node((tree_node_id_t) parent_task_data->id,
+                    N_TASK_CHLD_DEFAULT);
         }
 
         /* add task as a child of the parent (encountering) task */
@@ -372,7 +378,8 @@ on_ompt_callback_implicit_task(
             {
                 OTTER_DEBUG("... first child, requesting tree node");
                 parent_task_data->tree_node = 
-                    tree_add_node((tree_node_id_t) parent_task_data->id, 100);
+                    tree_add_node((tree_node_id_t) parent_task_data->id,
+                        N_TASK_CHLD_DEFAULT);
             }
 
             tree_add_child_to_node(parent_task_data->tree_node,

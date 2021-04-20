@@ -128,8 +128,7 @@ array_extend(array_t *array, size_t new_length)
         return NULL;
     }
     LOG_DEBUG("array %p extending to %lu elements", array, new_length);
-    void *new_data = reallocarray(array->begin,
-        new_length, sizeof(array_element_t));
+    void *new_data = realloc(array->begin, new_length*sizeof(*(array->begin)));
     if (new_data == NULL)
     {
         LOG_ERROR("failed to extend array %p", array);

@@ -10,7 +10,12 @@ result to stderr.
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 #include <stdio.h>
+
+#if defined(__INTEL_COMPILER)
+#include <omp-tools.h>
+#else
 #include <ompt.h>
+#endif
 
 #include "ompt-core.h"         // Macro definitions
 #include "ompt-tool-generic.h" // For the prototypes of tool_setup/tool_finalise

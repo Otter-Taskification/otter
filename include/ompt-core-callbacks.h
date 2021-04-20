@@ -10,10 +10,14 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
+#if defined(__INTEL_COMPILER)
+#include <omp-tools.h>
+#else
 #include <ompt.h>
+#endif
 
-#include "ompt-tool-generic.h" // For the prototypes of tool_setup/tool_finalise
-#include "ompt-common.h"       // Definitions relevant to all parts of a tool
+#include <ompt-tool-generic.h> // For the prototypes of tool_setup/tool_finalise
+#include <ompt-common.h>       // Definitions relevant to all parts of a tool
 
 /* A naming convention was chosen for the callbacks so that each callback is 
    named after the event in ompt.h which it handles. The struct passed to the
@@ -32,6 +36,7 @@
 #define implements_callback_task_create    
 #define implements_callback_task_schedule  
 #define implements_callback_implicit_task
+#define implements_callback_work
 #include "ompt-callback-prototypes.h"
 
 /* Used as an array index to keep track of unique id's for different entities */

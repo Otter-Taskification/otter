@@ -5,43 +5,71 @@ ifeq ($(OMP_LIB), )
 else
   $(info using custom OMP lib at $(OMP_LIB))
   # Link to a custom OMP runtime
-  EXE_POSTFIX=$(CUSTOM_OMP_POSTFIX)
-  CPP_OMP_FLAGS=-I$(OMP_LIB)/include
-  LD_OMP_FLAGS=-L$(OMP_LIB)/lib/ -Wl,-rpath=$(OMP_LIB)/lib/
+  EXE_POSTFIX   = $(CUSTOM_OMP_POSTFIX)
+  CPP_OMP_FLAGS = -I$(OMP_LIB)/include
+  LD_OMP_FLAGS  = -L$(OMP_LIB)/lib/ -Wl,-rpath=$(OMP_LIB)/lib/
 endif
 
-CC=clang
-CFLAGS=-Wall -Werror -Iinclude/ -Wno-unused-function
-LDFLAGS=
-OMPTLIB=lib/libompt-core.so
-EXE=omp-demo$(EXE_POSTFIX)
-BINS=$(OMPTLIB) $(EXE)
-DEBUG=-g
+### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
+
+$(info Compiler: $(CC) [$(shell which $(CC))])
+
+# Global options
+#C         = clang <- pass in as environment variable instead
+INCLUDE    = -Iinclude/ -I/usr/include/graphviz/
+TURNEDOFF  = -Wno-unused-function -Wno-unused-variable 
+CFLAGS     = -Wall -Werror $(TURNEDOFF) $(INCLUDE)
+LDFLAGS    = -Llib/ -Wl,-rpath=`pwd`/lib/
+DEBUG      = -g -DDEBUG_LEVEL=3 -DDA_LEN=5 -DDA_INC=5
+
+# MAIN OUTPUT
+OMPTLIB    = lib/libompt-core.so
+
+# SUPPORTING COMPONENTS
+TTLIB      = lib/libtask-tree.so
+DSLIBS     = lib/libqueue.so lib/libdynamic-array.so
+EXE        = omp-demo$(EXE_POSTFIX)
+
+# Linker commands
+LD_DSLIBS  = $(patsubst lib/lib%.so, -l%,  $(DSLIBS))
+LD_TTLIB   = $(patsubst lib/lib%.so, -l%,  $(TTLIB))
+LD_TTDEPS  = -lgvc -lcgraph -lcdt -lpthread $(LD_DSLIBS)
+
+# Source & header paths
+OMPTSRC    = $(patsubst lib/lib%-core.so, src/%*.c,  $(OMPTLIB))
+OMPTHEAD   = $(patsubst lib/lib%-core.so, include/%*.h,  $(OMPTLIB))
+TTSRC      = $(patsubst lib/lib%.so, src/modules/%*.c, $(TTLIB))
+TTHEAD     = $(patsubst lib/lib%.so, include/modules/%.h, $(TTLIB))
+OMPSRC     = $(wildcard src/omp-*.c)
+OMPEXE     = $(patsubst src/omp-%.c, omp-%,  $(OMPSRC))
+
+BINS = $(OMPTLIB) $(TTLIB) $(DSLIBS) $(OMPEXE)
 
 .PHONY: all clean run
 
 all: $(BINS)
 
-### 0. Standalone OMP app
-
-omp-%$(EXE_POSTFIX): src/omp-%.c
+### Standalone OMP app
+$(OMPEXE)$(EXE_POSTFIX): $(OMPSRC)
+	@echo COMPILING: $@
 	@$(CC) $(CFLAGS) $(DEBUG) $(CPP_OMP_FLAGS) $(LD_OMP_FLAGS) -fopenmp $< -o $@
-	@echo COMPILING: $@
 	@echo
-	@echo $@ links to OMP at: `ldd $@ | grep "libomp"`
+	@echo $@ links to OMP at: `ldd $@ | grep "[lib|libi|libg]omp"`
 	@echo
 
-### 1. OMP tool as a dynamic tool to be loaded by the runtime
-
-# Link into .so
-lib/lib%.so: obj/ompt-core-fpic.o obj/ompt-core-callbacks-fpic.o
-	@echo LINKING: $@
-	@$(CC) $(LDFLAGS) -shared $^ -o $@
-
-# Compile into .o
-obj/%-fpic.o: src/%.c include/%.h
+### OMP tool as a dynamic tool to be loaded by the runtime
+$(OMPTLIB): $(OMPTSRC) $(TTLIB)
 	@echo COMPILING: $@
-	@$(CC) $(CFLAGS) $(DEBUG) -fPIC -c $< -o $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) $(LD_TTLIB) $(DEBUG) $(OMPTSRC) -shared -fPIC -o $@
+
+### Task-tree lib (support component of OMPTLIB)
+$(TTLIB): $(TTSRC) $(TTHEAD) $(DSLIBS)
+	@echo COMPILING: $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) $(LD_TTDEPS) $(DEBUG) $(TTSRC) -shared -fPIC -o $@
+
+lib/lib%.so: src/dtypes/%.c include/dtypes/%.h
+	@echo COMPILING: $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG) $< -shared -fPIC -o $@
 
 run: $(BINS)
 	OMP_TOOL_LIBRARIES=`pwd`/$(OMPTLIB) ./$(EXE)

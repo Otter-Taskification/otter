@@ -17,77 +17,80 @@ $(info Compiler: $(CC) [$(shell which $(CC))])
 # Global options
 #C         = clang <- pass in as environment variable instead
 INCLUDE    = -Iinclude/ -I/usr/include/graphviz/
-TURNEDOFF  = -Wno-unused-function -Wno-unused-variable 
-CFLAGS     = -Wall -Werror $(TURNEDOFF) $(INCLUDE)
+NOWARN     = -Wno-unused-function -Wno-unused-variable 
+CFLAGS     = -Wall -Werror $(NOWARN) $(INCLUDE)
 LDFLAGS    = -Llib/ -Wl,-rpath=`pwd`/lib/
 DEBUG      = -g -DDEBUG_LEVEL=3 -DDA_LEN=5 -DDA_INC=5
 
 # MAIN OUTPUT
-OMPTLIB    = lib/libompt-core.so
+OTTER    = lib/libotter.so
 
 # SUPPORTING COMPONENTS
-TTLIB      = lib/libtask-tree.so
-DSLIBS     = lib/libqueue.so lib/libdynamic-array.so
-EXE        = omp-demo$(EXE_POSTFIX)
+OTTLIB     = lib/libotter-ttree.so
+ODTLIB     = lib/libotter-dt.so
 
 # Linker commands
-LD_DSLIBS  = $(patsubst lib/lib%.so, -l%,  $(ODTLIB))
-LD_TTLIB   = $(patsubst lib/lib%.so, -l%,  $(TTLIB))
-LD_TTDEPS  = -lgvc -lcgraph -lcdt -lpthread $(LD_DSLIBS)
+L_ODTLIB  = $(patsubst lib/lib%.so, -l%,  $(ODTLIB))
+L_ODTDEP  = # none
+L_OTTLIB  = $(patsubst lib/lib%.so, -l%,  $(OTTLIB))
+L_OTTDEP  = -lgvc -lcgraph -lcdt -lpthread 
+L_OTTDEP  = $(L_OTTDEP) $(L_ODTLIB)
 
 # Source & header paths
-OMPTSRC    = $(patsubst lib/lib%-core.so, src/%*.c,  $(OMPTLIB))
-OMPTHEAD   = $(patsubst lib/lib%-core.so, include/%*.h,  $(OMPTLIB))
-TTSRC      = $(patsubst lib/lib%.so, src/modules/%*.c, $(TTLIB))
-TTHEAD     = $(patsubst lib/lib%.so, include/modules/%.h, $(TTLIB))
-OMPSRC     = $(wildcard src/omp-*.c)
-OMPEXE     = $(patsubst src/omp-%.c, omp-%,  $(OMPSRC))
+OTTERSRC   = $(wildcard src/otter-core/*.c)
+OTTERHEAD  = $(wildcard include/otter-core/*.h)
+OTTSRC     = $(wildcard src/otter-task-tree/*.c)
+OTTHEAD    = $(wildcard include/otter-task-tree/*.h)
+ODTSRC     = $(wildcard src/otter-dtypes/*.c)
+ODTHEAD    = $(wildcard include/otter-dtypes/*.h)
+OMPSRC     = src/otter-demo/omp-demo.c
+OMPEXE     = $(patsubst src/otter-demo/%.c, %,  $(OMPSRC))$(EXE_POSTFIX)
 
 # Otter Dtypes lib
-ODTLIB     = lib/libotter-dt.so
 ODTSRC     = $(wildcard src/otter-dt/*.c)
 ODTHEAD    = $(wildcard include/otter-dt/*.h)
 
-BINS = $(OMPTLIB) $(TTLIB) $(ODTLIB) $(OMPEXE)
+BINS = $(OTTER) $(OTTLIB) $(ODTLIB) $(OMPEXE)
 
 .PHONY: all clean run
 
 all: $(BINS)
 
-otter:     $(OMPTLIB)
+otter:     $(OTTER)
 
 odt:       $(ODTLIB) 
 
-tasktree:  $(TTLIB)
+tasktree:  $(OTTLIB)
 
 ### Standalone OMP app
-$(OMPEXE)$(EXE_POSTFIX): $(OMPSRC)
+$(OMPEXE): $(OMPSRC)
 	@echo COMPILING: $@
-	@$(CC) $(CFLAGS) $(DEBUG) $(CPP_OMP_FLAGS) $(LD_OMP_FLAGS) -fopenmp $< -o $@
+	@$(CC) $(CFLAGS) $(DEBUG) $(CPP_OMP_FLAGS) $(LD_OMP_FLAGS) -fopenmp $(OMPSRC) -o $@
 	@echo
 	@echo $@ links to OMP at: `ldd $@ | grep "[lib|libi|libg]omp"`
 	@echo
 
-### OMP tool as a dynamic tool to be loaded by the runtime
-$(OMPTLIB): $(OMPTSRC) $(TTLIB)
+### OTTer as a dynamic tool to be loaded by the runtime
+$(OTTER): $(OTTERSRC) $(OTTERHEAD) $(OTTLIB)
 	@echo COMPILING: $@
-	@$(CC) $(CFLAGS) $(LDFLAGS) $(LD_TTLIB) $(DEBUG) $(OMPTSRC) -shared -fPIC -o $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) $(L_OTTLIB) $(DEBUG) $(OTTERSRC) -shared -fPIC -o $@
 
-### Task-tree lib (support component of OMPTLIB)
-$(TTLIB): $(TTSRC) $(TTHEAD) $(ODTLIB)
+### Task-tree lib
+$(OTTLIB): $(OTTSRC) $(OTTHEAD) $(ODTLIB)
 	@echo COMPILING: $@
-	@$(CC) $(CFLAGS) $(LDFLAGS) $(LD_TTDEPS) $(DEBUG) $(TTSRC) -shared -fPIC -o $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) $(L_OTTDEP) $(DEBUG) $(OTTSRC) -shared -fPIC -o $@
 
+### Data-types lib
 $(ODTLIB): $(ODTSRC) $(ODTHEAD)
 	@echo COMPILING: $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG) $(ODTSRC) -shared -fPIC -o $@
 
-lib/lib%.so: src/dtypes/%.c include/dtypes/%.h
-	@echo COMPILING: $@
-	@$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG) $< -shared -fPIC -o $@
-
 run: $(BINS)
-	OMP_TOOL_LIBRARIES=`pwd`/$(OMPTLIB) ./$(EXE)
+	OMP_TOOL_LIBRARIES=`pwd`/$(OTTER) ./$(OMPEXE)
 
 clean:
-	@-rm -f lib/* obj/* $(BINS) *$(CUSTOM_OMP_POSTFIX)
+	@-rm -f lib/* obj/* $(BINS) OMPEXE
+
+cleanfiles:
+	@-rm -f *.dot *.svg *.pdf *.png
+

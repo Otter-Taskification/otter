@@ -3,15 +3,15 @@
 #endif
 
 #include <stdlib.h>
-#include <pthread.h>
-#include <errno.h>
 #include <string.h>
+#include <errno.h>
+#include <pthread.h>
 
-#include <modules/task-tree.h>
-#include <modules/task-tree-graphviz.h>
+#include <otter-task-tree/task-tree.h>
+#include <otter-task-tree/task-tree-graphviz.h>
 
-#include <otter-dt/queue.h>
-#include <otter-dt/dynamic-array.h>
+#include <otter-dtypes/queue.h>
+#include <otter-dtypes/dynamic-array.h>
 
 #include <macros/debug.h>
 

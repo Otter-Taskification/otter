@@ -34,7 +34,7 @@ L_ODTLIB  = $(patsubst lib/lib%.so, -l%,  $(ODTLIB))
 L_ODTDEP  = # none
 L_OTTLIB  = $(patsubst lib/lib%.so, -l%,  $(OTTLIB))
 L_OTTDEP  = -lgvc -lcgraph -lcdt -lpthread 
-L_OTTDEP  = $(L_OTTDEP) $(L_ODTLIB)
+L_OTTDEP := $(L_OTTDEP) $(L_ODTLIB)
 
 # Source & header paths
 OTTERSRC   = $(wildcard src/otter-core/*.c)
@@ -44,11 +44,7 @@ OTTHEAD    = $(wildcard include/otter-task-tree/*.h)
 ODTSRC     = $(wildcard src/otter-dtypes/*.c)
 ODTHEAD    = $(wildcard include/otter-dtypes/*.h)
 OMPSRC     = src/otter-demo/omp-demo.c
-OMPEXE     = $(patsubst src/otter-demo/%.c, %,  $(OMPSRC))$(EXE_POSTFIX)
-
-# Otter Dtypes lib
-ODTSRC     = $(wildcard src/otter-dt/*.c)
-ODTHEAD    = $(wildcard include/otter-dt/*.h)
+OMPEXE     = $(patsubst src/otter-demo/%.c,%,$(OMPSRC))$(EXE_POSTFIX)
 
 BINS = $(OTTER) $(OTTLIB) $(ODTLIB) $(OMPEXE)
 
@@ -60,7 +56,9 @@ otter:     $(OTTER)
 
 odt:       $(ODTLIB) 
 
-tasktree:  $(OTTLIB)
+ott:       $(OTTLIB)
+
+demo:      $(OMPEXE)
 
 ### Standalone OMP app
 $(OMPEXE): $(OMPSRC)
@@ -89,7 +87,7 @@ run: $(BINS)
 	OMP_TOOL_LIBRARIES=`pwd`/$(OTTER) ./$(OMPEXE)
 
 clean:
-	@-rm -f lib/* obj/* $(BINS) OMPEXE
+	@-rm -f lib/* obj/* $(BINS) $(OMPEXE)
 
 cleanfiles:
 	@-rm -f *.dot *.svg *.pdf *.png

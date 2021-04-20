@@ -10,14 +10,14 @@
 #include <ompt.h>
 #endif
 
-#include <ompt-tool-generic.h> // For the prototypes of tool_setup/tool_finalise
-#include <ompt-common.h>       // Definitions relevant to all parts of a tool
-#include <ompt-core-callbacks.h>
-#include <ompt-core-types.h>
+#include <otter-core/ompt-tool-generic.h> // For the prototypes of tool_setup/tool_finalise
+#include <otter-core/ompt-common.h>       // Definitions relevant to all parts of a tool
+#include <otter-core/ompt-core-callbacks.h>
+#include <otter-core/ompt-core-types.h>
 
 #include <macros/core-callback.h>
 
-#include <modules/task-tree.h>
+#include <otter-task-tree/task-tree.h>
 
 ompt_get_thread_data_t get_thread_data;
 

@@ -4,9 +4,9 @@
 #include <stdbool.h>
 
 #include <gvc.h>
-#include <modules/task-tree.h>
-#include <otter-dt/dynamic-array.h>
-#include <otter-dt/queue.h>
+#include <otter-task-tree/task-tree.h>
+#include <otter-dtypes/dynamic-array.h>
+#include <otter-dtypes/queue.h>
 #include <macros/debug.h>
 
 /* Functionality */

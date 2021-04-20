@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include <otter-dt/queue.h>
+#include <otter-dtypes/queue.h>
 #include <macros/debug.h>
 
 typedef struct node_t node_t;

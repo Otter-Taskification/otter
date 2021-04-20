@@ -16,8 +16,8 @@
 #include <ompt.h>
 #endif
 
-#include <ompt-tool-generic.h> // For the prototypes of tool_setup/tool_finalise
-#include <ompt-common.h>       // Definitions relevant to all parts of a tool
+#include <otter-core/ompt-tool-generic.h> // For the prototypes of tool_setup/tool_finalise
+#include <otter-core/ompt-common.h>       // Definitions relevant to all parts of a tool
 
 /* A naming convention was chosen for the callbacks so that each callback is 
    named after the event in ompt.h which it handles. The struct passed to the

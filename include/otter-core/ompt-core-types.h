@@ -7,10 +7,10 @@
 #include <ompt.h>
 #endif
 
-#include <ompt-common.h>
+#include <otter-core/ompt-common.h>
 #include <pthread.h>
 
-#include <modules/task-tree.h>
+#include <otter-task-tree/task-tree.h>
 
 #define TASK_TYPE_BITS      0xF
 

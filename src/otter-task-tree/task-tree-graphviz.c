@@ -1,9 +1,9 @@
-#include <gvc.h>
-#include <string.h>
-#include <modules/task-tree.h>
-#include <modules/task-tree-graphviz.h>
-
 #include <stdlib.h>
+#include <string.h>
+#include <gvc.h>
+
+#include <otter-task-tree/task-tree.h>
+#include <otter-task-tree/task-tree-graphviz.h>
 
 static GVC_t *gvc = NULL;
 

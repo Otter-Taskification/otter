@@ -17,8 +17,8 @@ result to stderr.
 #include <ompt.h>
 #endif
 
-#include "ompt-core.h"         // Macro definitions
-#include "ompt-tool-generic.h" // For the prototypes of tool_setup/tool_finalise
+#include <otter-core/ompt-core.h>         // Macro definitions
+#include <otter-core/ompt-tool-generic.h> // For the prototypes of tool_setup/tool_finalise
 
 /* Entry & exit functions passed back to the OMP runtime */
 static int ompt_initialise(ompt_function_lookup_t, int, ompt_data_t *);

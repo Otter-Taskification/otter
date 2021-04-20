@@ -246,7 +246,7 @@ on_ompt_callback_task_create(
            initial task
          */
 
-        OTTER_DEBUG("adding to tree as child of root (encountering task null)");
+        LOG_DEBUG("adding to tree as child of root (encountering task null)");
         
         tree_add_child_to_node(NULL, (tree_node_id_t) task_data->id);
 
@@ -258,11 +258,11 @@ on_ompt_callback_task_create(
            child task - create the node then use it to add the child
          */
 
-        OTTER_DEBUG("adding to tree as child of task");
+        LOG_DEBUG("adding to tree as child of task");
 
         if (parent_task_data->tree_node == NULL)
         {
-            OTTER_DEBUG("... first child, requesting tree node");
+            LOG_DEBUG("... first child, requesting tree node");
             parent_task_data->tree_node = 
                 tree_add_node((tree_node_id_t) parent_task_data->id,
                     N_TASK_CHLD_DEFAULT);
@@ -339,7 +339,7 @@ on_ompt_callback_implicit_task(
             /* initialise the task's mutex so any child implicit tasks can
                have atomic access to the initial task's data
              */
-            OTTER_DEBUG("initialising mutex of initial task");
+            LOG_DEBUG("initialising mutex of initial task");
             
             task_data->lock = malloc(sizeof(*task_data->lock));
             pthread_mutex_init(task_data->lock, NULL);
@@ -355,28 +355,28 @@ on_ompt_callback_implicit_task(
                atomically
              */
 
-            OTTER_DEBUG("implicit task registering as child of initial task");
+            LOG_DEBUG("implicit task registering as child of initial task");
 
             /* get task data of encountering initial task via parallel data */
             parallel_data = (parallel_data_t*) parallel->ptr;
             task_data_t *parent_task_data = 
                 parallel_data->encountering_task_data;
 
-            OTTER_DEBUG("thread %lu attempting to lock initial task mutex %p",
+            LOG_DEBUG("thread %lu attempting to lock initial task mutex %p",
                 thread_data->id, parent_task_data->lock);
 
             /* lock before accessing parent initial task data */
             pthread_mutex_lock(parent_task_data->lock);
 
-            OTTER_DEBUG("thread %lu acquired inital task mutex %p",
+            LOG_DEBUG("thread %lu acquired inital task mutex %p",
                 thread_data->id, parent_task_data->lock);
 
-            OTTER_DEBUG("thread %lu registering with tree node %p",
+            LOG_DEBUG("thread %lu registering with tree node %p",
                 thread_data->id, parent_task_data->tree_node);
 
             if (parent_task_data->tree_node == NULL)
             {
-                OTTER_DEBUG("... first child, requesting tree node");
+                LOG_DEBUG("... first child, requesting tree node");
                 parent_task_data->tree_node = 
                     tree_add_node((tree_node_id_t) parent_task_data->id,
                         N_TASK_CHLD_DEFAULT);
@@ -385,7 +385,7 @@ on_ompt_callback_implicit_task(
             tree_add_child_to_node(parent_task_data->tree_node,
                 (tree_node_id_t) task_data->id);
 
-            OTTER_DEBUG("thread %lu releasing inital task mutex %p",
+            LOG_DEBUG("thread %lu releasing inital task mutex %p",
                 thread_data->id, parent_task_data->lock);
 
             pthread_mutex_unlock(parent_task_data->lock);

@@ -1,5 +1,6 @@
 #include <stdlib.h>
-#include <dtypes/dynamic-array.h>
+
+#include <otter-dt/dynamic-array.h>
 #include <macros/debug.h>
 
 #if !defined(ARRAY_LEN)

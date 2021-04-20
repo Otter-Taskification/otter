@@ -9,8 +9,10 @@
 
 #include <modules/task-tree.h>
 #include <modules/task-tree-graphviz.h>
-#include <dtypes/queue.h>
-#include <dtypes/dynamic-array.h>
+
+#include <otter-dt/queue.h>
+#include <otter-dt/dynamic-array.h>
+
 #include <macros/debug.h>
 
 /* A node is a container that belongs to a particular task. It maintains an

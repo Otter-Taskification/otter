@@ -31,7 +31,7 @@ DSLIBS     = lib/libqueue.so lib/libdynamic-array.so
 EXE        = omp-demo$(EXE_POSTFIX)
 
 # Linker commands
-LD_DSLIBS  = $(patsubst lib/lib%.so, -l%,  $(DSLIBS))
+LD_DSLIBS  = $(patsubst lib/lib%.so, -l%,  $(ODTLIB))
 LD_TTLIB   = $(patsubst lib/lib%.so, -l%,  $(TTLIB))
 LD_TTDEPS  = -lgvc -lcgraph -lcdt -lpthread $(LD_DSLIBS)
 
@@ -43,11 +43,22 @@ TTHEAD     = $(patsubst lib/lib%.so, include/modules/%.h, $(TTLIB))
 OMPSRC     = $(wildcard src/omp-*.c)
 OMPEXE     = $(patsubst src/omp-%.c, omp-%,  $(OMPSRC))
 
-BINS = $(OMPTLIB) $(TTLIB) $(DSLIBS) $(OMPEXE)
+# Otter Dtypes lib
+ODTLIB     = lib/libotter-dt.so
+ODTSRC     = $(wildcard src/otter-dt/*.c)
+ODTHEAD    = $(wildcard include/otter-dt/*.h)
+
+BINS = $(OMPTLIB) $(TTLIB) $(ODTLIB) $(OMPEXE)
 
 .PHONY: all clean run
 
 all: $(BINS)
+
+otter:     $(OMPTLIB)
+
+odt:       $(ODTLIB) 
+
+tasktree:  $(TTLIB)
 
 ### Standalone OMP app
 $(OMPEXE)$(EXE_POSTFIX): $(OMPSRC)
@@ -63,9 +74,13 @@ $(OMPTLIB): $(OMPTSRC) $(TTLIB)
 	@$(CC) $(CFLAGS) $(LDFLAGS) $(LD_TTLIB) $(DEBUG) $(OMPTSRC) -shared -fPIC -o $@
 
 ### Task-tree lib (support component of OMPTLIB)
-$(TTLIB): $(TTSRC) $(TTHEAD) $(DSLIBS)
+$(TTLIB): $(TTSRC) $(TTHEAD) $(ODTLIB)
 	@echo COMPILING: $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) $(LD_TTDEPS) $(DEBUG) $(TTSRC) -shared -fPIC -o $@
+
+$(ODTLIB): $(ODTSRC) $(ODTHEAD)
+	@echo COMPILING: $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG) $(ODTSRC) -shared -fPIC -o $@
 
 lib/lib%.so: src/dtypes/%.c include/dtypes/%.h
 	@echo COMPILING: $@

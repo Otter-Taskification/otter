@@ -5,8 +5,8 @@
 
 #include <gvc.h>
 #include <modules/task-tree.h>
-#include <dtypes/dynamic-array.h>
-#include <dtypes/queue.h>
+#include <otter-dt/dynamic-array.h>
+#include <otter-dt/queue.h>
 #include <macros/debug.h>
 
 /* Functionality */

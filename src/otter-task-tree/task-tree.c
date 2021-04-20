@@ -3,12 +3,12 @@
 #endif
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include <pthread.h>
 
 #include <otter-task-tree/task-tree.h>
-#include <otter-task-tree/task-tree-graphviz.h>
 
 #include <otter-dtypes/queue.h>
 #include <otter-dtypes/dynamic-array.h>
@@ -108,7 +108,23 @@ tree_init(void)
 bool 
 tree_write(const char *fname)
 {
-    Agraph_t *graph = gv_new_graph(NULL);
+    FILE *dotfile = fopen("dOTTer.dot", "w");
+
+    if (dotfile == NULL)
+    {
+        LOG_ERROR("failed to create dotfile: %s", strerror(errno));
+        errno = 0;
+        return false;
+    }
+
+    /* Write digraph header */
+    fprintf(dotfile, 
+        "digraph \"OTTer Task Tree\" {                                       \n"
+        "    graph   [fontname = \"helvetica\"];                             \n"
+        "    node    [fontname = \"helvetica\" shape=record];                \n"
+        "    label = \"OTTer Task Tree\";                                    \n"
+        "\n"
+    );
 
     /* First write any children the root node has (it may have 0)... */
     size_t n_children = 0;
@@ -123,8 +139,14 @@ tree_write(const char *fname)
     /* If there are any children, write their IDs */
     if (n_children > 0)
     {
-        gv_add_children_to_graph(graph, Tree.root_node.parent_id,
-            child_ids, n_children);
+        /* gv_add_children_to_graph(graph, Tree.root_node.parent_id,
+            child_ids, n_ children); */
+        fprintf(dotfile, "%lu -> {", Tree.root_node.parent_id.value     );
+        for (int i=0; i<n_children; i++)
+        {
+            fprintf(dotfile, "%s%lu", i==0 ? "" : ",", child_ids[i].value); 
+        }
+        fprintf(dotfile, "}\n");
     }
 
     /* ... then write the children of each node in the queue */
@@ -140,15 +162,20 @@ tree_write(const char *fname)
             "task tree got null pointer from node id %p", node->parent_id.ptr);
 
         /* Add the parent task and its children to the graph */
-        gv_add_children_to_graph(graph, node->parent_id,
-            child_ids, n_children);
+        fprintf(dotfile, "%lu -> {", node->parent_id.value);
+        for (int i=0; i<n_children; i++)
+        {
+            fprintf(dotfile, "%s%lu", i==0 ? "" : ",", child_ids[i].value); 
+        }
+        fprintf(dotfile, "}\n");
 
         /* destroy the node & the array it contains */
         destroy_tree_node(node);
     }
 
-    gv_write_graph(graph);
-    gv_finalise(graph);
+    /* Close the digraph */
+    fprintf(dotfile, "\n}\n");
+    fclose(dotfile);
 
     return true;
 }

@@ -108,6 +108,8 @@ tree_init(void)
 bool 
 tree_write(const char *fname)
 {
+    int i=0;
+
     FILE *dotfile = fopen("dOTTer.dot", "w");
 
     if (dotfile == NULL)
@@ -142,7 +144,7 @@ tree_write(const char *fname)
         /* gv_add_children_to_graph(graph, Tree.root_node.parent_id,
             child_ids, n_ children); */
         fprintf(dotfile, "%lu -> {", Tree.root_node.parent_id.value     );
-        for (int i=0; i<n_children; i++)
+        for (i=0; i<n_children; i++)
         {
             fprintf(dotfile, "%s%lu", i==0 ? "" : ",", child_ids[i].value); 
         }
@@ -163,7 +165,7 @@ tree_write(const char *fname)
 
         /* Add the parent task and its children to the graph */
         fprintf(dotfile, "%lu -> {", node->parent_id.value);
-        for (int i=0; i<n_children; i++)
+        for (i=0; i<n_children; i++)
         {
             fprintf(dotfile, "%s%lu", i==0 ? "" : ",", child_ids[i].value); 
         }

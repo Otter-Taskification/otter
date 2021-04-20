@@ -33,7 +33,7 @@ ODTLIB     = lib/libotter-dt.so
 L_ODTLIB  = $(patsubst lib/lib%.so, -l%,  $(ODTLIB))
 L_ODTDEP  = # none
 L_OTTLIB  = $(patsubst lib/lib%.so, -l%,  $(OTTLIB))
-L_OTTDEP  = -lgvc -lcgraph -lcdt -lpthread 
+L_OTTDEP  = -lpthread 
 L_OTTDEP := $(L_OTTDEP) $(L_ODTLIB)
 
 # Source & header paths

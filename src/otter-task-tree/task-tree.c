@@ -193,13 +193,11 @@ static bool tree_write_dot(FILE *taskgraph)
 
     /* Write digraph header */
     fprintf(taskgraph, 
-        "digraph \"%s\" {                                                    \n"
+        "digraph \"\" {                                                      \n"
         "    graph   [fontname = \"helvetica\"];                             \n"
         "    node    [fontname = \"helvetica\" shape=record];                \n"
-        "    label = \"%s\";                                                 \n"
-        "\n",
-        Tree.graph_output,
-        Tree.graph_output
+        "    label = \"\";                                                   \n"
+        "\n"
     );
 
     /* First write any children the root node has (it may have 0)... */

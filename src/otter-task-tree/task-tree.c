@@ -1,7 +1,3 @@
-#if !defined(DEBUG_LEVEL)
-#define DEBUG_LEVEL 0
-#endif
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -52,10 +48,10 @@ static task_tree_t Tree = {
    of the task's children.
  */
 void
-destroy_tree_node(void *ptr)
+tree_destroy_node(void *ptr)
 {
     tree_node_t *node = (tree_node_t*) ptr;
-    LOG_DEBUG("task tree callback: destroying tree node %p", node);
+    LOG_DEBUG("%lu destroying %p->%p", node->parent_id.value, node, node->children);
     array_destroy(node->children);
     free(node);
     return;
@@ -75,20 +71,20 @@ tree_init(void)
 {
     if (Tree.initialised)
     {
-        LOG_WARN("task tree already initialised");
+        LOG_WARN("already initialised");
         return Tree.initialised;
     }
 
-    LOG_INFO("task tree initialising");
+    LOG_INFO("initialising");
 
     /* allocate queue and root node's array of children */
-    Tree.queue = queue_create(&destroy_tree_node);
-    Tree.root_node.children = array_create(DEFAULT_ROOT_CHILDREN);
+    Tree.queue = queue_create(&tree_destroy_node);
+    Tree.root_node.children = array_create(OTT_DEFAULT_ROOT_CHILDREN);
 
     /* if the tree's queue or root node were not created, abort execution */
     if ((Tree.queue == NULL) || (Tree.root_node.children == NULL))
     {
-        LOG_ERROR("task tree failed to initialise, aborting");
+        LOG_ERROR("failed to initialise, aborting");
         abort();
     }
 
@@ -111,6 +107,7 @@ tree_write(const char *fname)
     int i=0;
 
     FILE *dotfile = fopen("dOTTer.dot", "w");
+    LOG_DEBUG("%s", "dOTTer.dot");
 
     if (dotfile == NULL)
     {
@@ -135,10 +132,10 @@ tree_write(const char *fname)
     array_element_t *child_ids = array_peek_data(
         Tree.root_node.children, &n_children);
 
-    LOG_ERROR_IF(child_ids == NULL,
-        "task tree got null pointer from root node");
+    LOG_ERROR_IF(child_ids == NULL, "got null pointer from array_peek_data");
     
     /* If there are any children, write their IDs */
+    LOG_DEBUG("parent=(root) (n=%lu)", n_children);
     if (n_children > 0)
     {
         /* gv_add_children_to_graph(graph, Tree.root_node.parent_id,
@@ -157,11 +154,15 @@ tree_write(const char *fname)
     /* queue_pop writes the popped item into &node */
     while(queue_pop(Tree.queue, (queue_item_t*) &node))
     {
+        LOG_ERROR_IF(node == NULL, "got null pointer from queue_pop");
+
         /* Get the array of child IDs */
         child_ids = array_peek_data(node->children, &n_children);
-
         LOG_ERROR_IF(child_ids == NULL,
-            "task tree got null pointer from node id %p", node->parent_id.ptr);
+            "got null pointer from array_peek_data (parent=%lu)",
+            node->parent_id.value);
+
+        LOG_DEBUG("parent=%lu (n=%lu)", node->parent_id.value, n_children);
 
         /* Add the parent task and its children to the graph */
         fprintf(dotfile, "%lu -> {", node->parent_id.value);
@@ -172,7 +173,7 @@ tree_write(const char *fname)
         fprintf(dotfile, "}\n");
 
         /* destroy the node & the array it contains */
-        destroy_tree_node(node);
+        tree_destroy_node(node);
     }
 
     /* Close the digraph */
@@ -200,7 +201,7 @@ tree_destroy(void)
         return;
     }
 
-    LOG_INFO("destroying task tree");
+    LOG_INFO("destroying");
 
     /* destroy tree's node queue and the array of the root node */
     queue_destroy(Tree.queue, true);
@@ -258,17 +259,15 @@ tree_add_node(tree_node_id_t parent_id, size_t n_children)
     /* if creation of node's array failed, exit safely with message */
     if (NULL == (node->children = array_create(n_children)))
     {
-        LOG_ERROR("task tree failed to create dynamic array for parent %p",
-            parent_id.ptr);
+        LOG_ERROR("task tree failed to create array for parent %lu",
+            parent_id.value);
         free(node);
         node = NULL;
         goto unlock_and_exit;
     }
 
-    LOG_DEBUG("task tree created node for parent %p with %lu elements",
-        parent_id.ptr, n_children);
-
     /* queue the new node */
+    LOG_DEBUG("%lu queueing %p->%p", parent_id.value, node, node->children);
     bool node_was_queued = queue_push(Tree.queue, (queue_item_t){.ptr = node});
 
     #if DEBUG_LEVEL >= 4
@@ -277,8 +276,8 @@ tree_add_node(tree_node_id_t parent_id, size_t n_children)
 
     /* if queueing failed, print a message */
     LOG_ERROR_IF(false == node_was_queued,
-        "task tree failed to add parent %p", parent_id.ptr);
-
+        "task tree failed to queue node %p for parent %lu",
+        node, parent_id.value);
 
 unlock_and_exit:
 
@@ -305,7 +304,6 @@ tree_add_child_to_node(tree_node_t *parent_node, tree_node_id_t child_id)
     /* Add a child to parent_node, or to the root node if it has no parent */
     if (parent_node == NULL)
     {
-        LOG_DEBUG("task tree appending child %p to root node", child_id.ptr);
         pthread_mutex_lock(&Tree.lock);
         parent = &Tree.root_node;
         children = Tree.root_node.children;
@@ -313,6 +311,8 @@ tree_add_child_to_node(tree_node_t *parent_node, tree_node_id_t child_id)
         parent = parent_node;
         children = parent_node->children;
     }
+
+    LOG_DEBUG("%lu -> %lu", parent->parent_id.value, child_id.value);
 
     /* Append the ID of the child. Write error on failure. */
     if (false == array_push_back(children, (array_element_t){.ptr = child_id.ptr}))
@@ -328,9 +328,6 @@ tree_add_child_to_node(tree_node_t *parent_node, tree_node_id_t child_id)
     #if DEBUG_LEVEL >= 4
     array_print(children);
     #endif
-
-    LOG_DEBUG("task tree added child %p to node %p (len=%lu)",
-        child_id.ptr, parent, array_length(parent->children));
     
     /* Only need to unlock if we were adding to the root node */
     if (parent == &Tree.root_node) pthread_mutex_unlock(&Tree.lock);

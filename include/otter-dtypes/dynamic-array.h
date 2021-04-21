@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <macros/debug.h>
 
 typedef struct array_t array_t;
 

@@ -20,7 +20,10 @@ INCLUDE    = -Iinclude/ -I/usr/include/graphviz/
 NOWARN     = -Wno-unused-function -Wno-unused-variable 
 CFLAGS     = -Wall -Werror $(NOWARN) $(INCLUDE)
 LDFLAGS    = -Llib/ -Wl,-rpath=`pwd`/lib/
-DEBUG      = -g -DDEBUG_LEVEL=3 -DDA_LEN=5 -DDA_INC=5
+OTTER_DEFS = -DOTTER_DEFAULT_TASK_CHILDREN=$(OTTER_DEFAULT_TASK_CHILDREN)
+OTT_DEFS   = -DOTT_DEFAULT_ROOT_CHILDREN=$(OTT_DEFAULT_ROOT_CHILDREN)
+ODT_DEFS   = -DDA_LEN=$(ODT_DEFAULT_ARRAY_LENGTH) -DDA_INC=$(ODT_DEFAULT_ARRAY_INCREMENT)
+DEBUG      = -g
 
 # MAIN OUTPUT
 OTTER    = lib/libotter.so
@@ -33,8 +36,7 @@ ODTLIB     = lib/libotter-dt.so
 L_ODTLIB  = $(patsubst lib/lib%.so, -l%,  $(ODTLIB))
 L_ODTDEP  = # none
 L_OTTLIB  = $(patsubst lib/lib%.so, -l%,  $(OTTLIB))
-L_OTTDEP  = -lpthread 
-L_OTTDEP := $(L_OTTDEP) $(L_ODTLIB)
+L_OTTDEP  = -lpthread $(L_ODTLIB)
 
 # Source & header paths
 OTTERSRC   = $(wildcard src/otter-core/*.c)
@@ -65,23 +67,23 @@ $(OMPEXE): $(OMPSRC)
 	@echo COMPILING: $@
 	@$(CC) $(CFLAGS) $(DEBUG) $(CPP_OMP_FLAGS) $(LD_OMP_FLAGS) -fopenmp $(OMPSRC) -o $@
 	@echo
-	@echo $@ links to OMP at: `ldd $@ | grep "[lib|libi|libg]omp"`
+	@echo $@ links to `ldd $@ | grep "[lib|libi|libg]omp"`
 	@echo
 
 ### OTTer as a dynamic tool to be loaded by the runtime
 $(OTTER): $(OTTERSRC) $(OTTERHEAD) $(OTTLIB)
-	@echo COMPILING: $@
-	@$(CC) $(CFLAGS) $(LDFLAGS) $(L_OTTLIB) $(DEBUG) $(OTTERSRC) -shared -fPIC -o $@
+	@echo COMPILING: $@ debug=$(DEBUG_OTTER), OTTER_DEFS=$(OTTER_DEFS)
+	@$(CC) $(CFLAGS) $(OTTER_DEFS) $(LDFLAGS) $(L_OTTLIB) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_OTTER) $(OTTERSRC) -shared -fPIC -o $@
 
 ### Task-tree lib
 $(OTTLIB): $(OTTSRC) $(OTTHEAD) $(ODTLIB)
-	@echo COMPILING: $@
-	@$(CC) $(CFLAGS) $(LDFLAGS) $(L_OTTDEP) $(DEBUG) $(OTTSRC) -shared -fPIC -o $@
+	@echo COMPILING: $@ debug=$(DEBUG_OTT), OTT_DEFS=$(OTT_DEFS)
+	@$(CC) $(CFLAGS) $(OTT_DEFS) $(LDFLAGS) $(L_OTTDEP) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_OTT) $(OTTSRC) -shared -fPIC -o $@
 
 ### Data-types lib
 $(ODTLIB): $(ODTSRC) $(ODTHEAD)
-	@echo COMPILING: $@
-	@$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG) $(ODTSRC) -shared -fPIC -o $@
+	@echo COMPILING: $@ debug=$(DEBUG_ODT), ODT_DEFS=$(ODT_DEFS)
+	@$(CC) $(CFLAGS) $(ODT_DEFS) $(LDFLAGS) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_ODT) $(ODTSRC) -shared -fPIC -o $@
 
 run: $(BINS)
 	OMP_TOOL_LIBRARIES=`pwd`/$(OTTER) ./$(OMPEXE)
@@ -91,4 +93,3 @@ clean:
 
 cleanfiles:
 	@-rm -f *.dot *.svg *.pdf *.png
-

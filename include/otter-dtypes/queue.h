@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <macros/debug.h>
 
 typedef void (*data_destructor_t)(void *);
 

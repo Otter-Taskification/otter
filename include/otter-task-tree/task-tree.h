@@ -3,9 +3,14 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <macros/debug.h>
 
 /* Default number of child references the root node starts with */
-#define DEFAULT_ROOT_CHILDREN 1000
+#if !defined(OTT_DEFAULT_ROOT_CHILDREN) \
+    || (EXPAND(OTT_DEFAULT_ROOT_CHILDREN) == 1)
+#undef OTT_DEFAULT_ROOT_CHILDREN
+#define OTT_DEFAULT_ROOT_CHILDREN 1000
+#endif
 
 /* Task tree node - maintains list of its child nodes */
 typedef struct tree_node_t tree_node_t;

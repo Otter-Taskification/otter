@@ -28,11 +28,11 @@ queue_create(data_destructor_t destructor)
         LOG_ERROR("failed to create queue");
         return NULL;
     }
-    LOG_DEBUG("queue created: %p", q);
+    LOG_DEBUG("%p", q);
     q->head = q->tail = NULL;
     q->length = 0;
     LOG_DEBUG_IF(destructor == NULL,
-        "queue item destructor not provided, using free()");
+        "%p: destructor is free()", q);
     q->destroy = destructor == NULL ? &free : destructor;
     return q;
 }
@@ -67,8 +67,8 @@ queue_push(queue_t *q, queue_item_t item)
         q->length += 1;
     }
 
-    LOG_DEBUG("queue added item 0x%lx (queue %p: tail node=%p, length=%lu)",
-        item.value, q, q->tail, q->length);
+    LOG_DEBUG("%p[%lu]=%p", q, q->length-1, item.ptr);
+
     return true;
 }
 
@@ -83,7 +83,7 @@ queue_pop(queue_t *q, queue_item_t *dest)
 
     if (q->head == NULL)
     {
-        LOG_DEBUG("queue empty (queue: %p)", q);
+        LOG_DEBUG("%p[0]=%p", q, q->head);
         return false;
     }
 
@@ -91,8 +91,7 @@ queue_pop(queue_t *q, queue_item_t *dest)
     node_t *node = q->head;
     q->head = q->head->next;
     q->length -= 1;
-    LOG_DEBUG("queue popped item 0x%lx (queue %p: head node=%p, length=%lu)",
-        node->data.value, q, q->head, q->length);
+    LOG_DEBUG("%p[0] -> %p", q, dest->ptr);
     LOG_WARN_IF(dest == NULL,
         "queue popped item without returning value (null destination pointer)");
     free(node);
@@ -118,19 +117,18 @@ queue_destroy(queue_t *q, bool items)
     if (q == NULL) return;
     if (items)
     {
-        LOG_DEBUG("destroying queue %p%s", q, " and items");
         queue_item_t d = {.value = 0};
         while(queue_pop(q, &d))
         {
-            LOG_DEBUG("destroying queue item %p", d.ptr);
+            LOG_DEBUG("%p[0/%lu]=%p", q, q->length-1, d.ptr);
             q->destroy(d.ptr);
         }
     } else {
-        LOG_DEBUG("destroying queue %p", q);
         LOG_WARN_IF(((q->length != 0)),
             "destroying queue %p (len=%lu) without destroying items may cause "
             "memory leak", q, q->length);
     }
+    LOG_DEBUG("%p", q);
     free(q);
     return;
 }

@@ -1,6 +1,22 @@
 #if !defined(DEBUG_MACROS_H)
 #define DEBUG_MACROS_H
 
+/* credit: https://stackoverflow.com/a/3782064 */
+#define DO_EXPAND(VAL)  VAL ## 1
+#define EXPAND(VAL)     DO_EXPAND(VAL)
+
+/* if defined but empty */
+#if defined(DEBUG_LEVEL) && (EXPAND(DEBUG_LEVEL) == 1)
+#undef DEBUG_LEVEL
+#endif
+
+/* verbose debug messages off by default */
+#if !defined(DEBUG_LEVEL)
+#define DEBUG_LEVEL 0
+#endif
+
+#include <stdio.h>
+
 /* detect whether __VA_OPT__ supported 
    credit: https://stackoverflow.com/a/48045656
 */
@@ -17,24 +33,18 @@
 
 #define PASS_ARGS(...) PASS_ARGS_I(__VA_ARGS__)
 
-#include <stdio.h>
+#define LOG_ERROR(fmt, ...)                                                    \
+    fprintf(stderr, "[E] [%-32s] " fmt "\n",                                   \
+        __func__ PASS_ARGS(__VA_ARGS__))
 
-#if !defined(DEBUG_LEVEL)
-#define DEBUG_LEVEL 0
-#endif
-
-#define LOG_ERROR(fmt, ...)                      \
-    fprintf(stderr, "[E] " fmt " (%s:%d in %s)\n"  \
-        PASS_ARGS(__VA_ARGS__), __FILE__, __LINE__, __func__)
-
-#define LOG_ERROR_IF(pred, fmt, ...)             \
+#define LOG_ERROR_IF(pred, fmt, ...)                                           \
     do { if (pred) LOG_ERROR(fmt, __VA_ARGS__); } while(0)
 
 #if DEBUG_LEVEL > 0
-#define LOG_WARN(fmt, ...)                       \
-    fprintf(stderr, "[w] " fmt " (%s:%d in %s)\n"  \
-        PASS_ARGS(__VA_ARGS__), __FILE__, __LINE__, __func__)
-#define LOG_WARN_IF(pred, fmt, ...)              \
+#define LOG_WARN(fmt, ...)                                                     \
+    fprintf(stderr, "[W] [%-32s] " fmt "\n",                                   \
+        __func__ PASS_ARGS(__VA_ARGS__))
+#define LOG_WARN_IF(pred, fmt, ...)                                            \
     do { if (pred) LOG_WARN(fmt, __VA_ARGS__); } while(0)
 #else
 #define LOG_WARN(...)
@@ -42,10 +52,10 @@
 #endif
 
 #if DEBUG_LEVEL > 1
-#define LOG_INFO(fmt, ...)                       \
-    fprintf(stderr, "[i] " fmt " (%s:%d in %s)\n"  \
-        PASS_ARGS(__VA_ARGS__), __FILE__, __LINE__, __func__)
-#define LOG_INFO_IF(pred, fmt, ...)              \
+#define LOG_INFO(fmt, ...)                                                     \
+    fprintf(stderr, "[i] [%-32s] " fmt "\n",                                   \
+        __func__ PASS_ARGS(__VA_ARGS__))
+#define LOG_INFO_IF(pred, fmt, ...)                                            \
     do { if (pred) LOG_INFO(fmt, __VA_ARGS__); } while(0)
 #else
 #define LOG_INFO(...)
@@ -53,10 +63,10 @@
 #endif
 
 #if DEBUG_LEVEL > 2
-#define LOG_DEBUG(fmt, ...)                      \
-    fprintf(stderr, "[d] " fmt " (%s:%d in %s)\n"  \
-        PASS_ARGS(__VA_ARGS__), __FILE__, __LINE__, __func__)
-#define LOG_DEBUG_IF(pred, fmt, ...)             \
+#define LOG_DEBUG(fmt, ...)                                                    \
+    fprintf(stderr, "[d] [%-32s] " fmt "\n",                                   \
+        __func__ PASS_ARGS(__VA_ARGS__))
+#define LOG_DEBUG_IF(pred, fmt, ...)                                           \
     do { if (pred) LOG_DEBUG(fmt, __VA_ARGS__); } while(0)
 #else
 #define LOG_DEBUG(...)

@@ -254,6 +254,7 @@ on_ompt_callback_task_create(
            initial task
          */
 
+        LOG_DEBUG_TASK_TYPE(0L, task_data->id, flags);
         LOG_DEBUG("encountering task null; adding child to root");
         
         tree_add_child_to_node(NULL, (tree_node_id_t) task_data->id);

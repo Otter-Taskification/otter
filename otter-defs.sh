@@ -14,6 +14,6 @@ export OTTER_TASK_TREE_FORMAT=dot  # dot / edge / adj
 export OTTER_TASK_TREE_OUTPUT='task-tree-graph'
 # export OTTER_TASK_TREE_META_OUTPT=Otter-tasks.csv
 
-OMP_TOOL_LIBRARIES=lib/libotter.so ./omp-demo
+# OMP_TOOL_LIBRARIES=lib/libotter.so ./omp-demo
 
-dot -Tsvg -o tasks.svg $OTTER_TASK_TREE_OUTPUT.dot
+# dot -Tsvg -o tasks.svg $OTTER_TASK_TREE_OUTPUT.dot

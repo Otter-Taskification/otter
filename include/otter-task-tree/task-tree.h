@@ -12,6 +12,8 @@
 #define OTT_DEFAULT_ROOT_CHILDREN 1000
 #endif
 
+#define TREE_OUTNAME_BUFSZ 512
+
 /* Task tree node - maintains list of its child nodes */
 typedef struct tree_node_t tree_node_t;
 
@@ -23,7 +25,7 @@ typedef union tree_node_id_t {
 
 // task tree functions
 bool         tree_init(void);
-bool         tree_write(const char *fname);
+bool         tree_write(void);
 void         tree_destroy(void);
 
 // task tree node functions

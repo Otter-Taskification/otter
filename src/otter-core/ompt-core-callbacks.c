@@ -55,7 +55,7 @@ tool_setup(
 void
 tool_finalise(void)
 {
-    tree_write("");
+    tree_write();
     tree_destroy();
     print_resource_usage();
     return;
@@ -75,6 +75,13 @@ print_resource_usage(void)
     PRINT_RUSAGE("block input operations", ru_inblock, "");
     PRINT_RUSAGE("block output operations", ru_oublock, "");
     #undef PRINT_RUSAGE
+
+    fprintf(stderr, "\n%35s: %8lu %s\n", "threads",
+        get_unique_thread_id(), "");
+    fprintf(stderr, "%35s: %8lu %s\n", "parallel regions",
+        get_unique_parallel_id(), "");
+    fprintf(stderr, "%35s: %8lu %s\n", "tasks",
+        get_unique_task_id()-1, "");
 }
 
 /* 

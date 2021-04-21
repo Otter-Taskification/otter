@@ -3,5 +3,17 @@
         {
             "path": "."
         }
-    ]
+    ],
+    "settings": {
+        "files.associations": {
+            "*.tcc": "c",
+            "chrono": "c",
+            "string_view": "c",
+            "algorithm": "c",
+            "random": "c",
+            "istream": "c",
+            "limits": "c",
+            "numeric": "c"
+        }
+    }
 }

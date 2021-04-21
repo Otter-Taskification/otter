@@ -17,8 +17,9 @@ result to stderr.
 #include <ompt.h>
 #endif
 
-#include <otter-core/ompt-core.h>         // Macro definitions
-#include <otter-core/ompt-tool-generic.h> // For the prototypes of tool_setup/tool_finalise
+#include <macros/debug.h>
+#include <otter-core/ompt-callback-macros.h>
+#include <otter-core/ompt-tool-generic.h>
 
 /* Entry & exit functions passed back to the OMP runtime */
 static int ompt_initialise(ompt_function_lookup_t, int, ompt_data_t *);
@@ -56,7 +57,7 @@ ompt_initialise(
     int                    initial_device_num, 
     ompt_data_t *          tool_data)
 {
-    fprintf(stderr, "tool started\n");
+    fprintf(stderr, "Starting OTTer...\n");
 
     /* Passed into the tool for it to return function pointers to its
        callbacks, or NULL for those callbacks not required. */
@@ -71,6 +72,7 @@ ompt_initialise(
     ompt_set_callback_t ompt_set_callback = 
         (ompt_set_callback_t) lookup("ompt_set_callback");
 
+    fprintf(stderr, "Registering callbacks:\n");
     FOREACH_OMPT_EVENT(set_callback);
 
     return 1;
@@ -82,7 +84,6 @@ ompt_finalise(
     ompt_data_t *tool_data)
 {
     tool_finalise();
-    fprintf(stderr, "tool finished\n");
     return;
 }
 

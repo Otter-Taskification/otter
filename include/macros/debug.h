@@ -40,7 +40,7 @@
 #define LOG_ERROR_IF(pred, fmt, ...)                                           \
     do { if (pred) LOG_ERROR(fmt, __VA_ARGS__); } while(0)
 
-#if DEBUG_LEVEL > 0
+#if DEBUG_LEVEL >= 1
 #define LOG_WARN(fmt, ...)                                                     \
     fprintf(stderr, "[W] [%-32s] " fmt "\n",                                   \
         __func__ PASS_ARGS(__VA_ARGS__))
@@ -51,7 +51,7 @@
 #define LOG_WARN_IF(...)
 #endif
 
-#if DEBUG_LEVEL > 1
+#if DEBUG_LEVEL >= 2
 #define LOG_INFO(fmt, ...)                                                     \
     fprintf(stderr, "[i] [%-32s] " fmt "\n",                                   \
         __func__ PASS_ARGS(__VA_ARGS__))
@@ -62,7 +62,7 @@
 #define LOG_INFO_IF(...)
 #endif
 
-#if DEBUG_LEVEL > 2
+#if DEBUG_LEVEL >= 3
 #define LOG_DEBUG(fmt, ...)                                                    \
     fprintf(stderr, "[d] [%-32s] " fmt "\n",                                   \
         __func__ PASS_ARGS(__VA_ARGS__))

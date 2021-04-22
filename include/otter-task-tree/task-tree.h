@@ -14,6 +14,13 @@
 
 #define TREE_OUTNAME_BUFSZ 512
 
+/* unpack child task bits to get task type & enclosing parallel region
+
+   see PACK_CHILD_TASK_BITS in ompt-callback-macros.h
+ */
+#define UNPACK_BITS_TASK_TYPE(ID)  ( ID >> 60 )
+#define UNPACK_BITS_PAR_REGION(ID) (( ID >> 48 ) & 0xFF)
+
 /* Task tree node - maintains list of its child nodes */
 typedef struct tree_node_t tree_node_t;
 

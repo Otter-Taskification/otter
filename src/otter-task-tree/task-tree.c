@@ -15,6 +15,7 @@
 static bool tree_write_dot(FILE *taskgraph);
 static bool tree_write_edge_list(FILE *taskgraph);
 static bool tree_write_adjacency_list(FILE *taskgraph);
+static void tree_destroy_node(void *ptr);
 
 /* A node is a container that belongs to a particular task. It maintains an
    array of the IDs of the child tasks spawned by the task
@@ -58,20 +59,6 @@ static task_tree_t Tree = {
     .graph_output = {0},
     .graph_output_format   = format_dot
 };
-
-/* A callback for destroying an item in the tree's queue. Each item in the queue
-   is a tree node, which contains the ID of the owning task and a dynamic array
-   of the task's children.
- */
-void
-tree_destroy_node(void *ptr)
-{
-    tree_node_t *node = (tree_node_t*) ptr;
-    LOG_DEBUG("%lu destroying %p->%p", node->parent_id.value, node, node->children);
-    array_destroy(node->children);
-    free(node);
-    return;
-}
 
 /* Initialise the task tree. Should be called once at program start.
 
@@ -140,6 +127,134 @@ tree_init(void)
     LOG_INFO("OUTPUT=%s", Tree.graph_output);
 
     return Tree.initialised = true;
+}
+
+/* Create a tree node for a task and atomically add it to the tree's node queue.
+   The array associated with the node has space for "children" IDs initially.
+   Return the address of the tree node for the task to maintain.
+   
+   Aborts program execution if the tree is not initialised.
+
+   Returns NULL if a tree node could not be created.
+
+   Print an error message to the log if queueing the node fails.
+
+   Addresses returned by this function should not be manually free'd, but will
+   be free'd when the tree is written or destroyed.
+
+ */
+tree_node_t *
+tree_add_node(tree_node_id_t parent_id, size_t n_children)
+{
+    /* lock the tree to ensure atomic access */
+    pthread_mutex_lock(&Tree.lock);
+
+    tree_node_t *node = NULL;
+
+    /* if tree not initialised when trying to add a node, abort execution */
+    if (false == Tree.initialised)
+    {
+        LOG_ERROR("task tree not initialised before adding node, aborting");
+        abort();
+    }
+
+    /* if node creation failed, exit safely (unlock mutex and return NULL) with
+       message
+    */
+    if (NULL == (node = malloc(sizeof(*node))))
+    {
+        LOG_ERROR("failed to create node for parent %p", parent_id.ptr);
+        goto unlock_and_exit;
+    }
+
+    node->parent_id = parent_id;
+
+    /* if creation of node's array failed, exit safely with message */
+    if (NULL == (node->children = array_create(n_children)))
+    {
+        LOG_ERROR("task tree failed to create array for parent %lu",
+            parent_id.value);
+        free(node);
+        node = NULL;
+        goto unlock_and_exit;
+    }
+
+    /* queue the new node */
+    LOG_DEBUG("%lu queueing %p->%p", parent_id.value, node, node->children);
+    bool node_was_queued = queue_push(Tree.queue, (queue_item_t){.ptr = node});
+
+    #if DEBUG_LEVEL >= 4
+    queue_print(Tree.queue);
+    #endif
+
+    /* if queueing failed, print a message */
+    LOG_ERROR_IF(false == node_was_queued,
+        "task tree failed to queue node %p for parent %lu",
+        node, parent_id.value);
+
+unlock_and_exit:
+
+    /* in all cases, unlock the mutex and return final address of node (NULL 
+       on error)
+    */
+    pthread_mutex_unlock(&Tree.lock);
+    return node;
+}
+
+/* Add the ID of a child task to the node belonging to its parent to record
+   that the parent spawned the child.
+
+   If parent_node is NULL, atomically add the child to the tree's root node to
+   indicate that the spawned task has no parent.
+
+ */
+bool 
+tree_add_child_to_node(tree_node_t *parent_node, tree_node_id_t child_id)
+{
+    array_t *children = NULL;
+    tree_node_t *parent = NULL;
+
+    tree_node_id_t task_type = {.value=UNPACK_BITS_TASK_TYPE(child_id.value)};
+    tree_node_id_t parallel_region_id = 
+        {.value=UNPACK_BITS_PAR_REGION(child_id.value)};
+
+    LOG_INFO("%-20s: 0x%016lx -> %lu, %lu, %lu", "CHILD ID UNPACKING",
+        child_id.value, task_type.value, parallel_region_id.value,
+        child_id.value & 0xFFFFFFFF);
+
+    child_id.value &= 0xFFFFFFFF;
+
+    /* Add a child to parent_node, or to the root node if it has no parent */
+    if (parent_node == NULL)
+    {
+        pthread_mutex_lock(&Tree.lock);
+        parent = &Tree.root_node;
+        children = Tree.root_node.children;
+    } else {
+        parent = parent_node;
+        children = parent_node->children;
+    }
+
+    LOG_DEBUG("%lu -> %lu", parent->parent_id.value, child_id.value);
+
+    /* Append the ID of the child. Write error on failure. */
+    if (false == array_push_back(children, (array_element_t){.ptr = child_id.ptr}))
+    {
+        LOG_ERROR("task tree failed to add child %p to parent node %p",
+            child_id.ptr, parent);
+
+        /* Only need to unlock if we were adding to the root node */
+        if (parent == &Tree.root_node) pthread_mutex_unlock(&Tree.lock);
+        return false;
+    }
+
+    #if DEBUG_LEVEL >= 4
+    array_print(children);
+    #endif
+    
+    /* Only need to unlock if we were adding to the root node */
+    if (parent == &Tree.root_node) pthread_mutex_unlock(&Tree.lock);
+    return true;
 }
 
 /* Write the contents of the tree
@@ -404,120 +519,16 @@ tree_destroy(void)
     return;
 }
 
-/* Create a tree node for a task and atomically add it to the tree's node queue.
-   The array associated with the node has space for "children" IDs initially.
-   Return the address of the tree node for the task to maintain.
-   
-   Aborts program execution if the tree is not initialised.
-
-   Returns NULL if a tree node could not be created.
-
-   Print an error message to the log if queueing the node fails.
-
-   Addresses returned by this function should not be manually free'd, but will
-   be free'd when the tree is written or destroyed.
-
+/* A callback for destroying an item in the tree's queue. Each item in the queue
+   is a tree node, which contains the ID of the owning task and a dynamic array
+   of the task's children.
  */
-tree_node_t *
-tree_add_node(tree_node_id_t parent_id, size_t n_children)
+void
+tree_destroy_node(void *ptr)
 {
-    /* lock the tree to ensure atomic access */
-    pthread_mutex_lock(&Tree.lock);
-
-    tree_node_t *node = NULL;
-
-    /* if tree not initialised when trying to add a node, abort execution */
-    if (false == Tree.initialised)
-    {
-        LOG_ERROR("task tree not initialised before adding node, aborting");
-        abort();
-    }
-
-    /* if node creation failed, exit safely (unlock mutex and return NULL) with
-       message
-    */
-    if (NULL == (node = malloc(sizeof(*node))))
-    {
-        LOG_ERROR("failed to create node for parent %p", parent_id.ptr);
-        goto unlock_and_exit;
-    }
-
-    node->parent_id = parent_id;
-
-    /* if creation of node's array failed, exit safely with message */
-    if (NULL == (node->children = array_create(n_children)))
-    {
-        LOG_ERROR("task tree failed to create array for parent %lu",
-            parent_id.value);
-        free(node);
-        node = NULL;
-        goto unlock_and_exit;
-    }
-
-    /* queue the new node */
-    LOG_DEBUG("%lu queueing %p->%p", parent_id.value, node, node->children);
-    bool node_was_queued = queue_push(Tree.queue, (queue_item_t){.ptr = node});
-
-    #if DEBUG_LEVEL >= 4
-    queue_print(Tree.queue);
-    #endif
-
-    /* if queueing failed, print a message */
-    LOG_ERROR_IF(false == node_was_queued,
-        "task tree failed to queue node %p for parent %lu",
-        node, parent_id.value);
-
-unlock_and_exit:
-
-    /* in all cases, unlock the mutex and return final address of node (NULL 
-       on error)
-    */
-    pthread_mutex_unlock(&Tree.lock);
-    return node;
-}
-
-/* Add the ID of a child task to the node belonging to its parent to record
-   that the parent spawned the child.
-
-   If parent_node is NULL, atomically add the child to the tree's root node to
-   indicate that the spawned task has no parent.
-
- */
-bool 
-tree_add_child_to_node(tree_node_t *parent_node, tree_node_id_t child_id)
-{
-    array_t *children = NULL;
-    tree_node_t *parent = NULL;
-
-    /* Add a child to parent_node, or to the root node if it has no parent */
-    if (parent_node == NULL)
-    {
-        pthread_mutex_lock(&Tree.lock);
-        parent = &Tree.root_node;
-        children = Tree.root_node.children;
-    } else {
-        parent = parent_node;
-        children = parent_node->children;
-    }
-
-    LOG_DEBUG("%lu -> %lu", parent->parent_id.value, child_id.value);
-
-    /* Append the ID of the child. Write error on failure. */
-    if (false == array_push_back(children, (array_element_t){.ptr = child_id.ptr}))
-    {
-        LOG_ERROR("task tree failed to add child %p to parent node %p",
-            child_id.ptr, parent);
-
-        /* Only need to unlock if we were adding to the root node */
-        if (parent == &Tree.root_node) pthread_mutex_unlock(&Tree.lock);
-        return false;
-    }
-
-    #if DEBUG_LEVEL >= 4
-    array_print(children);
-    #endif
-    
-    /* Only need to unlock if we were adding to the root node */
-    if (parent == &Tree.root_node) pthread_mutex_unlock(&Tree.lock);
-    return true;
+    tree_node_t *node = (tree_node_t*) ptr;
+    LOG_DEBUG("%lu destroying %p->%p", node->parent_id.value, node, node->children);
+    array_destroy(node->children);
+    free(node);
+    return;
 }

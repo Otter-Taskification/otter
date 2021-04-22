@@ -27,7 +27,8 @@
 
 #include <otter-task-tree/task-tree.h>
 
-ompt_get_thread_data_t get_thread_data;
+ompt_get_thread_data_t     get_thread_data;
+ompt_get_parallel_info_t   get_paralle_info;
 
 /* Register the tool's callbacks with ompt-core which will pass them on to OMP
 */
@@ -46,6 +47,8 @@ tool_setup(
     include_callback(callbacks, ompt_callback_work);
 
     get_thread_data = (ompt_get_thread_data_t) lookup("ompt_get_thread_data");
+    get_paralle_info = 
+        (ompt_get_parallel_info_t) lookup("ompt_get_parallel_info");
 
     tree_init();
 
@@ -248,6 +251,25 @@ on_ompt_callback_task_create(
     /* get the task data of the parent, if it exists */
     task_data_t *parent_task_data = NULL;
 
+    /* get enclosing parallel region data if it exists */
+    ompt_data_t *parallel = NULL;
+    parallel_data_t *parallel_data = NULL;
+    if (get_paralle_info(INNER, &parallel, NULL) == PAR_INFO_AVAIL)
+    {
+        parallel_data = (parallel_data_t*) parallel->ptr;
+        LOG_DEBUG("got parallel data %p->%p (region=%lu)",
+            parallel, parallel_data, parallel_data->id);
+    } else {
+        LOG_DEBUG("enclosing parallel data unavailable");
+    }
+
+    /* Pack task type & enclosing parallel region into child id for 
+       tree_add_child_to_node
+     */
+    LOG_INFO("%-20s: 0x%016lx", "CHILD ID PACKING",
+        PACK_CHILD_TASK_BITS(flags, task_data->id, parallel_data->id)
+    );
+
     if (encountering_task == NULL)
     {
         /* add this task as a child of the root node if it is a child of an
@@ -257,7 +279,9 @@ on_ompt_callback_task_create(
         LOG_DEBUG_TASK_TYPE(0L, task_data->id, flags);
         LOG_DEBUG("encountering task null; adding child to root");
         
-        tree_add_child_to_node(NULL, (tree_node_id_t) task_data->id);
+        tree_add_child_to_node(NULL,
+            (tree_node_id_t) PACK_CHILD_TASK_BITS(
+                flags, task_data->id, parallel_data->id));
 
     } else {
         
@@ -278,7 +302,8 @@ on_ompt_callback_task_create(
 
         /* add task as a child of the parent (encountering) task */
         tree_add_child_to_node(parent_task_data->tree_node,
-            (tree_node_id_t) task_data->id);
+            (tree_node_id_t) PACK_CHILD_TASK_BITS(
+                flags, task_data->id, parallel_data->id));
 
     }
 
@@ -374,8 +399,16 @@ on_ompt_callback_implicit_task(
             task_data->lock = malloc(sizeof(*task_data->lock));
             pthread_mutex_init(task_data->lock, NULL);
 
+            /* Pack task type & enclosing parallel region into child id for 
+               tree_add_child_to_node
+            */
+            LOG_INFO("%-20s: 0x%016lx", "CHILD ID PACKING",
+                PACK_CHILD_TASK_BITS(flags, task_data->id, 0L));
+
             // register an initial task as a child of the root node
-            tree_add_child_to_node(NULL, (tree_node_id_t) task_data->id);
+            tree_add_child_to_node(NULL, 
+                (tree_node_id_t) PACK_CHILD_TASK_BITS(
+                    flags, task_data->id, 0L));
 
         } else if (task_data->type == ompt_task_implicit) {
             
@@ -405,9 +438,16 @@ on_ompt_callback_implicit_task(
                     tree_add_node((tree_node_id_t) parent_task_data->id,
                         OTTER_DEFAULT_TASK_CHILDREN);
             }
+            
+            /* Pack task type & enclosing parallel region into child id for 
+               tree_add_child_to_node
+            */
+            LOG_INFO("%-20s: 0x%016lx", "CHILD ID PACKING",
+                PACK_CHILD_TASK_BITS(flags, task_data->id, parallel_data->id));
 
             tree_add_child_to_node(parent_task_data->tree_node,
-                (tree_node_id_t) task_data->id);
+                (tree_node_id_t) PACK_CHILD_TASK_BITS(
+                    flags, task_data->id, parallel_data->id));
 
             pthread_mutex_unlock(parent_task_data->lock);
             
@@ -681,7 +721,10 @@ get_unique_id(
     /* start counting tasks from 1 so that the initial task is always #1, and
        the root node of the task tree will have ID 0 not attached to any real
        task
+
+       count parallel regions from 1 so the implicit parallel region around the
+       whole program is always 0
      */
-    static unique_id_t id[NUM_ID_TYPES] = {0,0,0,1};
+    static unique_id_t id[NUM_ID_TYPES] = {0,1,0,1};
     return __sync_fetch_and_add(&id[id_type], 1L);
 }

@@ -3,16 +3,31 @@
 
 #include <macros/debug.h>
 
-#define OTTER_DEBUG(fmt, ...) LOG_DEBUG("[OTTer] " fmt PASS_ARGS(__VA_ARGS__));
+/* ancestor level for innermost parallel region */
+#define INNER 0
+
+/* return values from ompt_get_parallel_info_t */
+#define PAR_INFO_AVAIL          2
+#define PAR_INFO_UNAVAIL        1
+#define PAR_INFO_NONE           0
+
+/* pack task type and enclosing paralle region into child ID bits to pass to
+   tree_add_child_to_node
+
+   task type (top 4 bits):    0xf000000000000000 (7.5-byte shift)
+   enclosing parallel region: 0x00ff000000000000 (6-byte shift MAX 256 REGIONS!) 
+ */
+#define PACK_CHILD_TASK_BITS(flags, child_id, parallel_id)                     \
+    (child_id | (((unique_id_t)flags & 0x0F)<<60) | ((parallel_id & 0xFF)<<48))
 
 /* Apply a macro to each of the possible values returned when setting a callback
    through ompt_set_callback */
-#define FOREACH_OMPT_SET_RESULT(macro, result, event)                   \
-    macro(ompt_set_error,             0, result, event)                 \
-    macro(ompt_set_never,             1, result, event)                 \
-    macro(ompt_set_impossible,        2, result, event)                 \
-    macro(ompt_set_sometimes,         3, result, event)                 \
-    macro(ompt_set_sometimes_paired,  4, result, event)                 \
+#define FOREACH_OMPT_SET_RESULT(macro, result, event)                          \
+    macro(ompt_set_error,             0, result, event)                        \
+    macro(ompt_set_never,             1, result, event)                        \
+    macro(ompt_set_impossible,        2, result, event)                        \
+    macro(ompt_set_sometimes,         3, result, event)                        \
+    macro(ompt_set_sometimes_paired,  4, result, event)                        \
     macro(ompt_set_always,            5, result, event)
 
 /* Print the result of attempting to set a callback. Useful as not all callbacks

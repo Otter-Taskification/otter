@@ -1,9 +1,10 @@
 #! /usr/bin/bash
 
 # Debug level per module
-export DEBUG_OTTER=3
-export DEBUG_OTT=3
-export DEBUG_ODT=3
+DEBUG_ALL=3
+export DEBUG_OTTER=$DEBUG_ALL
+export DEBUG_OTT=$DEBUG_ALL
+export DEBUG_ODT=$DEBUG_ALL
 
 # Some handy defaults
 export OTTER_DEFAULT_TASK_CHILDREN=1000

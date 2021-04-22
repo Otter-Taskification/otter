@@ -92,4 +92,4 @@ clean:
 	@-rm -f lib/* obj/* $(BINS) $(OMPEXE)
 
 cleanfiles:
-	@-rm -f *.dot *.svg *.pdf *.png
+	@-rm -f *.gv *.svg *.pdf *.png

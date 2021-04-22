@@ -1,5 +1,7 @@
 omp-demo
-*.dot
+.*
+*.gv
 *.ps
 *.png
 *.svg
+

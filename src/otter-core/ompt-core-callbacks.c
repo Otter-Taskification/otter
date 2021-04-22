@@ -330,21 +330,38 @@ on_ompt_callback_implicit_task(
     unsigned int             index,
     int                      flags)
 {
-        task_data_t *task_data = NULL;
+    task_data_t *task_data = NULL;
     parallel_data_t *parallel_data = NULL;
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
 
     if (endpoint == ompt_scope_begin)
-    {
-        /* make space for this initial or implicit task */
-        task_data = malloc(sizeof(*task_data));
-        *task_data = (task_data_t) {
-            .id         = get_unique_task_id(),
-            .type       = flags & TASK_TYPE_BITS,
-            .tree_node  = NULL,
-            .lock       = NULL
-        };
-        LOG_DEBUG_IMPLICIT_TASK(flags, "begin", task_data->id);
+    {   
+        /* Check whether task data is null */
+        LOG_DEBUG("task pointer: %p->%p (%d)", task, task->ptr, flags);
+
+        /* Intel's runtime gives initial tasks task-create & implicit
+         * -task-begin callbacks, but LLVM's only gives ITB callback
+         * 
+         * This means when using Intel runtime I allocate initial task
+         * space in task-create, but with LLVM this happens below - need
+         * to check for this to avoid double-counting an initial task
+         */
+        if (task->ptr != NULL)
+        {
+			LOG_WARN("task was previously allocated task data");
+			task_data = (task_data_t*) task->ptr;
+		} else {			
+			/* make space for this initial or implicit task */
+			task_data = malloc(sizeof(*task_data));
+			*task_data = (task_data_t) {
+				.id         = get_unique_task_id(),
+				.type       = flags & TASK_TYPE_BITS,
+				.tree_node  = NULL,
+				.lock       = NULL
+			};
+		}
+
+		LOG_DEBUG_IMPLICIT_TASK(flags, "begin", task_data->id);
 
         /* get the encompassing parallel region data (doesn't exist for initial
            tasks) and register this task in the task tree

@@ -17,6 +17,10 @@ static bool tree_write_edge_list(FILE *taskgraph);
 static bool tree_write_adjacency_list(FILE *taskgraph);
 static void tree_destroy_node(void *ptr);
 
+static void tree_write_dot_child_fmt(
+    FILE *taskgraph,
+    tree_node_id_t child_id);
+
 /* A node is a container that belongs to a particular task. It maintains an
    array of the IDs of the child tasks spawned by the task
 */
@@ -312,103 +316,56 @@ tree_write(void)
 
 static bool tree_write_dot(FILE *taskgraph)
 {
-    int i=0;
+    int i=0;                          // loop counter
+    size_t n_children = 0;            // # children of a given node in the queue
+    array_element_t *child_tasks = NULL;  // children of a node
+    tree_node_t *node = NULL;         // present node popped from the queue
 
     /* Write digraph header */
-    fprintf(taskgraph, 
-        "digraph \"\" {                                                      \n"
-        "    graph   [fontname = \"helvetica\"];                             \n"
-        "    node    [fontname = \"helvetica\" shape=record];                \n"
-        "    label = \"\";                                                   \n"
+    fprintf(taskgraph,
+        "digraph \"\" {\n"
+        "    graph   [fontname = \"helvetica\"];\n"
+        "    node    [fontname = \"helvetica\" shape=record];\n"
+        "    label = \"\";\n"
         "\n"
     );
 
-    /* will unpack these values from the bits of each child ID */
-    tree_node_id_t child_id, task_type, parallel_region_id;
-
-    /* a child task's node shape is determined by its OMP task type */
-    char *child_node_shape = "box",
-         *child_node_style = "solid",
-         *child_node_colour = "black";
-
-    /* First write any children the root node has (it may have 0)... */
-    size_t n_children = 0;
-
-    /* Get the array of child tasks */
-    array_element_t *child_tasks = array_peek_data(
-        Tree.root_node.children, &n_children);
+    /* Children of the root node (it may have 0)... */
+    child_tasks = array_peek_data(Tree.root_node.children, &n_children);
 
     LOG_ERROR_IF(child_tasks == NULL, "got null pointer from array_peek_data");
-    
-    /* If there are any children, write their IDs */
     LOG_DEBUG("parent=(root) (n=%lu)", n_children);
+
     if (n_children > 0)
     {
-        /* For each child of the ROOT node */
         for (i=0; i<n_children; i++)
         {
-            /* unpack task id, type & parallel region bits from child value */
-            child_id.value = UNPACK_TASK_ID(child_tasks[i].value);
-            UNPACK_TASK_ID_BITS(
-                task_type, parallel_region_id, child_tasks[i].value);
-
-            /* convert child task type to a node shape string */
-            TASK_TYPE_TO_NODE_STYLE(task_type.value, child_node_style,
-                child_node_shape, child_node_colour);
-
-            LOG_INFO("%-20s: 0x%016lx -> %lu, %lu, %lu", "CHILD ID UNPACKING",
-                child_tasks[i].value,
-                task_type.value, parallel_region_id.value, child_id.value);
-            
-            fprintf(taskgraph,
-                // "%lu -> %lu \n"
-                "  %lu [style= %s shape=%s color=%s]\n",
-                // Tree.root_node.parent_id.value, child_id.value,
-                child_id.value, child_node_style, child_node_shape,
-                child_node_colour
-            );
+            tree_write_dot_child_fmt(taskgraph,
+                (tree_node_id_t)child_tasks[i].value);
         }
     }
 
-    /* ... then write the children of each node in the queue */
-    tree_node_t *node = NULL;
-
-    /* queue_pop writes the popped item into &node */
+    /* Children of each node in the queue */
     while(queue_pop(Tree.queue, (queue_item_t*) &node))
     {
         LOG_ERROR_IF(node == NULL, "got null pointer from queue_pop");
 
-        /* Get the array of child IDs */
         child_tasks = array_peek_data(node->children, &n_children);
+
         LOG_ERROR_IF(child_tasks == NULL,
             "got null pointer from array_peek_data (parent=%lu)",
             node->parent_id.value);
 
         LOG_DEBUG("parent=%lu (n=%lu)", node->parent_id.value, n_children);
 
-        /* For the children of the PRESENT node */
         for (i=0; i<n_children; i++)
         {
-            /* unpack task id, type & parallel region bits from child value */
-            child_id.value = UNPACK_TASK_ID(child_tasks[i].value);
-            UNPACK_TASK_ID_BITS(
-                task_type, parallel_region_id, child_tasks[i].value);
+            fprintf(taskgraph, "%lu -> %lu\n", 
+                UNPACK_TASK_ID(node->parent_id.value),
+                UNPACK_TASK_ID(child_tasks[i].value));
 
-            /* convert child task type to a node shape string */
-            TASK_TYPE_TO_NODE_STYLE(task_type.value, child_node_style,
-                child_node_shape, child_node_colour);
-
-            LOG_INFO("%-20s: 0x%016lx -> %lu, %lu, %lu", "CHILD ID UNPACKING",
-                child_tasks[i].value,
-                task_type.value, parallel_region_id.value, child_id.value);
-            
-            fprintf(taskgraph,
-                "%lu -> %lu          \n"
-                "  %lu [style= %s shape=%s color=%s]\n",
-                UNPACK_TASK_ID(node->parent_id.value), child_id.value,
-                child_id.value, child_node_style, child_node_shape,
-                child_node_colour
-            );
+            tree_write_dot_child_fmt(taskgraph,
+                (tree_node_id_t)child_tasks[i].value);
         }
 
         /* destroy the node & the array it contains */
@@ -418,6 +375,38 @@ static bool tree_write_dot(FILE *taskgraph)
     /* Close the digraph */
     fprintf(taskgraph, "\n}\n");
     return true;
+}
+
+static void 
+tree_write_dot_child_fmt(
+    FILE            *taskgraph,
+    tree_node_id_t   child_id)
+{
+    /* will unpack these values from the bits of each child ID */
+    tree_node_id_t unpacked_id, task_type, parallel_region_id;
+
+    /* a child task's node shape is determined by its OMP task type */
+    char *child_node_shape = "box",
+         *child_node_style = "solid",
+         *child_node_colour = "black";
+
+    unpacked_id.value = UNPACK_TASK_ID(child_id.value);
+
+    UNPACK_TASK_ID_BITS(task_type, parallel_region_id, child_id.value);
+
+    TASK_TYPE_TO_NODE_STYLE(task_type.value,
+        child_node_style, child_node_shape, child_node_colour);
+
+    LOG_INFO("%-20s: 0x%016lx -> %lu, %lu, %lu", "CHILD ID UNPACKING", 
+        child_id.value, task_type.value,
+        parallel_region_id.value, unpacked_id.value);
+    
+    fprintf(taskgraph,
+        "  %lu [style= %s shape=%s color=%s]\n",
+        unpacked_id.value, child_node_style, child_node_shape,
+        child_node_colour);
+
+    return;
 }
 
 static bool tree_write_edge_list(FILE *taskgraph)

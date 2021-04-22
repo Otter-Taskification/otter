@@ -32,20 +32,7 @@
 
 #define UNPACK_TASK_ID(task_id_value) (task_id_value & 0xFFFFFFFF)
 
-/* Convert an ompt_task_flags_t to a node shape str */
-#define TASK_TYPE_TO_NODE_SHAPE(node_shape, task_type)                         \
-do{                                                                            \
-    switch (task_type)                                                         \
-    {                                                                          \
-        case ompt_task_initial:  node_shape = "diamond"; break;                \
-        case ompt_task_implicit: node_shape = "circle";  break;                \
-        case ompt_task_explicit: node_shape = "square";     break;             \
-        case ompt_task_target:   node_shape = "hexagon"; break;                \
-        default:                 node_shape = "none";                          \
-    }                                                                          \
-} while(0)
-
-#define TASK_TYPE_TO_NODE_STYLE(task_type, node_style, node_shape, node_colour)     \
+#define TASK_TYPE_TO_NODE_STYLE(task_type, node_style, node_shape, node_colour)\
 do{                                                                            \
     switch (task_type)                                                         \
     {                                                                          \
@@ -61,7 +48,7 @@ do{                                                                            \
             break;                                                             \
         case ompt_task_explicit:                                               \
             node_style = "solid";                                              \
-            node_shape = "square";                                             \
+            node_shape = "box";                                                \
             node_colour = "red";                                               \
             break;                                                             \
         case ompt_task_target:                                                 \

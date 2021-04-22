@@ -248,6 +248,12 @@ on_ompt_callback_task_create(
     };
     new_task->ptr = task_data;
 
+    /* initialise the task's mutex so any child implicit tasks can
+       have atomic access to the initial task's data
+    */            
+    task_data->lock = malloc(sizeof(*task_data->lock));
+    pthread_mutex_init(task_data->lock, NULL);
+
     /* get the task data of the parent, if it exists */
     task_data_t *parent_task_data = NULL;
 
@@ -374,7 +380,7 @@ on_ompt_callback_implicit_task(
     if (endpoint == ompt_scope_begin)
     {   
         /* Check whether task data is null */
-        LOG_DEBUG("task pointer: %p->%p (%d)", task, task->ptr, flags);
+        LOG_DEBUG("task pointer: %p->%p (flags=%d)", task, task->ptr, flags);
 
         /* Intel's runtime gives initial tasks task-create & implicit
          * -task-begin callbacks, but LLVM's only gives ITB callback
@@ -436,6 +442,21 @@ on_ompt_callback_implicit_task(
             task_data_t *parent_task_data = 
                 parallel_data->encountering_task_data;
 
+            LOG_DEBUG("parent task data:\n"
+                      "              >>> parent_task_data=%p\n"
+                      "              >>> parent_task_data->id=%lu\n"
+                      "              >>> parent_task_data->type=%d\n"
+                      "              >>> parent_task_data->enclosing_parallel_id=%lu\n"
+                      "              >>> parent_task_data->tree_node=%p\n"
+                      "              >>> parent_task_data->lock=%p\n",
+                    parent_task_data,
+                    parent_task_data->id,
+                    parent_task_data->type,
+                    parent_task_data->enclosing_parallel_id,
+                    parent_task_data->tree_node,
+                    parent_task_data->lock);
+            LOG_DEBUG("locking mutex: %p", parent_task_data->lock);
+
             /* lock before accessing parent initial task data */
             pthread_mutex_lock(parent_task_data->lock);
 
@@ -483,7 +504,15 @@ on_ompt_callback_implicit_task(
     } else {
         if (task != NULL) task_data = (task_data_t*) task->ptr;
         LOG_DEBUG_IMPLICIT_TASK(flags, "end", task_data->id);
-        if (task_data != NULL) free(task_data);
+        if (task_data != NULL)
+        {
+            if (task_data->lock != NULL)
+            {
+                pthread_mutex_destroy(task_data->lock);
+                free(task_data->lock);
+            }
+            free(task_data);
+        }
     }
 
     return;

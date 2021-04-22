@@ -3,7 +3,7 @@
 # Run-time environment variables
 
 # Graph output file format: dot/adj/edge
-export OTTER_TASK_TREE_FORMAT=dot
+export OTTER_TASK_TREE_FORMAT=adj
 
 # Graph output file name
 export OTTER_TASK_TREE_OUTPUT='task-tree-graph'

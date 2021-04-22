@@ -52,9 +52,9 @@ int spawnTasks(int j)
 int main(void)
 {
 	int j=0;
-	#pragma omp parallel num_threads(16)
+	#pragma omp parallel num_threads(4)
 	{
-		#pragma omp single
+		//#pragma omp single
 		{
 			for (j=0; j<CHILDREN; j++)
 			{

@@ -112,11 +112,11 @@ tree_init(void)
     LOG_INFO("OTTER_TASK_TREE_FORMAT=%s", graph_format);
 
     if ((graph_output == NULL) || STR_EQUAL(graph_output, ""))
-        graph_output = "OTTer.dot";
+        graph_output = "OTTer.gv";
 
     if (graph_format == NULL) graph_format = "not set";
 
-    char *ext = ".dot";
+    char *ext = ".gv";
     if (STR_EQUAL(graph_format, "edge")) {
         Tree.graph_output_format = format_edge;
         ext = ".csv";
@@ -125,7 +125,7 @@ tree_init(void)
         ext = ".json";
     } else {
         Tree.graph_output_format = format_dot;
-        ext = ".dot";
+        ext = ".gv";
     }
 
     strncpy(Tree.graph_output, graph_output,

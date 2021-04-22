@@ -42,6 +42,8 @@ typedef struct task_data_t {
        task rather than in that of the initial parent task
      */
     pthread_mutex_t    *lock;
+
+    unique_id_t         enclosing_parallel_id;
 } task_data_t;
 
 #endif // OMPT_CORE_TYPES_H

@@ -28,7 +28,7 @@
 #include <otter-task-tree/task-tree.h>
 
 ompt_get_thread_data_t     get_thread_data;
-ompt_get_parallel_info_t   get_paralle_info;
+ompt_get_parallel_info_t   get_parallel_info;
 
 /* Register the tool's callbacks with ompt-core which will pass them on to OMP
 */
@@ -47,7 +47,7 @@ tool_setup(
     include_callback(callbacks, ompt_callback_work);
 
     get_thread_data = (ompt_get_thread_data_t) lookup("ompt_get_thread_data");
-    get_paralle_info = 
+    get_parallel_info = 
         (ompt_get_parallel_info_t) lookup("ompt_get_parallel_info");
 
     tree_init();
@@ -243,9 +243,9 @@ on_ompt_callback_task_create(
         .id         = get_unique_task_id(),
         .type       = flags & TASK_TYPE_BITS,
         .tree_node  = NULL,
-        .lock       = NULL
+        .lock       = NULL,
+        .enclosing_parallel_id = 0L
     };
-
     new_task->ptr = task_data;
 
     /* get the task data of the parent, if it exists */
@@ -254,11 +254,20 @@ on_ompt_callback_task_create(
     /* get enclosing parallel region data if it exists */
     ompt_data_t *parallel = NULL;
     parallel_data_t *parallel_data = NULL;
-    if (get_paralle_info(INNER, &parallel, NULL) == PAR_INFO_AVAIL)
+    if (get_parallel_info(INNER, &parallel, NULL) == PARALLEL_INFO_AVAIL)
     {
         parallel_data = (parallel_data_t*) parallel->ptr;
-        LOG_DEBUG("got parallel data %p->%p (region=%lu)",
-            parallel, parallel_data, parallel_data->id);
+        if (parallel_data == NULL)
+        {
+            LOG_ERROR(
+                "(flags=%d, task=%lu) enclosing parallel data not initialised",
+                flags, task_data->id);
+        } else {
+            LOG_DEBUG("got parallel data %p->%p (region=%lu)",
+                parallel, parallel_data, parallel_data->id);
+        }        
+        task_data->enclosing_parallel_id = 
+            (parallel_data == NULL) ? 0L : parallel_data->id;        
     } else {
         LOG_DEBUG("enclosing parallel data unavailable");
     }
@@ -267,10 +276,10 @@ on_ompt_callback_task_create(
        tree_add_child_to_node
      */
     LOG_INFO("%-20s: 0x%016lx", "CHILD ID PACKING",
-        PACK_CHILD_TASK_BITS(flags, task_data->id, parallel_data->id)
+        PACK_TASK_BITS(flags, task_data->id, task_data->enclosing_parallel_id)
     );
 
-    if (encountering_task == NULL)
+    if (encountering_task == NULL) // child of initial task
     {
         /* add this task as a child of the root node if it is a child of an
            initial task
@@ -279,11 +288,10 @@ on_ompt_callback_task_create(
         LOG_DEBUG_TASK_TYPE(0L, task_data->id, flags);
         LOG_DEBUG("encountering task null; adding child to root");
         
-        tree_add_child_to_node(NULL,
-            (tree_node_id_t) PACK_CHILD_TASK_BITS(
-                flags, task_data->id, parallel_data->id));
+        tree_add_child_to_node(NULL, (tree_node_id_t) PACK_TASK_BITS(
+            flags, task_data->id, task_data->enclosing_parallel_id));
 
-    } else {
+    } else { // not child of an initial task
         
         parent_task_data = (task_data_t*) encountering_task->ptr;
 
@@ -295,15 +303,19 @@ on_ompt_callback_task_create(
 
         if (parent_task_data->tree_node == NULL)
         {
-            parent_task_data->tree_node = 
-                tree_add_node((tree_node_id_t) parent_task_data->id,
-                OTTER_DEFAULT_TASK_CHILDREN);
+            parent_task_data->tree_node = tree_add_node(
+                (tree_node_id_t) PACK_TASK_BITS(
+                    parent_task_data->type,
+                    parent_task_data->id,
+                    parent_task_data->enclosing_parallel_id),
+                OTTER_DEFAULT_TASK_CHILDREN
+            );
         }
 
         /* add task as a child of the parent (encountering) task */
-        tree_add_child_to_node(parent_task_data->tree_node,
-            (tree_node_id_t) PACK_CHILD_TASK_BITS(
-                flags, task_data->id, parallel_data->id));
+        tree_add_child_to_node(parent_task_data->tree_node, 
+            (tree_node_id_t) PACK_TASK_BITS(
+                flags, task_data->id, task_data->enclosing_parallel_id));
 
     }
 
@@ -382,7 +394,8 @@ on_ompt_callback_implicit_task(
 				.id         = get_unique_task_id(),
 				.type       = flags & TASK_TYPE_BITS,
 				.tree_node  = NULL,
-				.lock       = NULL
+				.lock       = NULL,
+                .enclosing_parallel_id = 0L
 			};
 		}
 
@@ -402,13 +415,12 @@ on_ompt_callback_implicit_task(
             /* Pack task type & enclosing parallel region into child id for 
                tree_add_child_to_node
             */
-            LOG_INFO("%-20s: 0x%016lx", "CHILD ID PACKING",
-                PACK_CHILD_TASK_BITS(flags, task_data->id, 0L));
+            LOG_INFO("%-20s: 0x%016lx", "CHILD ID PACKING", PACK_TASK_BITS(
+                flags, task_data->id, 0L));
 
             // register an initial task as a child of the root node
-            tree_add_child_to_node(NULL, 
-                (tree_node_id_t) PACK_CHILD_TASK_BITS(
-                    flags, task_data->id, 0L));
+            tree_add_child_to_node(NULL, (tree_node_id_t) PACK_TASK_BITS(
+                flags, task_data->id, 0L));
 
         } else if (task_data->type == ompt_task_implicit) {
             
@@ -420,6 +432,7 @@ on_ompt_callback_implicit_task(
 
             /* get task data of encountering initial task via parallel data */
             parallel_data = (parallel_data_t*) parallel->ptr;
+            task_data->enclosing_parallel_id = parallel_data->id;
             task_data_t *parent_task_data = 
                 parallel_data->encountering_task_data;
 
@@ -434,19 +447,24 @@ on_ompt_callback_implicit_task(
 
             if (parent_task_data->tree_node == NULL)
             {
-                parent_task_data->tree_node = 
-                    tree_add_node((tree_node_id_t) parent_task_data->id,
-                        OTTER_DEFAULT_TASK_CHILDREN);
+                parent_task_data->tree_node = tree_add_node(
+                (tree_node_id_t) PACK_TASK_BITS(
+                    parent_task_data->type,
+                    parent_task_data->id,
+                    parent_task_data->enclosing_parallel_id),
+                OTTER_DEFAULT_TASK_CHILDREN
+            );
+                
             }
             
             /* Pack task type & enclosing parallel region into child id for 
                tree_add_child_to_node
             */
             LOG_INFO("%-20s: 0x%016lx", "CHILD ID PACKING",
-                PACK_CHILD_TASK_BITS(flags, task_data->id, parallel_data->id));
+                PACK_TASK_BITS(flags, task_data->id, parallel_data->id));
 
             tree_add_child_to_node(parent_task_data->tree_node,
-                (tree_node_id_t) PACK_CHILD_TASK_BITS(
+                (tree_node_id_t) PACK_TASK_BITS(
                     flags, task_data->id, parallel_data->id));
 
             pthread_mutex_unlock(parent_task_data->lock);

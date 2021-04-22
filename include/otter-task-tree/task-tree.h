@@ -5,6 +5,12 @@
 #include <stdint.h>
 #include <macros/debug.h>
 
+#if defined(__INTEL_COMPILER)
+#include <omp-tools.h>
+#else
+#include <ompt.h>
+#endif
+
 /* Default number of child references the root node starts with */
 #if !defined(OTT_DEFAULT_ROOT_CHILDREN) \
     || (EXPAND(OTT_DEFAULT_ROOT_CHILDREN) == 1)
@@ -16,10 +22,59 @@
 
 /* unpack child task bits to get task type & enclosing parallel region
 
-   see PACK_CHILD_TASK_BITS in ompt-callback-macros.h
+   see PACK_TASK_BITS in ompt-callback-macros.h
  */
-#define UNPACK_BITS_TASK_TYPE(ID)  ( ID >> 60 )
-#define UNPACK_BITS_PAR_REGION(ID) (( ID >> 48 ) & 0xFF)
+#define UNPACK_TASK_ID_BITS(type_var, par_id_var, task_id)                     \
+    do {                                                                       \
+        type_var   = (tree_node_id_t) (task_id>>60);                           \
+        par_id_var = (tree_node_id_t) ((task_id>>48)&0xFF);                    \
+    } while (0)
+
+#define UNPACK_TASK_ID(task_id_value) (task_id_value & 0xFFFFFFFF)
+
+/* Convert an ompt_task_flags_t to a node shape str */
+#define TASK_TYPE_TO_NODE_SHAPE(node_shape, task_type)                         \
+do{                                                                            \
+    switch (task_type)                                                         \
+    {                                                                          \
+        case ompt_task_initial:  node_shape = "diamond"; break;                \
+        case ompt_task_implicit: node_shape = "circle";  break;                \
+        case ompt_task_explicit: node_shape = "square";     break;             \
+        case ompt_task_target:   node_shape = "hexagon"; break;                \
+        default:                 node_shape = "none";                          \
+    }                                                                          \
+} while(0)
+
+#define TASK_TYPE_TO_NODE_STYLE(task_type, node_style, node_shape, node_colour)     \
+do{                                                                            \
+    switch (task_type)                                                         \
+    {                                                                          \
+        case ompt_task_initial:                                                \
+            node_style = "filled";                                             \
+            node_shape = "diamond";                                            \
+            node_colour = "lightgrey";                                         \
+            break;                                                             \
+        case ompt_task_implicit:                                               \
+            node_style = "filled";                                             \
+            node_shape = "circle";                                             \
+            node_colour = "yellow";                                            \
+            break;                                                             \
+        case ompt_task_explicit:                                               \
+            node_style = "solid";                                              \
+            node_shape = "square";                                             \
+            node_colour = "red";                                               \
+            break;                                                             \
+        case ompt_task_target:                                                 \
+            node_style = "solid";                                              \
+            node_shape = "hexagon";                                            \
+            node_colour = "black";                                             \
+            break;                                                             \
+        default:                                                               \
+            node_style = "solid";                                              \
+            node_shape = "none";                                               \
+            node_colour = "black";                                             \
+    }                                                                          \
+} while(0)
 
 /* Task tree node - maintains list of its child nodes */
 typedef struct tree_node_t tree_node_t;

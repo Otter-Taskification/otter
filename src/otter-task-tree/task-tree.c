@@ -99,7 +99,7 @@ tree_init(void)
     LOG_INFO("OTTER_TASK_TREE_FORMAT=%s", graph_format);
 
     if ((graph_output == NULL) || STR_EQUAL(graph_output, ""))
-        graph_output = "OTTer.gv";
+        graph_output = "OTTer";
 
     if (graph_format == NULL) graph_format = "not set";
 
@@ -150,6 +150,14 @@ tree_add_node(tree_node_id_t parent_id, size_t n_children)
     pthread_mutex_lock(&Tree.lock);
 
     tree_node_t *node = NULL;
+
+    /* unpack task type & parallel region bits from parent id */
+    tree_node_id_t task_type, parallel_region_id;
+    UNPACK_TASK_ID_BITS(task_type, parallel_region_id, parent_id.value);
+
+    LOG_INFO("%-20s: 0x%016lx -> %lu, %lu, %lu", "PARENT ID UNPACKING",
+        parent_id.value, task_type.value, parallel_region_id.value,
+        parent_id.value & 0xFFFFFFFF);
 
     /* if tree not initialised when trying to add a node, abort execution */
     if (false == Tree.initialised)
@@ -214,15 +222,15 @@ tree_add_child_to_node(tree_node_t *parent_node, tree_node_id_t child_id)
     array_t *children = NULL;
     tree_node_t *parent = NULL;
 
-    tree_node_id_t task_type = {.value=UNPACK_BITS_TASK_TYPE(child_id.value)};
-    tree_node_id_t parallel_region_id = 
-        {.value=UNPACK_BITS_PAR_REGION(child_id.value)};
+    /* unpack task type & parallel region bits from child id */
+    tree_node_id_t task_type, parallel_region_id;
+    UNPACK_TASK_ID_BITS(task_type, parallel_region_id, child_id.value);
 
     LOG_INFO("%-20s: 0x%016lx -> %lu, %lu, %lu", "CHILD ID UNPACKING",
         child_id.value, task_type.value, parallel_region_id.value,
         child_id.value & 0xFFFFFFFF);
 
-    child_id.value &= 0xFFFFFFFF;
+    /* child_id.value &= 0xFFFFFFFF; */
 
     /* Add a child to parent_node, or to the root node if it has no parent */
     if (parent_node == NULL)
@@ -238,7 +246,7 @@ tree_add_child_to_node(tree_node_t *parent_node, tree_node_id_t child_id)
     LOG_DEBUG("%lu -> %lu", parent->parent_id.value, child_id.value);
 
     /* Append the ID of the child. Write error on failure. */
-    if (false == array_push_back(children, (array_element_t){.ptr = child_id.ptr}))
+    if (false == array_push_back(children, (array_element_t){.value = child_id.value}))
     {
         LOG_ERROR("task tree failed to add child %p to parent node %p",
             child_id.ptr, parent);
@@ -315,25 +323,51 @@ static bool tree_write_dot(FILE *taskgraph)
         "\n"
     );
 
+    /* will unpack these values from the bits of each child ID */
+    tree_node_id_t child_id, task_type, parallel_region_id;
+
+    /* a child task's node shape is determined by its OMP task type */
+    char *child_node_shape = "box",
+         *child_node_style = "solid",
+         *child_node_colour = "black";
+
     /* First write any children the root node has (it may have 0)... */
     size_t n_children = 0;
 
-    /* Get the array of child IDs */
-    array_element_t *child_ids = array_peek_data(
+    /* Get the array of child tasks */
+    array_element_t *child_tasks = array_peek_data(
         Tree.root_node.children, &n_children);
 
-    LOG_ERROR_IF(child_ids == NULL, "got null pointer from array_peek_data");
+    LOG_ERROR_IF(child_tasks == NULL, "got null pointer from array_peek_data");
     
     /* If there are any children, write their IDs */
     LOG_DEBUG("parent=(root) (n=%lu)", n_children);
     if (n_children > 0)
     {
-        fprintf(taskgraph, "%lu -> {", Tree.root_node.parent_id.value);
+        /* For each child of the ROOT node */
         for (i=0; i<n_children; i++)
         {
-            fprintf(taskgraph, "%s%lu", i==0 ? "" : ",", child_ids[i].value); 
+            /* unpack task id, type & parallel region bits from child value */
+            child_id.value = UNPACK_TASK_ID(child_tasks[i].value);
+            UNPACK_TASK_ID_BITS(
+                task_type, parallel_region_id, child_tasks[i].value);
+
+            /* convert child task type to a node shape string */
+            TASK_TYPE_TO_NODE_STYLE(task_type.value, child_node_style,
+                child_node_shape, child_node_colour);
+
+            LOG_INFO("%-20s: 0x%016lx -> %lu, %lu, %lu", "CHILD ID UNPACKING",
+                child_tasks[i].value,
+                task_type.value, parallel_region_id.value, child_id.value);
+            
+            fprintf(taskgraph,
+                // "%lu -> %lu \n"
+                "  %lu [style= %s shape=%s color=%s]\n",
+                // Tree.root_node.parent_id.value, child_id.value,
+                child_id.value, child_node_style, child_node_shape,
+                child_node_colour
+            );
         }
-        fprintf(taskgraph, "}\n");
     }
 
     /* ... then write the children of each node in the queue */
@@ -345,20 +379,37 @@ static bool tree_write_dot(FILE *taskgraph)
         LOG_ERROR_IF(node == NULL, "got null pointer from queue_pop");
 
         /* Get the array of child IDs */
-        child_ids = array_peek_data(node->children, &n_children);
-        LOG_ERROR_IF(child_ids == NULL,
+        child_tasks = array_peek_data(node->children, &n_children);
+        LOG_ERROR_IF(child_tasks == NULL,
             "got null pointer from array_peek_data (parent=%lu)",
             node->parent_id.value);
 
         LOG_DEBUG("parent=%lu (n=%lu)", node->parent_id.value, n_children);
 
-        /* Add the parent task and its children to the graph */
-        fprintf(taskgraph, "%lu -> {", node->parent_id.value);
+        /* For the children of the PRESENT node */
         for (i=0; i<n_children; i++)
         {
-            fprintf(taskgraph, "%s%lu", i==0 ? "" : ",", child_ids[i].value); 
+            /* unpack task id, type & parallel region bits from child value */
+            child_id.value = UNPACK_TASK_ID(child_tasks[i].value);
+            UNPACK_TASK_ID_BITS(
+                task_type, parallel_region_id, child_tasks[i].value);
+
+            /* convert child task type to a node shape string */
+            TASK_TYPE_TO_NODE_STYLE(task_type.value, child_node_style,
+                child_node_shape, child_node_colour);
+
+            LOG_INFO("%-20s: 0x%016lx -> %lu, %lu, %lu", "CHILD ID UNPACKING",
+                child_tasks[i].value,
+                task_type.value, parallel_region_id.value, child_id.value);
+            
+            fprintf(taskgraph,
+                "%lu -> %lu          \n"
+                "  %lu [style= %s shape=%s color=%s]\n",
+                UNPACK_TASK_ID(node->parent_id.value), child_id.value,
+                child_id.value, child_node_style, child_node_shape,
+                child_node_colour
+            );
         }
-        fprintf(taskgraph, "}\n");
 
         /* destroy the node & the array it contains */
         tree_destroy_node(node);

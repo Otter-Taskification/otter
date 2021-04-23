@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <unistd.h>         // gethostname
 #include <sys/time.h>       // getrusage
 #include <sys/resource.h>   // getrusage
 
@@ -49,6 +50,10 @@ tool_setup(
     get_thread_data = (ompt_get_thread_data_t) lookup("ompt_get_thread_data");
     get_parallel_info = 
         (ompt_get_parallel_info_t) lookup("ompt_get_parallel_info");
+
+    char host[HOST_NAME_MAX+1] = {0};
+    gethostname(host, HOST_NAME_MAX);
+    LOG_INFO("host=%s", host);
 
     tree_init();
 

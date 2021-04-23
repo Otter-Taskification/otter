@@ -43,7 +43,7 @@ typedef struct task_tree_t {
     queue_t             *queue;
     pthread_mutex_t      lock;
     tree_node_t         *root_node;
-    char                 graph_output[TREE_OUTNAME_BUFSZ + 1];
+    char                 graph_output[TREE_BUFFSZ + 1];
     int                  graph_output_format;
 } task_tree_t;
 
@@ -69,7 +69,7 @@ static task_tree_t Tree = {
    any threads are created.
  */
 bool 
-tree_init(void)
+tree_init(otter_opt_t *opt)
 {
     if (Tree.initialised)
     {
@@ -94,23 +94,17 @@ tree_init(void)
 
     queue_push(Tree.queue, (queue_item_t){.ptr=Tree.root_node});
 
-    /* detect environment variables for graph output file */
-    char *graph_output = getenv("OTTER_TASK_TREE_OUTPUT");
-    char *graph_format = getenv("OTTER_TASK_TREE_FORMAT");
+    /* detect options set in environment */
+    if ((opt->graph_output == NULL) || STR_EQUAL(opt->graph_output, ""))
+        opt->graph_output = "OTTER-TASK-TREE";
 
-    LOG_INFO("OTTER_TASK_TREE_OUTPUT=%s", graph_output);
-    LOG_INFO("OTTER_TASK_TREE_FORMAT=%s", graph_format);
-
-    if ((graph_output == NULL) || STR_EQUAL(graph_output, ""))
-        graph_output = "OTTer";
-
-    if (graph_format == NULL) graph_format = "not set";
+    if (opt->graph_format == NULL) opt->graph_format = "not set";
 
     char *ext = ".gv";
-    if (STR_EQUAL(graph_format, "edge")) {
+    if (STR_EQUAL(opt->graph_format, "edge")) {
         Tree.graph_output_format = format_edge;
         ext = ".csv";
-    } else if (STR_EQUAL(graph_format, "adj")) {
+    } else if (STR_EQUAL(opt->graph_format, "adj")) {
         Tree.graph_output_format = format_adjacency;
         ext = ".json";
     } else {
@@ -118,16 +112,18 @@ tree_init(void)
         ext = ".gv";
     }
 
-    strncpy(Tree.graph_output, graph_output,
-        min(strlen(graph_output), TREE_OUTNAME_BUFSZ));
-    
-    strncpy(
-        Tree.graph_output + 
-            min(strlen(Tree.graph_output), TREE_OUTNAME_BUFSZ - strlen(ext)),
-        ext, strlen(ext)
-    );
-    
-    LOG_INFO("OUTPUT=%s", Tree.graph_output);
+    /* Copy graph output filename with hostname optionally appended */
+    char *pos = &Tree.graph_output[0];
+    strncpy(Tree.graph_output, opt->graph_output, TREE_BUFFSZ);
+    pos = &Tree.graph_output[0] +strlen(Tree.graph_output);
+    strncpy(pos, ext, TREE_BUFFSZ - strlen(Tree.graph_output));
+    pos = &Tree.graph_output[0] +strlen(Tree.graph_output);
+
+    if (opt->append_hostname)
+    {
+        strcpy(pos, ".");
+        strncpy(pos+1, opt->hostname, TREE_BUFFSZ - strlen(Tree.graph_output));
+    }
 
     return Tree.initialised = true;
 }
@@ -284,7 +280,8 @@ tree_write(void)
 
     if (taskgraph == NULL)
     {
-        LOG_ERROR("failed to create file: \"%s\"", strerror(errno));
+        LOG_ERROR("failed to create file \"%s\": %s",
+            Tree.graph_output, strerror(errno));
         errno = 0;
         return false;
     }
@@ -384,6 +381,8 @@ tree_write(void)
 
     if (fclose(taskgraph) == 0)
         fprintf(stderr, "task tree written to \"%s\"\n", Tree.graph_output);
+    else
+        fprintf(stderr, "there was an error writing task tree to \"%s\"", Tree.graph_output);
 
     return true;
 }

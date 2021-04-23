@@ -1,7 +1,7 @@
 #! /usr/bin/bash
 
 # Debug level per module
-DEBUG_ALL=3
+DEBUG_ALL=1
 export DEBUG_OTTER=$DEBUG_ALL
 export DEBUG_OTT=$DEBUG_ALL
 export DEBUG_ODT=$DEBUG_ALL

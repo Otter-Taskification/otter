@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <otter-core/ompt-common.h>
 #include <macros/debug.h>
 
 #if defined(__INTEL_COMPILER)
@@ -18,7 +19,7 @@
 #define OTT_DEFAULT_ROOT_CHILDREN 1000
 #endif
 
-#define TREE_OUTNAME_BUFSZ 512
+#define TREE_BUFFSZ 512
 
 /* unpack child task bits to get task type & enclosing parallel region
 
@@ -73,7 +74,7 @@ typedef union tree_node_id_t {
 } tree_node_id_t;
 
 // task tree functions
-bool         tree_init(void);
+bool         tree_init(otter_opt_t *opt);
 bool         tree_write(void);
 void         tree_destroy(void);
 

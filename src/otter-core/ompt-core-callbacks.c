@@ -51,11 +51,34 @@ tool_setup(
     get_parallel_info = 
         (ompt_get_parallel_info_t) lookup("ompt_get_parallel_info");
 
-    char host[HOST_NAME_MAX+1] = {0};
+    static char host[HOST_NAME_MAX+1] = {0};
     gethostname(host, HOST_NAME_MAX);
-    LOG_INFO("host=%s", host);
 
-    tree_init();
+    /* detect environment variables for graph output file */
+    static otter_opt_t opt = {
+        .hostname         = NULL,
+        .graph_output     = NULL,
+        .graph_format     = NULL,
+        .graph_nodeattr   = NULL,
+        .append_hostname  = false
+    };
+
+    opt.hostname = host;
+    opt.graph_output = getenv("OTTER_TASK_TREE_OUTPUT");
+    opt.graph_format = getenv("OTTER_TASK_TREE_FORMAT");
+    opt.graph_nodeattr = getenv("OTTER_TASK_TREE_NODEATTR");
+    opt.append_hostname = 
+        getenv("OTTER_APPEND_HOSTNAME") == NULL ? false : true;
+
+    LOG_INFO("Otter environment variables:");
+    LOG_INFO("%-30s %s", "host", opt.hostname);
+    LOG_INFO("%-30s %s", "OTTER_TASK_TREE_OUTPUT", opt.graph_output);
+    LOG_INFO("%-30s %s", "OTTER_TASK_TREE_FORMAT", opt.graph_format);
+    LOG_INFO("%-30s %s", "OTTER_TASK_TREE_NODEATTR", opt.graph_nodeattr);
+    LOG_INFO("%-30s %s",
+        "OTTER_APPEND_HOSTNAME",opt.append_hostname ? "Yes" : "No");
+
+    tree_init(&opt);
 
     return;
 }

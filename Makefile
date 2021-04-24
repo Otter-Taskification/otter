@@ -56,6 +56,8 @@ all: $(BINS)
 
 otter:     $(OTTER)
 
+verbose:   $(OTTER)
+
 odt:       $(ODTLIB) 
 
 ott:       $(OTTLIB)
@@ -84,6 +86,9 @@ $(OTTLIB): $(OTTSRC) $(OTTHEAD) $(ODTLIB)
 $(ODTLIB): $(ODTSRC) $(ODTHEAD)
 	@echo COMPILING: $@ debug=$(DEBUG_ODT), ODT_DEFS=$(ODT_DEFS)
 	@$(CC) $(CFLAGS) $(ODT_DEFS) $(LDFLAGS) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_ODT) $(ODTSRC) -shared -fPIC -o $@
+
+verbose: $(OTTERSRC) $(OTTERHEAD) $(OTTLIB)
+	@$(CC) $(CFLAGS) $(OTTER_DEFS) $(LDFLAGS) $(L_OTTLIB) $(DEBUG) -DDEBUG_LEVEL=3 $(OTTERSRC) -shared -fPIC -o $(OTTER).verbose
 
 run: $(BINS)
 	OMP_TOOL_LIBRARIES=`pwd`/$(OTTER) ./$(OMPEXE)

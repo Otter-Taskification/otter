@@ -5,7 +5,7 @@
 unset OTTER_APPEND_HOSTNAME
 
 # Graph output file name
-export OTTER_TASK_TREE_OUTPUT="${HOME}/Desktop/task-tree-graph-${HOSTNAME}-`date +%H:%M:%s`"
+export OTTER_TASK_TREE_OUTPUT="task-tree-graph-${HOSTNAME}"
 
 # Graph output file format: dot/adj/edge
 export OTTER_TASK_TREE_FORMAT=dot

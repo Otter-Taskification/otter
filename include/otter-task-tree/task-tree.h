@@ -19,7 +19,9 @@
 #define OTT_DEFAULT_ROOT_CHILDREN 1000
 #endif
 
-#define TREE_BUFFSZ 512
+#define TREE_BUFFSZ                        512
+#define TASK_TREE_DEFAULT_GRAPH_NAME       "OTTER-TASK-TREE"
+#define TASK_TREE_DEFAULT_GRAPH_ATTR_NAME  "OTTER-TASK-TREE-NODE-ATTR.csv"
 
 /* unpack child task bits to get task type & enclosing parallel region
 

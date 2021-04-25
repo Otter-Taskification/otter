@@ -14,6 +14,8 @@
 
 static bool tree_write_dot(FILE *taskgraph);
 static void tree_write_dot_child_fmt(FILE *taskgraph, tree_node_id_t child_id);
+static void tree_write_child_node_attributes(
+    FILE *nodeattr, tree_node_id_t child_id);
 static void tree_destroy_node(void *ptr);
 
 /* A node is a container that belongs to a particular task. It maintains an
@@ -44,6 +46,7 @@ typedef struct task_tree_t {
     pthread_mutex_t      lock;
     tree_node_t         *root_node;
     char                 graph_output[TREE_BUFFSZ + 1];
+    char                 graph_nodeattr[TREE_BUFFSZ + 1];
     int                  graph_output_format;
 } task_tree_t;
 
@@ -56,6 +59,7 @@ static task_tree_t Tree = {
     .lock         = PTHREAD_MUTEX_INITIALIZER,
     .root_node    = NULL,//{.parent_id = {.ptr = NULL}, .children = NULL},
     .graph_output = {0},
+    .graph_nodeattr = {0},
     .graph_output_format   = format_dot
 };
 
@@ -92,11 +96,14 @@ tree_init(otter_opt_t *opt)
         abort();
     }
 
-    queue_push(Tree.queue, (queue_item_t){.ptr=Tree.root_node});
+    /* Don't add root node to the queue so it isn't written to file */
+    // queue_push(Tree.queue, (queue_item_t){.ptr=Tree.root_node});
 
     /* detect options set in environment */
     if ((opt->graph_output == NULL) || STR_EQUAL(opt->graph_output, ""))
         opt->graph_output = "OTTER-TASK-TREE";
+    if ((opt->graph_nodeattr == NULL) || STR_EQUAL(opt->graph_nodeattr, ""))
+        opt->graph_nodeattr = "OTTER-TASK-TREE-NODE-ATTR.csv";
 
     if (opt->graph_format == NULL) opt->graph_format = "not set";
 
@@ -112,17 +119,30 @@ tree_init(otter_opt_t *opt)
         ext = ".gv";
     }
 
-    /* Copy graph output filename with hostname optionally appended */
-    char *pos = &Tree.graph_output[0];
-    strncpy(Tree.graph_output, opt->graph_output, TREE_BUFFSZ);
-    pos = &Tree.graph_output[0] +strlen(Tree.graph_output);
-    strncpy(pos, ext, TREE_BUFFSZ - strlen(Tree.graph_output));
-    pos = &Tree.graph_output[0] +strlen(Tree.graph_output);
+    char *pos = NULL;
 
+    /* Copy graph output filename, extension and hostname */
+    pos = &Tree.graph_output[0]; 
+    strncpy(Tree.graph_output, opt->graph_output, TREE_BUFFSZ); 
+    pos = &Tree.graph_output[0] + strlen(Tree.graph_output); 
+    strncpy(pos, ext, TREE_BUFFSZ - strlen(Tree.graph_output)); 
+    pos = &Tree.graph_output[0] + strlen(Tree.graph_output); 
     if (opt->append_hostname)
-    {
-        strcpy(pos, ".");
-        strncpy(pos+1, opt->hostname, TREE_BUFFSZ - strlen(Tree.graph_output));
+    { 
+        strcpy(pos, "."); 
+        strncpy(pos+1, opt->hostname,
+            TREE_BUFFSZ - strlen(Tree.graph_output)); 
+    }
+
+    /* Copy graph output filename and hostname */
+    pos = &Tree.graph_nodeattr[0]; 
+    strncpy(Tree.graph_nodeattr, opt->graph_nodeattr, TREE_BUFFSZ);
+    pos = &Tree.graph_nodeattr[0] + strlen(Tree.graph_nodeattr); 
+    if (opt->append_hostname)
+    { 
+        strcpy(pos, "."); 
+        strncpy(pos+1, opt->hostname,
+            TREE_BUFFSZ - strlen(Tree.graph_nodeattr)); 
     }
 
     return Tree.initialised = true;
@@ -276,12 +296,22 @@ bool
 tree_write(void)
 {
     FILE *taskgraph = fopen(Tree.graph_output, "w");
+    FILE *nodeattr  = fopen(Tree.graph_nodeattr, "w");
     LOG_INFO("output: \"%s\"", Tree.graph_output);
+    LOG_INFO("output: \"%s\"", Tree.graph_nodeattr);
 
     if (taskgraph == NULL)
     {
         LOG_ERROR("failed to create file \"%s\": %s",
             Tree.graph_output, strerror(errno));
+        errno = 0;
+        return false;
+    }
+
+    if (nodeattr == NULL)
+    {
+        LOG_ERROR("failed to create file \"%s\": %s",
+            Tree.graph_nodeattr, strerror(errno));
         errno = 0;
         return false;
     }
@@ -291,7 +321,12 @@ tree_write(void)
     array_element_t *child_tasks = NULL;  // children of a node
     tree_node_t *node = NULL;         // present node popped from the queue
 
-    /* Write file header */
+    /* Write file headers */
+
+    /* Attributes */
+    fprintf(nodeattr, "node_id, task_type, parallel_region\n");
+
+    /* Directed graph */
     switch (Tree.graph_output_format)
     {
         case format_dot:
@@ -313,6 +348,7 @@ tree_write(void)
             LOG_ERROR("invalid output format identifier: %d",
                 Tree.graph_output_format);
             fclose(taskgraph);
+            fclose(nodeattr);
             return false;
     }
 
@@ -334,22 +370,28 @@ tree_write(void)
             case format_dot:
                 for (i=0; i<n_children; i++)
                 {
-                    if (node != Tree.root_node)
-                    {
-                        fprintf(taskgraph, "%lu -> %lu\n", 
-                            UNPACK_TASK_ID(node->parent_id.value),
-                            UNPACK_TASK_ID(child_tasks[i].value));
-                    }
+                    /* Directed edge */
+                    fprintf(taskgraph, "%lu -> %lu\n", 
+                        UNPACK_TASK_ID(node->parent_id.value),
+                        UNPACK_TASK_ID(child_tasks[i].value));
+                    /* Child formatting */
                     tree_write_dot_child_fmt(taskgraph,
+                        (tree_node_id_t)child_tasks[i].value);
+                    /* Attributes */
+                    tree_write_child_node_attributes(nodeattr,
                         (tree_node_id_t)child_tasks[i].value);
                 }
                 break;
             case format_edge:
                 for (i=0; i<n_children; i++)
                 {
+                    /* Directed edge */
                     fprintf(taskgraph, "%lu,%lu\n",
                         UNPACK_TASK_ID(node->parent_id.value),
                         UNPACK_TASK_ID(child_tasks[i].value));
+                    /* Attributes */
+                    tree_write_child_node_attributes(nodeattr,
+                        (tree_node_id_t)child_tasks[i].value);
                 }
                 break;
             case format_adjacency:
@@ -357,8 +399,12 @@ tree_write(void)
                     UNPACK_TASK_ID(node->parent_id.value));
                 for (i=0; i<n_children; i++)
                 {
+                    /* Directed edge */
                     fprintf(taskgraph, "%s\"%lu\"", i==0 ?"":",",
-                        UNPACK_TASK_ID(child_tasks[i].value)); 
+                        UNPACK_TASK_ID(child_tasks[i].value));
+                    /* Attributes */
+                    tree_write_child_node_attributes(nodeattr,
+                        (tree_node_id_t)child_tasks[i].value);
                 }
                 fprintf(taskgraph, "]");
                 break;
@@ -378,11 +424,21 @@ tree_write(void)
         default:
             break;
     }
+    
+    fprintf(nodeattr, "\n");
 
     if (fclose(taskgraph) == 0)
         fprintf(stderr, "task tree written to \"%s\"\n", Tree.graph_output);
     else
-        fprintf(stderr, "there was an error writing task tree to \"%s\"", Tree.graph_output);
+        fprintf(stderr, "there was an error writing task tree to \"%s\"",
+            Tree.graph_output);
+
+    if (fclose(nodeattr) == 0)
+        fprintf(stderr, "node attributes written to \"%s\"\n",
+            Tree.graph_nodeattr);
+    else
+        fprintf(stderr, "there was an error writing node attributes to \"%s\"",
+            Tree.graph_nodeattr);
 
     return true;
 }
@@ -413,6 +469,23 @@ tree_write_dot_child_fmt(FILE *taskgraph, tree_node_id_t child_id)
         "  %lu [style= %s shape=%s color=%s]\n",
         unpacked_id.value, child_node_style, child_node_shape,
         child_node_colour);
+
+    return;
+}
+
+static void
+tree_write_child_node_attributes(FILE *nodeattr, tree_node_id_t child_id)
+{
+    /* Used for unpacking bits from children */
+    tree_node_id_t task_id, task_type, parallel_region_id;
+
+    task_id.value = UNPACK_TASK_ID(child_id.value);
+    UNPACK_TASK_ID_BITS(task_type, parallel_region_id, child_id.value);
+
+    fprintf(nodeattr, "%lu,%lu,%lu\n",
+        task_id.value,
+        task_type.value,
+        parallel_region_id.value);
 
     return;
 }

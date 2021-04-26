@@ -30,19 +30,17 @@
 typedef enum {
     /* Task types identified in omp_task_flag_t as 0x01, 0x02, 0x04, 0x08 */
     task_initial      = 0x0,
-    task_implicit,    = 0x1,
-    task_explicit,    = 0x2,
-    task_target,      = 0x3,
+    task_implicit     = 0x1,
+    task_explicit     = 0x2,
+    task_target       = 0x3,
 
     /* Added pseudo-tasks */
-    task_loop,        = 0x4,
-    task_sections,    = 0x5,
-    task_workshare,   = 0x6,
-    task_distribute,  = 0x7,
+    task_loop         = 0x4,
+    task_sections     = 0x5,
+    task_workshare    = 0x6,
+    task_distribute   = 0x7,
     task_taskloop     = 0x8,
 } task_type_t;
-
-#define TASK_TYPE_BITS 0x1FF // 9 possible values of task_type_t
 
 /* unpack child task bits to get task type & enclosing parallel region
 
@@ -50,7 +48,7 @@ typedef enum {
  */
 #define UNPACK_TASK_ID_BITS(type_var, par_id_var, task_id)                     \
     do {                                                                       \
-        type_var   = (tree_node_id_t) (task_id>>56);                           \
+        type_var   = (tree_node_id_t) (task_id>>TASK_TREE_TASK_TYPE_SHFT);     \
         par_id_var = (tree_node_id_t) ((task_id>>48)&0xFF);                    \
     } while (0)
 

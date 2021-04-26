@@ -23,6 +23,25 @@
 #define TASK_TREE_DEFAULT_GRAPH_NAME       "OTTER-TASK-TREE"
 #define TASK_TREE_DEFAULT_GRAPH_ATTR_NAME  "OTTER-TASK-TREE-NODE-ATTR.csv"
 
+/* Derived task type based on ompt_task_flag_t - extended to define pseudo tasks
+   representing workshare constructs e.g. taskloops that are not really tasks
+   in the OMPT sense
+ */
+typedef enum {
+    /* Task types identified in omp_task_flag_t as 0x01, 0x02 etc */
+    task_initial    = 0,
+    task_implicit,
+    task_explicit,
+    task_target,
+
+    /* Added pseudo-tasks */
+    task_loop,
+    task_sections,
+    task_workshare,
+    task_distribute,
+    task_taskloop
+} task_type_t;
+
 /* unpack child task bits to get task type & enclosing parallel region
 
    see PACK_TASK_BITS in ompt-callback-macros.h
@@ -39,22 +58,22 @@
 do{                                                                            \
     switch (task_type)                                                         \
     {                                                                          \
-        case ompt_task_initial:                                                \
+        case task_initial:                                                     \
             node_style = "filled";                                             \
             node_shape = "diamond";                                            \
             node_colour = "lightgrey";                                         \
             break;                                                             \
-        case ompt_task_implicit:                                               \
+        case task_implicit:                                                    \
             node_style = "filled";                                             \
             node_shape = "circle";                                             \
             node_colour = "yellow";                                            \
             break;                                                             \
-        case ompt_task_explicit:                                               \
+        case task_explicit:                                                    \
             node_style = "solid";                                              \
             node_shape = "box";                                                \
             node_colour = "red";                                               \
             break;                                                             \
-        case ompt_task_target:                                                 \
+        case task_target:                                                      \
             node_style = "solid";                                              \
             node_shape = "hexagon";                                            \
             node_colour = "black";                                             \

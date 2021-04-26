@@ -663,7 +663,12 @@ on_ompt_callback_task_dependence(
    regions, and taskloopregions begin and end.
 
    Events:
-    taskloop-begin/end
+    section-begin/end (context=implicit task)
+    single-begin/end
+    workshare-begin/end (context=implicit task)
+    ws-loop-begin/end (context=implicit task)
+    distribute-begin/end (context=implicit task)
+    taskloop-begin/end (context=encountering task)
  */
 static void
 on_ompt_callback_work(
@@ -674,7 +679,10 @@ on_ompt_callback_work(
     uint64_t                 count,
     const void              *codeptr_ra)
 {
-    // LOG_DEBUG_WORK_TYPE(wstype, endpoint==ompt_scope_begin?"begin":"end");
+    if ((wstype == ompt_work_single_executor) || (wstype == ompt_work_single_other))
+        return;
+    thread_data_t *thread = (thread_data_t*) get_thread_data()->ptr;
+    LOG_DEBUG_WORK_TYPE(thread->id, wstype, count, endpoint==ompt_scope_begin?"begin":"end");
     return;
 }
 

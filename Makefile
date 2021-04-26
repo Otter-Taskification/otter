@@ -45,8 +45,9 @@ OTTSRC     = $(wildcard src/otter-task-tree/*.c)
 OTTHEAD    = $(wildcard include/otter-task-tree/*.h)
 ODTSRC     = $(wildcard src/otter-dtypes/*.c)
 ODTHEAD    = $(wildcard include/otter-dtypes/*.h)
-OMPSRC     = src/otter-demo/omp-demo.c
-OMPEXE     = $(patsubst src/otter-demo/%.c,%,$(OMPSRC))$(EXE_POSTFIX)
+OMPSRC     = $(wildcard src/otter-demo/*.c)
+OMPEXE     = $(patsubst src/otter-demo/omp-%.c, omp-%, $(OMPSRC))
+DEMO       = omp-demo$(EXE_POSTFIX)
 
 BINS = $(OTTER) $(OTTLIB) $(ODTLIB) $(OMPEXE)
 
@@ -62,12 +63,12 @@ odt:       $(ODTLIB)
 
 ott:       $(OTTLIB)
 
-demo:      $(OMPEXE)
+demo:      $(DEMO)
 
 ### Standalone OMP app
 $(OMPEXE): $(OMPSRC)
 	@echo COMPILING: $@
-	@$(CC) $(CFLAGS) $(DEBUG) $(CPP_OMP_FLAGS) $(LD_OMP_FLAGS) -fopenmp $(OMPSRC) -o $@
+	@$(CC) $(CFLAGS) $(DEBUG) $(CPP_OMP_FLAGS) $(LD_OMP_FLAGS) -fopenmp src/otter-demo/$@.c -o $@
 	@echo
 	@echo $@ links to `ldd $@ | grep "[lib|libi|libg]omp"`
 	@echo
@@ -91,10 +92,10 @@ verbose: $(OTTERSRC) $(OTTERHEAD) $(OTTLIB)
 	@$(CC) $(CFLAGS) $(OTTER_DEFS) $(LDFLAGS) $(L_OTTLIB) $(DEBUG) -DDEBUG_LEVEL=3 $(OTTERSRC) -shared -fPIC -o $(OTTER).verbose
 
 run: $(BINS)
-	OMP_TOOL_LIBRARIES=`pwd`/$(OTTER) ./$(OMPEXE)
+	OMP_TOOL_LIBRARIES=`pwd`/$(OTTER) ./$(DEMO)
 
 clean:
 	@-rm -f lib/* obj/* $(BINS) $(OMPEXE)
 
 cleanfiles:
-	@-rm -f *.gv *.svg *.pdf *.png
+	@-rm -f *.gv *.svg *.pdf *.png *.txt *.csv

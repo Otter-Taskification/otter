@@ -16,9 +16,21 @@
 
    task type (top 4 bits):    0xf000000000000000 (7.5-byte shift)
    enclosing parallel region: 0x00ff000000000000 (6-byte shift MAX 256 REGIONS!) 
+
+    __builtin_ctzll - Returns the number of trailing 0-bits in x, starting at 
+    the least significant bit position. If x is 0, the result is undefined
+
+    I use this built-in to convert ompt_task_flag_t to an int representing the
+    bit that is set i.e. 0x01 -> 0, 0x02 -> 1 etc. This converts a value like
+    0b1000 into 0b0011 which requires fewer bits. This means I can represent up
+    to 16 task types in the top 4 bits of the task ID, instead of setting 16
+    independent bits
+
+    NOTE: need to check whether this is portable between clang & icc
+
  */
 #define PACK_TASK_BITS(flags, task_id, parallel_id)                           \
-    (task_id | (((unique_id_t)flags & 0x0F)<<60) | ((parallel_id & 0xFF)<<48))
+    (task_id | ((unique_id_t)__builtin_ctzll((unique_id_t)flags & 0x0F)<<60) | ((parallel_id & 0xFF)<<48))
 
 /* Apply a macro to each of the possible values returned when setting a callback
    through ompt_set_callback */
@@ -106,22 +118,22 @@ do {                                                                           \
     LOG_DEBUG_IF(status == ompt_task_switch       , "%s", "switch");           \
 } while (0);
 
-#define LOG_DEBUG_WORK_TYPE(wstype, endpoint)                                  \
+#define LOG_DEBUG_WORK_TYPE(thread, wstype, count, endpoint)                   \
 do {                                                                           \
-    LOG_DEBUG_IF(wstype == ompt_work_loop           , "%s %s %s",              \
-        endpoint, "workshare", "loop");                                        \
-    LOG_DEBUG_IF(wstype == ompt_work_sections       , "%s %s %s",              \
-        endpoint, "workshare", "sections");                                    \
-    LOG_DEBUG_IF(wstype == ompt_work_single_executor, "%s %s %s",              \
-        endpoint, "workshare", "single");                                      \
-    LOG_DEBUG_IF(wstype == ompt_work_single_other   , "%s %s %s",              \
-        endpoint, "workshare", "single (other)");                              \
-    LOG_DEBUG_IF(wstype == ompt_work_workshare      , "%s %s %s",              \
-        endpoint, "workshare", "workshare");                                   \
-    LOG_DEBUG_IF(wstype == ompt_work_distribute     , "%s %s %s",              \
-        endpoint, "workshare", "distribute");                                  \
-    LOG_DEBUG_IF(wstype == ompt_work_taskloop       , "%s %s %s",              \
-        endpoint, "workshare", "taskloop");                                    \
+    LOG_DEBUG_IF(wstype == ompt_work_loop           , "[%lu] %s %s %s %lu",    \
+        thread, endpoint, "workshare", "loop", count);                         \
+    LOG_DEBUG_IF(wstype == ompt_work_sections       , "[%lu] %s %s %s %lu",    \
+        thread, endpoint, "workshare", "sections", count);                     \
+    LOG_DEBUG_IF(wstype == ompt_work_single_executor, "[%lu] %s %s %s %lu",    \
+        thread, endpoint, "workshare", "single", count);                       \
+    LOG_DEBUG_IF(wstype == ompt_work_single_other   , "[%lu] %s %s %s %lu",    \
+        thread, endpoint, "workshare", "single (other)", count);               \
+    LOG_DEBUG_IF(wstype == ompt_work_workshare      , "[%lu] %s %s %s %lu",    \
+        thread, endpoint, "workshare", "workshare", count);                    \
+    LOG_DEBUG_IF(wstype == ompt_work_distribute     , "[%lu] %s %s %s %lu",    \
+        thread, endpoint, "workshare", "distribute", count);                   \
+    LOG_DEBUG_IF(wstype == ompt_work_taskloop       , "[%lu] %s %s %s %lu",    \
+        thread, endpoint, "workshare", "taskloop", count);                     \
 } while(0);
 
 #endif // OMPT_CALLBACK_MACROS_H

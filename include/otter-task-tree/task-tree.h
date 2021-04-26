@@ -48,7 +48,7 @@ typedef enum {
  */
 #define UNPACK_TASK_ID_BITS(type_var, par_id_var, task_id)                     \
     do {                                                                       \
-        type_var   = (tree_node_id_t) (task_id>>60);                           \
+        type_var   = (tree_node_id_t) (task_id>>56);                           \
         par_id_var = (tree_node_id_t) ((task_id>>48)&0xFF);                    \
     } while (0)
 
@@ -77,6 +77,11 @@ do{                                                                            \
             node_style = "solid";                                              \
             node_shape = "hexagon";                                            \
             node_colour = "black";                                             \
+            break;                                                             \
+        case task_taskloop:                                                      \
+            node_style = "filled";                                              \
+            node_shape = "parallelogram";                                            \
+            node_colour = "lightblue";                                             \
             break;                                                             \
         default:                                                               \
             node_style = "solid";                                              \

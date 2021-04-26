@@ -14,7 +14,7 @@
 /* pack task type and enclosing paralle region into task ID bits to pass to
    tree_add_child_to_node and tree_add_node
 
-   task type (top 4 bits):    0xf000000000000000 (7.5-byte shift)
+   task type (top 8 bits):    0xff00000000000000 (7-byte shift)
    enclosing parallel region: 0x00ff000000000000 (6-byte shift MAX 256 REGIONS!) 
 
     __builtin_ctzll - Returns the number of trailing 0-bits in x, starting at 
@@ -30,7 +30,7 @@
 
  */
 #define PACK_TASK_BITS(flags, task_id, parallel_id)                           \
-    (task_id | ((unique_id_t)__builtin_ctzll((unique_id_t)flags & 0x0F)<<60) | ((parallel_id & 0xFF)<<48))
+    (task_id | (((unique_id_t)__builtin_ctzll((unique_id_t)flags) & 0xFF )<<56) | ((parallel_id & 0xFF)<<48))
 
 /* Apply a macro to each of the possible values returned when setting a callback
    through ompt_set_callback */

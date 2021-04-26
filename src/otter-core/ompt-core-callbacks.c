@@ -272,7 +272,8 @@ on_ompt_callback_task_create(
         .type       = flags & TASK_TYPE_BITS,
         .tree_node  = NULL,
         .lock       = NULL,
-        .enclosing_parallel_id = 0L
+        .enclosing_parallel_id = 0L,
+        .workshare_child_task = NULL
     };
     new_task->ptr = task_data;
 
@@ -328,6 +329,13 @@ on_ompt_callback_task_create(
     } else { // not child of an initial task
         
         parent_task_data = (task_data_t*) encountering_task->ptr;
+
+        /* Check if parent_task_data has a workshare_task_child - use this as
+           parent if so */
+        if (parent_task_data->workshare_child_task != NULL)
+        {
+            parent_task_data = parent_task_data->workshare_child_task;
+        }
 
         LOG_DEBUG_TASK_TYPE(parent_task_data->id, task_data->id, flags);
 
@@ -429,7 +437,8 @@ on_ompt_callback_implicit_task(
 				.type       = flags & TASK_TYPE_BITS,
 				.tree_node  = NULL,
 				.lock       = NULL,
-                .enclosing_parallel_id = 0L
+                .enclosing_parallel_id = 0L,
+                .workshare_child_task = NULL
 			};
 		}
 
@@ -679,10 +688,84 @@ on_ompt_callback_work(
     uint64_t                 count,
     const void              *codeptr_ra)
 {
-    if ((wstype == ompt_work_single_executor) || (wstype == ompt_work_single_other))
+    /* Inserting pseudo-tasks for workshare constructs
+       - get encountering task data
+       - create pseudo-task for the workshare region
+       - use task_type enum from task_tree.h
+       - attach ptask data inside encountering task data
+       - register with task_tree as child of encountering task
+       - when creating explicit task, first check whether encountering task
+            has a ptask available - use as parent if available, otherwise don't
+     */
+if ((wstype == ompt_work_single_executor) || (wstype == ompt_work_single_other))
         return;
-    thread_data_t *thread = (thread_data_t*) get_thread_data()->ptr;
-    LOG_DEBUG_WORK_TYPE(thread->id, wstype, count, endpoint==ompt_scope_begin?"begin":"end");
+    thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
+    LOG_DEBUG_WORK_TYPE(thread_data->id, wstype, count, endpoint==ompt_scope_begin?"begin":"end");
+
+    task_data_t *task_data = (task_data_t*) task->ptr;
+    task_data_t *workshare_task_data = NULL;
+
+    /* only want to handle ompt_work_taskloop initially - implement others once
+       this is working
+     */
+    if (wstype == ompt_work_taskloop)
+    {
+        if (endpoint == ompt_scope_begin)
+        {
+            workshare_task_data = malloc(sizeof(*workshare_task_data));
+            *workshare_task_data = (task_data_t) {
+                .id         = get_unique_task_id(),
+                .type       = (0x1 << task_taskloop), // set bit to be unpacked as task_taskloop==8 later
+                .tree_node  = NULL,
+                .lock       = NULL,
+                .enclosing_parallel_id = task_data->enclosing_parallel_id,
+                .workshare_child_task = NULL
+            };
+            task_data->workshare_child_task = workshare_task_data;
+
+            LOG_DEBUG_TASK_TYPE(
+                task_data->id,
+                workshare_task_data->id,
+                workshare_task_data->type);
+            
+            LOG_INFO("%-20s: 0x%016lx", "CHILD ID PACKING",
+                PACK_TASK_BITS(
+                    workshare_task_data->type,
+                    workshare_task_data->id,
+                    workshare_task_data->enclosing_parallel_id)
+            );
+
+            /* if the parent task doesn't have a tree node yet, this is the 1st 
+               child task - create the node then use it to add the child
+            */
+            if (task_data->tree_node == NULL)
+            {
+                task_data->tree_node = tree_add_node(
+                    (tree_node_id_t) PACK_TASK_BITS(
+                        task_data->type,
+                        task_data->id,
+                        task_data->enclosing_parallel_id),
+                    OTTER_DEFAULT_TASK_CHILDREN
+                );
+            }
+
+            /* add task as a child of the parent (encountering) task */
+            tree_add_child_to_node(task_data->tree_node, 
+                (tree_node_id_t) PACK_TASK_BITS(
+                    workshare_task_data->type,
+                    workshare_task_data->id,
+                    workshare_task_data->enclosing_parallel_id)
+            );
+
+        } else if (endpoint == ompt_scope_end)
+        {
+            workshare_task_data = task_data->workshare_child_task;
+            LOG_DEBUG("Destroying workshare pseudo-task %p", workshare_task_data);
+            free(workshare_task_data);
+            task_data->workshare_child_task = NULL;
+        }
+    }
+
     return;
 }
 

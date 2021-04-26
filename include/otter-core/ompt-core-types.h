@@ -44,6 +44,18 @@ typedef struct task_data_t {
     pthread_mutex_t    *lock;
 
     unique_id_t         enclosing_parallel_id;
+
+    /* For tasks that encounter a workshare construct, this represents the 
+       pseudo-task of the workshare construct. Any tasks generated during the
+       workshare construct should be considered children of this pseudo-task
+       rather than of the task that encountered the workshare region.
+
+       Only allocated/deallocated in ompt_callback_work.
+
+       Only accessed in task_create.
+    */
+    task_data_t        *workshare_child_task;
+
 } task_data_t;
 
 #endif // OMPT_CORE_TYPES_H

@@ -1,6 +1,8 @@
 omp-demo
 .*
 *.csv
+*.txt
+*.pdf
 *.gv
 *.ps
 *.png

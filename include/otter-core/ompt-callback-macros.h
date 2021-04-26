@@ -11,17 +11,22 @@
 #define PARALLEL_INFO_UNAVAIL   1
 #define PARALLEL_INFO_NONE      0
 
-/* pack task type and enclosing paralle region into task ID bits to pass to
-   tree_add_child_to_node and tree_add_node
+/* Packing task type & parallel region into task ID value
 
-   task type (top 8 bits):    0xff00000000000000 (7-byte shift)
-   enclosing parallel region: 0x00ff000000000000 (6-byte shift MAX 256 REGIONS!) 
+   Have 64 bits available in unique_id_t/tree_node_id_t/array_id_t but never
+   going to need all of them for a unique task ID in any realistic scenario
+
+   => use some of the bits to also pass to task-tree a task's type & parallel
+        region
+
+   task type:       0xf000000000000000 => 16 values (60-bit shift)
+   parallel region: 0x00ff000000000000 => 255 values (48-bit shift)
 
     __builtin_ctzll - Returns the number of trailing 0-bits in x, starting at 
     the least significant bit position. If x is 0, the result is undefined
 
     I use this built-in to convert ompt_task_flag_t to an int representing the
-    bit that is set i.e. 0x01 -> 0, 0x02 -> 1 etc. This converts a value like
+    bit that is set i.e. 0x01 -> 0, 0x08 -> 3 etc. This converts a value like
     0b1000 into 0b0011 which requires fewer bits. This means I can represent up
     to 16 task types in the top 4 bits of the task ID, instead of setting 16
     independent bits
@@ -30,7 +35,9 @@
 
  */
 #define PACK_TASK_BITS(flags, task_id, parallel_id)                           \
-    (task_id | (((unique_id_t)__builtin_ctzll((unique_id_t)flags) & 0xFF )<<56) | ((parallel_id & 0xFF)<<48))
+    (task_id \
+        | ( (unique_id_t)__builtin_ctzll(flags) << TASK_TREE_TASK_TYPE_SHFT ) \
+        | ((parallel_id & 0xFF)<<TASK_TREE_PARALLEL_ID_SHIFT) )
 
 /* Apply a macro to each of the possible values returned when setting a callback
    through ompt_set_callback */

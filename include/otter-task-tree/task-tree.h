@@ -42,15 +42,13 @@ typedef enum {
     task_taskloop     = 0x8,
 } task_type_t;
 
-#define TASK_TYPE_BITS 0x1FF // 9 possible values of task_type_t
-
 /* unpack child task bits to get task type & enclosing parallel region
 
    see PACK_TASK_BITS in ompt-callback-macros.h
  */
 #define UNPACK_TASK_ID_BITS(type_var, par_id_var, task_id)                     \
     do {                                                                       \
-        type_var   = (tree_node_id_t) (task_id>>56);                           \
+        type_var   = (tree_node_id_t) (task_id>>TASK_TREE_TASK_TYPE_SHFT);     \
         par_id_var = (tree_node_id_t) ((task_id>>48)&0xFF);                    \
     } while (0)
 

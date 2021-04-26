@@ -881,7 +881,7 @@ new_task_data(
     task_data_t *new = malloc(sizeof(*new));
     *new = (task_data_t) {
         .id         = id,
-        .type       = flags & TASK_TYPE_BITS,
+        .type       = flags & TASK_TREE_TASK_TYPE_MASK,
         .tree_node  = NULL,
         .lock       = NULL,
         .enclosing_parallel_id = parallel,

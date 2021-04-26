@@ -28,19 +28,21 @@
    in the OMPT sense
  */
 typedef enum {
-    /* Task types identified in omp_task_flag_t as 0x01, 0x02 etc */
-    task_initial    = 0,
-    task_implicit,
-    task_explicit,
-    task_target,
+    /* Task types identified in omp_task_flag_t as 0x01, 0x02, 0x04, 0x08 */
+    task_initial      = 0x0,
+    task_implicit,    = 0x1,
+    task_explicit,    = 0x2,
+    task_target,      = 0x3,
 
     /* Added pseudo-tasks */
-    task_loop,
-    task_sections,
-    task_workshare,
-    task_distribute,
-    task_taskloop
+    task_loop,        = 0x4,
+    task_sections,    = 0x5,
+    task_workshare,   = 0x6,
+    task_distribute,  = 0x7,
+    task_taskloop     = 0x8,
 } task_type_t;
+
+#define TASK_TYPE_BITS 0x1FF // 9 possible values of task_type_t
 
 /* unpack child task bits to get task type & enclosing parallel region
 

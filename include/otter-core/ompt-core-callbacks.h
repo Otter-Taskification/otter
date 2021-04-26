@@ -52,8 +52,4 @@ typedef enum unique_id_type_t {
 #define get_unique_task_id()     get_unique_id(id_task)
 #define get_dummy_time()         get_unique_id(id_timestamp)
 
-/* Static function prototypes */
-static void print_resource_usage(void);
-static unique_id_t get_unique_id(unique_id_type_t id_type);
-
 #endif // OMPT_TASK_TREE_H

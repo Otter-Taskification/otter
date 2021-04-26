@@ -28,6 +28,17 @@
 
 #include <otter-task-tree/task-tree.h>
 
+/* Static function prototypes */
+static void print_resource_usage(void);
+static unique_id_t get_unique_id(unique_id_type_t id_type);
+
+/* Task data constructor */
+static task_data_t *new_task_data(
+    unique_id_t      id,
+    ompt_task_flag_t flags,
+    unique_id_t      parallel
+);
+
 ompt_get_thread_data_t     get_thread_data;
 ompt_get_parallel_info_t   get_parallel_info;
 
@@ -266,15 +277,7 @@ on_ompt_callback_task_create(
     const void              *codeptr_ra)
 {
     /* make space for the newly-created task */
-    task_data_t *task_data = malloc(sizeof(*task_data));
-    *task_data = (task_data_t) {
-        .id         = get_unique_task_id(),
-        .type       = flags & TASK_TYPE_BITS,
-        .tree_node  = NULL,
-        .lock       = NULL,
-        .enclosing_parallel_id = 0L,
-        .workshare_child_task = NULL
-    };
+    task_data_t *task_data = new_task_data(get_unique_task_id(), flags, 0L);
     new_task->ptr = task_data;
 
     /* initialise the task's mutex so any child implicit tasks can
@@ -431,15 +434,7 @@ on_ompt_callback_implicit_task(
 			task_data = (task_data_t*) task->ptr;
 		} else {			
 			/* make space for this initial or implicit task */
-			task_data = malloc(sizeof(*task_data));
-			*task_data = (task_data_t) {
-				.id         = get_unique_task_id(),
-				.type       = flags & TASK_TYPE_BITS,
-				.tree_node  = NULL,
-				.lock       = NULL,
-                .enclosing_parallel_id = 0L,
-                .workshare_child_task = NULL
-			};
+			task_data = new_task_data(get_unique_task_id(), flags, 0L);
 		}
 
 		LOG_DEBUG_IMPLICIT_TASK(flags, "begin", task_data->id);
@@ -712,15 +707,12 @@ if ((wstype == ompt_work_single_executor) || (wstype == ompt_work_single_other))
     {
         if (endpoint == ompt_scope_begin)
         {
-            workshare_task_data = malloc(sizeof(*workshare_task_data));
-            *workshare_task_data = (task_data_t) {
-                .id         = get_unique_task_id(),
-                .type       = (0x1 << task_taskloop), // set bit to be unpacked as task_taskloop==8 later
-                .tree_node  = NULL,
-                .lock       = NULL,
-                .enclosing_parallel_id = task_data->enclosing_parallel_id,
-                .workshare_child_task = NULL
-            };
+            workshare_task_data = new_task_data(
+                get_unique_task_id(),
+                /* set bit as per task_type enum in task_tree.h to be unpacked
+                   later */
+                (unique_id_t)(0x1 << task_taskloop),
+                0L);
             task_data->workshare_child_task = workshare_task_data;
 
             LOG_DEBUG_TASK_TYPE(
@@ -878,6 +870,24 @@ on_ompt_callback_reduction(
     const void              *codeptr_ra)
 {
     return;
+}
+
+static task_data_t *
+new_task_data(
+    unique_id_t      id,
+    ompt_task_flag_t flags,
+    unique_id_t      parallel)
+{
+    task_data_t *new = malloc(sizeof(*new));
+    *new = (task_data_t) {
+        .id         = id,
+        .type       = flags & TASK_TYPE_BITS,
+        .tree_node  = NULL,
+        .lock       = NULL,
+        .enclosing_parallel_id = parallel,
+        .workshare_child_task = NULL
+    };
+    return new;
 }
 
 static unique_id_t

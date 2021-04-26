@@ -12,8 +12,6 @@
 
 #include <otter-task-tree/task-tree.h>
 
-#define TASK_TYPE_BITS      0xF
-
 /* forward declarations */
 typedef struct parallel_data_t parallel_data_t;
 typedef struct thread_data_t thread_data_t;

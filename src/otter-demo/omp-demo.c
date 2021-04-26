@@ -14,8 +14,6 @@ int main(void)
             {
             }
         }
-        #pragma omp task
-        {}
     }
     #pragma omp parallel num_threads(3)
     {
@@ -26,8 +24,6 @@ int main(void)
             {
             }
         }
-        #pragma omp task
-        {}
     }
     return 0;
 }

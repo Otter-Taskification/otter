@@ -30,15 +30,15 @@
 typedef enum {
     /* Task types identified in omp_task_flag_t as 0x01, 0x02, 0x04, 0x08 */
     task_initial      = 0x0,
-    task_implicit,    = 0x1,
-    task_explicit,    = 0x2,
-    task_target,      = 0x3,
+    task_implicit     = 0x1,
+    task_explicit     = 0x2,
+    task_target       = 0x3,
 
     /* Added pseudo-tasks */
-    task_loop,        = 0x4,
-    task_sections,    = 0x5,
-    task_workshare,   = 0x6,
-    task_distribute,  = 0x7,
+    task_loop         = 0x4,
+    task_sections     = 0x5,
+    task_workshare    = 0x6,
+    task_distribute   = 0x7,
     task_taskloop     = 0x8,
 } task_type_t;
 
@@ -80,10 +80,10 @@ do{                                                                            \
             node_shape = "hexagon";                                            \
             node_colour = "black";                                             \
             break;                                                             \
-        case task_taskloop:                                                      \
-            node_style = "filled";                                              \
-            node_shape = "parallelogram";                                            \
-            node_colour = "lightblue";                                             \
+        case task_taskloop:                                                    \
+            node_style = "filled";                                             \
+            node_shape = "parallelogram";                                      \
+            node_colour = "lightblue";                                         \
             break;                                                             \
         default:                                                               \
             node_style = "solid";                                              \

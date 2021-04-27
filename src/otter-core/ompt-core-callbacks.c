@@ -673,6 +673,15 @@ on_ompt_callback_task_dependence(
     ws-loop-begin/end (context=implicit task)
     distribute-begin/end (context=implicit task)
     taskloop-begin/end (context=encountering task)
+
+   Inserting pseudo-tasks for workshare constructs
+       - get encountering task data
+       - create pseudo-task for the workshare region
+       - use task_type enum from task_tree.h
+       - attach ptask data inside encountering task data
+       - register with task_tree as child of encountering task
+       - when creating explicit task, first check whether encountering task
+            has a ptask available - use as parent if available, otherwise don't
  */
 static void
 on_ompt_callback_work(
@@ -683,19 +692,12 @@ on_ompt_callback_work(
     uint64_t                 count,
     const void              *codeptr_ra)
 {
-    /* Inserting pseudo-tasks for workshare constructs
-       - get encountering task data
-       - create pseudo-task for the workshare region
-       - use task_type enum from task_tree.h
-       - attach ptask data inside encountering task data
-       - register with task_tree as child of encountering task
-       - when creating explicit task, first check whether encountering task
-            has a ptask available - use as parent if available, otherwise don't
-     */
 if ((wstype == ompt_work_single_executor) || (wstype == ompt_work_single_other))
         return;
+
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
-    LOG_DEBUG_WORK_TYPE(thread_data->id, wstype, count, endpoint==ompt_scope_begin?"begin":"end");
+    LOG_DEBUG_WORK_TYPE(thread_data->id, wstype, count,
+        endpoint==ompt_scope_begin?"begin":"end");
 
     task_data_t *task_data = (task_data_t*) task->ptr;
     task_data_t *workshare_task_data = NULL;
@@ -703,15 +705,17 @@ if ((wstype == ompt_work_single_executor) || (wstype == ompt_work_single_other))
     /* only want to handle ompt_work_taskloop initially - implement others once
        this is working
      */
-    if (wstype == ompt_work_taskloop)
+    if ((wstype == ompt_work_taskloop) || (wstype == ompt_work_loop))
     {
         if (endpoint == ompt_scope_begin)
         {
+            task_type_t workshare_task_type;
+            WSTYPE_TO_TASK_TYPE_ENUM(wstype, workshare_task_type);
             workshare_task_data = new_task_data(
                 get_unique_task_id(),
                 /* set bit as per task_type enum in task_tree.h to be unpacked
                    later */
-                (unique_id_t)(0x1 << task_taskloop),
+                (unique_id_t)(0x1 << workshare_task_type),
                 0L);
             task_data->workshare_child_task = workshare_task_data;
 

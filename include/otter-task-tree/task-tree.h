@@ -40,7 +40,24 @@ typedef enum {
     task_workshare    = 0x6,
     task_distribute   = 0x7,
     task_taskloop     = 0x8,
+    task_single       = 0x9,
+    task_single_other = 0xa,
 } task_type_t;
+
+#define WSTYPE_TO_TASK_TYPE_ENUM(wstype, task_type_var)                        \
+do {                                                                           \
+    switch (wstype) {                                                          \
+        case ompt_work_loop: task_type_var =            task_loop;       break;\
+        case ompt_work_sections: task_type_var =        task_sections;   break;\
+        case ompt_work_single_executor: task_type_var = task_single;     break;\
+        case ompt_work_single_other: task_type_var =    task_single_other;     \
+            break;                                                             \
+        case ompt_work_workshare: task_type_var =       task_workshare;  break;\
+        case ompt_work_distribute: task_type_var =      task_distribute; break;\
+        case ompt_work_taskloop: task_type_var =        task_taskloop;   break;\
+        default: task_type_var = 0;                                            \
+    }                                                                          \
+} while (0)
 
 /* unpack child task bits to get task type & enclosing parallel region
 
@@ -78,10 +95,15 @@ do{                                                                            \
             node_shape = "hexagon";                                            \
             node_colour = "black";                                             \
             break;                                                             \
-        case task_taskloop:                                                      \
-            node_style = "filled";                                              \
-            node_shape = "parallelogram";                                            \
-            node_colour = "lightblue";                                             \
+        case task_loop:                                                        \
+            node_style = "filled";                                             \
+            node_shape = "parallelogram";                                      \
+            node_colour = "\"#eda6e0\"";                                       \
+            break;                                                             \
+        case task_taskloop:                                                    \
+            node_style = "filled";                                             \
+            node_shape = "parallelogram";                                      \
+            node_colour = "lightblue";                                         \
             break;                                                             \
         default:                                                               \
             node_style = "solid";                                              \

@@ -92,7 +92,7 @@ verbose: $(OTTERSRC) $(OTTERHEAD) $(OTTLIB)
 	@$(CC) $(CFLAGS) $(OTTER_DEFS) $(LDFLAGS) $(L_OTTLIB) $(DEBUG) -DDEBUG_LEVEL=3 $(OTTERSRC) -shared -fPIC -o $(OTTER).verbose
 
 run: $(BINS)
-	OMP_TOOL_LIBRARIES=`pwd`/$(OTTER) ./$(DEMO)
+	OMP_TOOL_LIBRARIES=`pwd`/$(OTTER) ./$(EXE)
 
 clean:
 	@-rm -f lib/* obj/* $(BINS) $(OMPEXE)

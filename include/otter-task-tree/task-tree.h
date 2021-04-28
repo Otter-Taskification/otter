@@ -1,5 +1,5 @@
-#if !defined(TASK_TREE_H)
-#define TASK_TREE_H
+#if !defined(OTTER_TASK_TREE_H)
+#define OTTER_TASK_TREE_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -131,4 +131,4 @@ tree_node_t *tree_add_node(tree_node_id_t parent_id, size_t n_children);
 bool         tree_add_child_to_node(tree_node_t *parent_node, 
                 tree_node_id_t child_id);
 
-#endif // TASK_TREE_H
+#endif // OTTER_TASK_TREE_H

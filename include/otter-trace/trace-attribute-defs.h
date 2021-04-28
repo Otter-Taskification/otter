@@ -32,19 +32,21 @@
 
 INCLUDE_LABEL(flag,  Y )
 INCLUDE_LABEL(flag,  N )
+INCLUDE_LABEL(flag,  true  )
+INCLUDE_LABEL(flag,  false )
 
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_type,          task classification)
-INCLUDE_LABEL(task_type,  in  ) // initial
-INCLUDE_LABEL(task_type,  im  ) // implicit
-INCLUDE_LABEL(task_type,  ex  ) // explicit
-INCLUDE_LABEL(task_type,  tg  ) // target
+INCLUDE_LABEL(task_type,  initial  ) // initial
+INCLUDE_LABEL(task_type,  implicit ) // implicit
+INCLUDE_LABEL(task_type,  explicit ) // explicit
+INCLUDE_LABEL(task_type,  target   ) // target
 
 /* Y/N flags */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_ud,    task is undeferred)
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_ut,        task is untied)
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_fi,         task is final)
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_me,     task is mergeable)
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_md,        task is merged)
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_undeferred, task is undeferred)
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_untied,     task is untied)
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_final,      task is final)
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_mergeable,  task is mergeable)
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_merged,     task is merged)
 
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, prior_task_status,  status of the task that arrived at a task scheduling point)
 INCLUDE_LABEL(prior_task_status,  complete      ) // complete

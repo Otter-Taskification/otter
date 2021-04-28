@@ -11,6 +11,7 @@
 #include <pthread.h>
 
 #include <otter-task-tree/task-tree.h>
+#include <otter-trace/trace.h>
 
 /* forward declarations */
 typedef struct parallel_data_t parallel_data_t;
@@ -26,6 +27,7 @@ typedef struct parallel_data_t {
 /* Thread type */
 typedef struct thread_data_t {
     unique_id_t         id;
+    trace_location_def_t *location;
 } thread_data_t;
 
 /* Task type */

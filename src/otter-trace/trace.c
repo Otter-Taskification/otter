@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <pthread.h>
+#include <time.h>
+#include <errno.h>
+#include <string.h>
 
 #include <otf2/otf2.h>
 #include <otf2/OTF2_Pthread_Locks.h>
@@ -16,7 +19,6 @@ typedef enum trace_ref_type_t {
     trace_region,
     trace_string,
     trace_location,
-    trace_timestamp,
     trace_other,
     NUM_REF_TYPES // <- MUST BE LAST ENUM ITEM
 } trace_ref_type_t;
@@ -24,10 +26,11 @@ typedef enum trace_ref_type_t {
 #define get_unique_rgn_ref() ((uint32_t) get_unique_ref(trace_region))
 #define get_unique_str_ref() ((uint32_t) get_unique_ref(trace_string))
 #define get_unique_loc_ref() (get_unique_ref(trace_location))
-#define get_timestamp()      (get_unique_ref(trace_timestamp))
 #define get_other_ref()      (get_unique_ref(trace_other))
 
 static uint64_t get_unique_ref(trace_ref_type_t ref_type);
+
+static uint64_t get_timestamp(void);
 
 /* process a single location or region definition */
 static void trace_write_location_definition(void *ptr);
@@ -120,7 +123,8 @@ post_flush(
     - write attribute definitions which can then be referenced using attribute
       enum values
  */
-bool trace_initialise_archive()
+bool
+trace_initialise_archive(otter_opt_t *opt)
 {
     /* open OTF2 archive */
     Archive = OTF2_Archive_Open("default-archive-path",
@@ -153,10 +157,26 @@ bool trace_initialise_archive()
     /* get global definitions writer */
     Defs = OTF2_Archive_GetGlobalDefWriter(Archive);
 
+    /* get clock resolution & current time for CLOCK_MONOTONIC */
+    struct timespec res, tp;
+    if (clock_getres(CLOCK_MONOTONIC, &res) != 0)
+    {
+        LOG_ERROR("%s", strerror(errno));
+        errno = 0;
+    } else {
+        LOG_DEBUG("Clock resolution: %lu s", res.tv_sec);
+        LOG_DEBUG("Clock resolution: %lu ns", res.tv_nsec);
+        LOG_DEBUG("Clock ticks per second: %lu", 1000000000 / res.tv_nsec);
+    }
+
+    clock_gettime(CLOCK_MONOTONIC, &tp);
+    uint64_t epoch = tp.tv_sec * (uint64_t)1000000000 + tp.tv_nsec;
+    LOG_DEBUG("Epoch: %lu %lu %lu", tp.tv_sec, tp.tv_nsec, epoch);
+
     /* write global clock properties */
     OTF2_GlobalDefWriter_WriteClockProperties(Defs,
-        1,           /* 1 tick per second */
-        0,           /* epoch */
+        1000000000 / res.tv_nsec,  /* ticks per second */
+        epoch,
         UINT64_MAX); /* length */
 
     /* write an empty string as the first entry so that string ref 0 is "" */
@@ -229,7 +249,8 @@ bool trace_initialise_archive()
     return true;
 }
 
-bool trace_finalise_archive()
+bool
+trace_finalise_archive()
 {
     /* close event files */
     OTF2_Archive_CloseEvtFiles(Archive);
@@ -334,9 +355,9 @@ trace_write_location_definition(void *ptr)
         return;
     }
     trace_location_def_t *loc = (trace_location_def_t*) ptr;
-    char location_name[64] = {0};
+    char location_name[DEFAULT_NAME_BUF_SZ + 1] = {0};
     OTF2_StringRef location_name_ref = get_unique_str_ref();
-    snprintf(location_name, 64, "Thread %lu", loc->ref);
+    snprintf(location_name, DEFAULT_NAME_BUF_SZ, "Thread %lu", loc->ref);
     OTF2_GlobalDefWriter_WriteString(Defs,
         location_name_ref,
         location_name);
@@ -359,9 +380,9 @@ trace_write_region_definition(void *ptr)
         return;
     }
     trace_region_def_t *rgn = (trace_region_def_t*) ptr;
-    char region_name[64] = {0};
+    char region_name[DEFAULT_NAME_BUF_SZ] = {0};
     OTF2_StringRef region_name_ref = get_unique_str_ref();
-    snprintf(region_name, 64, "Region %u", rgn->ref);
+    snprintf(region_name, DEFAULT_NAME_BUF_SZ, "Region %u", rgn->ref);
     OTF2_GlobalDefWriter_WriteString(Defs,
         region_name_ref,
         region_name);
@@ -377,9 +398,77 @@ trace_write_region_definition(void *ptr)
     return;
 }
 
+trace_location_def_t *
+trace_new_location_definition(
+    uint64_t               id,
+    OTF2_LocationType      loc_type,
+    OTF2_LocationGroupRef  loc_grp)
+{
+    trace_location_def_t *new = malloc(sizeof(*new));
+    new->id = id;
+    new->events = 0;
+    new->ref = get_unique_loc_ref();
+    new->type = loc_type;
+    new->location_group = loc_grp;
+    new->evt_writer = OTF2_Archive_GetEvtWriter(Archive, new->ref);
+
+    /* add location definition to global queue */
+    pthread_mutex_lock(&trace_location_queue_lock);
+    queue_push(trace_location_queue, (queue_item_t) {.ptr = new});
+    pthread_mutex_unlock(&trace_location_queue_lock);
+
+    return new;
+}
+
+trace_region_def_t *
+trace_new_region_definition(
+    uint64_t           id,
+    OTF2_RegionRole    rgn_role)
+{
+    trace_region_def_t *new = malloc(sizeof(*new));
+
+    new->id = id;
+    new->ref = get_unique_rgn_ref();
+    new->role = rgn_role;
+    new->attributes = NULL;
+
+    /* add region definition data to global queue */
+    pthread_mutex_lock(&trace_region_queue_lock);
+    queue_push(trace_region_queue, (queue_item_t) {.ptr = new});
+    pthread_mutex_unlock(&trace_region_queue_lock);
+
+    return new;
+}
+
 static uint64_t
 get_unique_ref(trace_ref_type_t ref_type)
 {
     static uint64_t id[NUM_REF_TYPES] = {0};
     return __sync_fetch_and_add(&id[ref_type], 1L);
+}
+
+void
+trace_event_thread_begin(trace_location_def_t *self)
+{
+    OTF2_EvtWriter_ThreadBegin(self->evt_writer,
+        NULL, get_timestamp(), DEFAULT_COMM_REF, self->id);
+    self->events++;
+    return;
+}
+
+void
+trace_event_thread_end(trace_location_def_t *self)
+{
+    OTF2_EvtWriter_ThreadEnd(self->evt_writer,
+        NULL, get_timestamp(), DEFAULT_COMM_REF, OTF2_UNDEFINED_UINT64);
+    self->events++;
+    return;
+}
+
+static uint64_t 
+get_timestamp(void)
+{
+    struct timespec time;
+    clock_gettime(CLOCK_MONOTONIC, &time);
+    return time.tv_sec * (uint64_t)1000000000 + time.tv_nsec;
 }

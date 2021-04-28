@@ -5,6 +5,8 @@
 #include <sys/time.h>       // getrusage
 #include <sys/resource.h>   // getrusage
 
+#include <otf2/otf2.h>
+
 #include <macros/debug.h>
 
 #if defined(__INTEL_COMPILER)
@@ -13,20 +15,20 @@
 #include <ompt.h>
 #endif
 
+#include <otter-core/ompt-tool-generic.h> // For the prototypes of tool_setup/tool_finalise
+#include <otter-core/ompt-common.h>       // Definitions relevant to all parts of a tool
+#include <otter-core/ompt-core-callbacks.h>
+#include <otter-core/ompt-core-types.h>
+#include <otter-core/ompt-callback-macros.h>
+#include <otter-task-tree/task-tree.h>
+#include <otter-trace/trace.h>
+
 /* number of child tasks a parent task initially has space for */
 #if !defined(OTTER_DEFAULT_TASK_CHILDREN) \
     || (EXPAND(OTTER_DEFAULT_TASK_CHILDREN) == 1)
 #undef OTTER_DEFAULT_TASK_CHILDREN
 #define OTTER_DEFAULT_TASK_CHILDREN 100
 #endif
-
-#include <otter-core/ompt-tool-generic.h> // For the prototypes of tool_setup/tool_finalise
-#include <otter-core/ompt-common.h>       // Definitions relevant to all parts of a tool
-#include <otter-core/ompt-core-callbacks.h>
-#include <otter-core/ompt-core-types.h>
-#include <otter-core/ompt-callback-macros.h>
-
-#include <otter-task-tree/task-tree.h>
 
 /* Static function prototypes */
 static void print_resource_usage(void);
@@ -90,6 +92,7 @@ tool_setup(
         "OTTER_APPEND_HOSTNAME",opt.append_hostname ? "Yes" : "No");
 
     tree_init(&opt);
+    trace_initialise_archive(&opt);
 
     return;
 }
@@ -99,6 +102,7 @@ tool_finalise(void)
 {
     tree_write();
     tree_destroy();
+    trace_finalise_archive();
     print_resource_usage();
     return;
 }
@@ -140,6 +144,9 @@ on_ompt_callback_thread_begin(
     thread_data_t *thread_data = malloc(sizeof(*thread_data));
     thread->ptr = thread_data;
     thread_data->id = get_unique_thread_id();
+    thread_data->location = trace_new_location_definition(thread_data->id,
+        OTF2_LOCATION_TYPE_CPU_THREAD, DEFAULT_LOCATION_GRP);
+    trace_event_thread_begin(thread_data->location);
     LOG_DEBUG_THREAD_TYPE(thread_type, thread_data->id);
     return;
 }
@@ -165,6 +172,7 @@ on_ompt_callback_thread_end(
     {
         thread_data_t *thread_data = thread->ptr;
         LOG_DEBUG_THREAD_TYPE(ompt_thread_unknown, thread_data->id);
+        trace_event_thread_end(thread_data->location);
         free (thread_data);
     }
     return;

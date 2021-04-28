@@ -40,7 +40,7 @@ L_ODTDEP  = # none
 L_OTTLIB  = $(patsubst lib/lib%.so, -l%,  $(OTTLIB))
 L_OTTDEP  = -lpthread $(L_ODTLIB)
 L_TRACELIB = $(patsubst lib/lib%.so, -l%,  $(TRACELIB))
-L_TRACEDEP = -lpthread $(L_ODTLIB)
+L_TRACEDEP = -lpthread -lotf2 $(L_ODTLIB)
 
 # Source & header paths
 OTTERSRC   = $(wildcard src/otter-core/*.c)
@@ -75,14 +75,12 @@ demo:      $(DEMO)
 $(OMPEXE): $(OMPSRC)
 	@echo COMPILING: $@
 	@$(CC) $(CFLAGS) $(DEBUG) $(CPP_OMP_FLAGS) $(LD_OMP_FLAGS) -fopenmp src/otter-demo/$@.c -o $@
-	@echo
 	@echo $@ links to `ldd $@ | grep "[lib|libi|libg]omp"`
-	@echo
 
 ### OTTer as a dynamic tool to be loaded by the runtime
-$(OTTER): $(OTTERSRC) $(OTTERHEAD) $(OTTLIB)
+$(OTTER): $(OTTERSRC) $(OTTERHEAD) $(OTTLIB) $(TRACELIB) $(OTTLIB)
 	@echo COMPILING: $@ debug=$(DEBUG_OTTER), OTTER_DEFS=$(OTTER_DEFS)
-	@$(CC) $(CFLAGS) $(OTTER_DEFS) $(LDFLAGS) $(L_OTTLIB) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_OTTER) $(OTTERSRC) -shared -fPIC -o $@
+	@$(CC) $(CFLAGS) $(OTTER_DEFS) $(LDFLAGS) $(L_OTTLIB) $(L_TRACELIB) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_OTTER) $(OTTERSRC) -shared -fPIC -o $@
 
 ### Task-tree lib
 $(OTTLIB): $(OTTSRC) $(OTTHEAD) $(ODTLIB)
@@ -92,7 +90,7 @@ $(OTTLIB): $(OTTSRC) $(OTTHEAD) $(ODTLIB)
 ### Event tracing lib
 $(TRACELIB): $(TRACESRC) $(TRACEHEAD) $(ODTLIB)
 	@echo COMPILING: $@ debug=$(DEBUG_TRACE), TRACE_DEFS=$(TRACE_DEFS)
-	$(CC) $(CFLAGS) $(TRACE_DEFS) $(LDFLAGS) $(L_TRACEDEP) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_TRACE) $(TRACESRC) -shared -fPIC -o $@
+	@$(CC) $(CFLAGS) $(TRACE_DEFS) $(LDFLAGS) $(L_TRACEDEP) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_TRACE) $(TRACESRC) -shared -fPIC -o $@
 
 ### Data-types lib
 $(ODTLIB): $(ODTSRC) $(ODTHEAD)
@@ -109,4 +107,4 @@ clean:
 	@-rm -f lib/* obj/* $(BINS) $(OMPEXE)
 
 cleanfiles:
-	@-rm -f *.gv *.svg *.pdf *.png *.txt *.csv
+	@-rm -rf *.gv *.svg *.pdf *.png *.txt *.csv default-archive-path/

@@ -23,10 +23,6 @@ typedef struct trace_location_def_t trace_location_def_t;
 bool trace_initialise_archive(void);
 bool trace_finalise_archive(void);
 
-/* process a single location or region definition */
-void trace_write_location_definition(void *loc);
-void trace_write_region_definition(void *rgn);
-
 /* write event */
 void trace_event_thread_begin(trace_location_def_t *self);
 void trace_event_thread_end(trace_location_def_t *self);

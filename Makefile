@@ -16,13 +16,14 @@ $(info Compiler: $(CC) [$(shell which $(CC))])
 
 # Global options
 #C         = clang <- pass in as environment variable instead
-INCLUDE    = -Iinclude/ -I/usr/include/graphviz/
+INCLUDE    = -Iinclude -I/usr/include/graphviz -I/opt/otf2/include
 NOWARN     = -Wno-unused-function -Wno-unused-variable 
 CFLAGS     = -Wall -Werror $(NOWARN) $(INCLUDE)
-LDFLAGS    = -Llib/ -Wl,-rpath=`pwd`/lib/
+LDFLAGS    = -Llib/ -L/opt/otf2/lib -Wl,-rpath=`pwd`/lib/
 OTTER_DEFS = -DOTTER_DEFAULT_TASK_CHILDREN=$(OTTER_DEFAULT_TASK_CHILDREN)
 OTT_DEFS   = -DOTT_DEFAULT_ROOT_CHILDREN=$(OTT_DEFAULT_ROOT_CHILDREN)
 ODT_DEFS   = -DDA_LEN=$(ODT_DEFAULT_ARRAY_LENGTH) -DDA_INC=$(ODT_DEFAULT_ARRAY_INCREMENT)
+TRACE_DEFS =
 DEBUG      = -g
 
 # MAIN OUTPUT
@@ -31,25 +32,30 @@ OTTER    = lib/libotter.so
 # SUPPORTING COMPONENTS
 OTTLIB     = lib/libotter-ttree.so
 ODTLIB     = lib/libotter-dt.so
+TRACELIB   = lib/libotter-trace.so
 
 # Linker commands
 L_ODTLIB  = $(patsubst lib/lib%.so, -l%,  $(ODTLIB))
 L_ODTDEP  = # none
 L_OTTLIB  = $(patsubst lib/lib%.so, -l%,  $(OTTLIB))
 L_OTTDEP  = -lpthread $(L_ODTLIB)
+L_TRACELIB = $(patsubst lib/lib%.so, -l%,  $(TRACELIB))
+L_TRACEDEP = -lpthread $(L_ODTLIB)
 
 # Source & header paths
 OTTERSRC   = $(wildcard src/otter-core/*.c)
 OTTERHEAD  = $(wildcard include/otter-core/*.h)
 OTTSRC     = $(wildcard src/otter-task-tree/*.c)
 OTTHEAD    = $(wildcard include/otter-task-tree/*.h)
+TRACESRC   = $(wildcard src/otter-trace/*.c)
+TRACEHEAD  = $(wildcard include/otter-trace/*.h)
 ODTSRC     = $(wildcard src/otter-dtypes/*.c)
 ODTHEAD    = $(wildcard include/otter-dtypes/*.h)
 OMPSRC     = $(wildcard src/otter-demo/*.c)
 OMPEXE     = $(patsubst src/otter-demo/omp-%.c, omp-%, $(OMPSRC))
 DEMO       = omp-demo$(EXE_POSTFIX)
 
-BINS = $(OTTER) $(OTTLIB) $(ODTLIB) $(OMPEXE)
+BINS = $(OTTER) $(OTTLIB) $(ODTLIB) $(TRACELIB) $(OMPEXE)
 
 .PHONY: all clean run
 
@@ -82,6 +88,11 @@ $(OTTER): $(OTTERSRC) $(OTTERHEAD) $(OTTLIB)
 $(OTTLIB): $(OTTSRC) $(OTTHEAD) $(ODTLIB)
 	@echo COMPILING: $@ debug=$(DEBUG_OTT), OTT_DEFS=$(OTT_DEFS)
 	@$(CC) $(CFLAGS) $(OTT_DEFS) $(LDFLAGS) $(L_OTTDEP) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_OTT) $(OTTSRC) -shared -fPIC -o $@
+
+### Event tracing lib
+$(TRACELIB): $(TRACESRC) $(TRACEHEAD) $(ODTLIB)
+	@echo COMPILING: $@ debug=$(DEBUG_TRACE), TRACE_DEFS=$(TRACE_DEFS)
+	$(CC) $(CFLAGS) $(TRACE_DEFS) $(LDFLAGS) $(L_TRACEDEP) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_TRACE) $(TRACESRC) -shared -fPIC -o $@
 
 ### Data-types lib
 $(ODTLIB): $(ODTSRC) $(ODTHEAD)

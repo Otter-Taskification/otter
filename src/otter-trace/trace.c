@@ -175,7 +175,7 @@ bool trace_initialise_archive()
         OTF2_UNDEFINED_SYSTEM_TREE_NODE);
 
     /* write global location group */
-    OTF2_StringRef g_loc_grp_name = new_str_ref();
+    OTF2_StringRef g_loc_grp_name = get_unique_str_ref();
     OTF2_LocationGroupRef g_loc_grp_id = DEFAULT_LOCATION_GRP;
     OTF2_GlobalDefWriter_WriteString(Defs, g_loc_grp_name, "OMP Process");
     OTF2_GlobalDefWriter_WriteLocationGroup(Defs, g_loc_grp_id, g_loc_grp_name,
@@ -237,7 +237,7 @@ bool trace_finalise_archive()
     /* create 1 definition writer per location & immediately close it - not 
        currently used
      */
-    uint64_t nloc = unique_loc_ref();
+    uint64_t nloc = get_unique_loc_ref();
     for (int loc = 0; loc < nloc; loc++)
     {
         OTF2_DefWriter* dw = OTF2_Archive_GetDefWriter(Archive, loc);
@@ -375,4 +375,11 @@ trace_write_region_definition(void *ptr)
         0, 0, 0); /* source file, begin line no., end line no. */
     free(rgn);
     return;
+}
+
+static uint64_t
+get_unique_ref(trace_ref_type_t ref_type)
+{
+    static uint64_t id[NUM_REF_TYPES] = {0};
+    return __sync_fetch_and_add(&id[ref_type], 1L);
 }

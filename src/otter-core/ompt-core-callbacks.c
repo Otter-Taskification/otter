@@ -200,12 +200,19 @@ on_ompt_callback_parallel_begin(
     /* get data of encountering task */
     task_data_t *encountering_task_data = (task_data_t*) encountering_task->ptr;
 
+    thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
+
     /* assign space for this parallel region */
     parallel_data_t *parallel_data = malloc(sizeof(*parallel_data));
     *parallel_data = (parallel_data_t) {
         .id = get_unique_parallel_id(),
         .encountering_task_data = encountering_task_data
     };
+
+    parallel_data->region = trace_new_region_definition(
+        parallel_data->id,OTF2_REGION_ROLE_PARALLEL);
+
+    trace_event_enter(thread_data->location, parallel_data->region);
 
     LOG_DEBUG_PARALLEL_RGN_TYPE(flags, parallel_data->id);
 
@@ -226,10 +233,12 @@ on_ompt_callback_parallel_end(
     int                      flags,
     const void              *codeptr_ra)
 {
+    thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
     if ((parallel != NULL) && (parallel->ptr != NULL))
     {
         parallel_data_t *parallel_data = parallel->ptr;
         LOG_DEBUG_PARALLEL_RGN_TYPE(flags, parallel_data->id);
+        trace_event_leave(thread_data->location, parallel_data->region);
         free (parallel_data);
     }
     return;

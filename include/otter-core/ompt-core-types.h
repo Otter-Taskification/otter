@@ -22,11 +22,12 @@ typedef struct task_data_t task_data_t;
 typedef struct parallel_data_t {
     unique_id_t         id;
     task_data_t        *encountering_task_data;
+    trace_region_def_t *region;
 } parallel_data_t;
 
 /* Thread type */
 typedef struct thread_data_t {
-    unique_id_t         id;
+    unique_id_t           id;
     trace_location_def_t *location;
 } thread_data_t;
 

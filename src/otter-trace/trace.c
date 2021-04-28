@@ -357,7 +357,7 @@ trace_write_location_definition(void *ptr)
     trace_location_def_t *loc = (trace_location_def_t*) ptr;
     char location_name[DEFAULT_NAME_BUF_SZ + 1] = {0};
     OTF2_StringRef location_name_ref = get_unique_str_ref();
-    snprintf(location_name, DEFAULT_NAME_BUF_SZ, "Thread %lu", loc->ref);
+    snprintf(location_name, DEFAULT_NAME_BUF_SZ, "Thread %lu", loc->id);
     OTF2_GlobalDefWriter_WriteString(Defs,
         location_name_ref,
         location_name);
@@ -382,7 +382,7 @@ trace_write_region_definition(void *ptr)
     trace_region_def_t *rgn = (trace_region_def_t*) ptr;
     char region_name[DEFAULT_NAME_BUF_SZ] = {0};
     OTF2_StringRef region_name_ref = get_unique_str_ref();
-    snprintf(region_name, DEFAULT_NAME_BUF_SZ, "Region %u", rgn->ref);
+    snprintf(region_name, DEFAULT_NAME_BUF_SZ, "Region %lu", rgn->id);
     OTF2_GlobalDefWriter_WriteString(Defs,
         region_name_ref,
         region_name);
@@ -464,6 +464,28 @@ trace_event_thread_end(trace_location_def_t *self)
     self->events++;
     return;
 }
+
+void 
+trace_event_enter(
+    trace_location_def_t  *self,
+    trace_region_def_t    *region)
+{
+    OTF2_EvtWriter_Enter(self->evt_writer,
+        NULL, get_timestamp(), region->ref);
+    self->events++;
+    return;
+}
+
+void 
+trace_event_leave(
+    trace_location_def_t  *self,
+    trace_region_def_t    *region)
+{
+    OTF2_EvtWriter_Leave(self->evt_writer,
+        NULL, get_timestamp(), region->ref);
+    return;
+}
+
 
 static uint64_t 
 get_timestamp(void)

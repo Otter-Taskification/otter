@@ -2,6 +2,7 @@ CUSTOM_OMP_POSTFIX=.co
 
 # Decide whether to link to a custom OMP runtime when linking OMP executable
 ifeq ($(OMP_LIB), )
+# pass
 else
   $(info using custom OMP lib at $(OMP_LIB))
   # Link to a custom OMP runtime
@@ -16,10 +17,10 @@ $(info Compiler: $(CC) [$(shell which $(CC))])
 
 # Global options
 #C         = clang <- pass in as environment variable instead
-INCLUDE    = -Iinclude -I/usr/include/graphviz -I/opt/otf2/include
+INCLUDE    = -Iinclude -I/opt/otf2/include -I/ddn/data/$(USER)/local/include
 NOWARN     = -Wno-unused-function -Wno-unused-variable 
 CFLAGS     = -Wall -Werror $(NOWARN) $(INCLUDE)
-LDFLAGS    = -Llib/ -L/opt/otf2/lib -Wl,-rpath=`pwd`/lib/
+LDFLAGS    = -Llib/ -L/opt/otf2/lib -L/ddn/data/$(USER)/local/lib -Wl,-rpath=`pwd -P`/lib/,-rpath=/ddn/data/$(USER)/local/lib
 OTTER_DEFS = -DOTTER_DEFAULT_TASK_CHILDREN=$(OTTER_DEFAULT_TASK_CHILDREN)
 OTT_DEFS   = -DOTT_DEFAULT_ROOT_CHILDREN=$(OTT_DEFAULT_ROOT_CHILDREN)
 ODT_DEFS   = -DDA_LEN=$(ODT_DEFAULT_ARRAY_LENGTH) -DDA_INC=$(ODT_DEFAULT_ARRAY_INCREMENT)
@@ -74,37 +75,37 @@ demo:      $(DEMO)
 ### Standalone OMP app
 $(OMPEXE): $(OMPSRC)
 	@echo COMPILING: $@
-	@$(CC) $(CFLAGS) $(DEBUG) $(CPP_OMP_FLAGS) $(LD_OMP_FLAGS) -fopenmp src/otter-demo/$@.c -o $@
+	$(CC) $(CFLAGS) $(DEBUG) $(CPP_OMP_FLAGS) $(LD_OMP_FLAGS) -fopenmp src/otter-demo/$@.c -o $@
 	@echo $@ links to `ldd $@ | grep "[lib|libi|libg]omp"`
 
 ### OTTer as a dynamic tool to be loaded by the runtime
 $(OTTER): $(OTTERSRC) $(OTTERHEAD) $(OTTLIB) $(TRACELIB) $(OTTLIB)
-	@echo COMPILING: $@ debug=$(DEBUG_OTTER), OTTER_DEFS=$(OTTER_DEFS)
+	echo COMPILING: $@ debug=$(DEBUG_OTTER), OTTER_DEFS=$(OTTER_DEFS)
 	@$(CC) $(CFLAGS) $(OTTER_DEFS) $(LDFLAGS) $(L_OTTLIB) $(L_TRACELIB) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_OTTER) $(OTTERSRC) -shared -fPIC -o $@
 
 ### Task-tree lib
 $(OTTLIB): $(OTTSRC) $(OTTHEAD) $(ODTLIB)
 	@echo COMPILING: $@ debug=$(DEBUG_OTT), OTT_DEFS=$(OTT_DEFS)
-	@$(CC) $(CFLAGS) $(OTT_DEFS) $(LDFLAGS) $(L_OTTDEP) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_OTT) $(OTTSRC) -shared -fPIC -o $@
+	$(CC) $(CFLAGS) $(OTT_DEFS) $(LDFLAGS) $(L_OTTDEP) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_OTT) $(OTTSRC) -shared -fPIC -o $@
 
 ### Event tracing lib
 $(TRACELIB): $(TRACESRC) $(TRACEHEAD) $(ODTLIB)
 	@echo COMPILING: $@ debug=$(DEBUG_TRACE), TRACE_DEFS=$(TRACE_DEFS)
-	@$(CC) $(CFLAGS) $(TRACE_DEFS) $(LDFLAGS) $(L_TRACEDEP) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_TRACE) $(TRACESRC) -shared -fPIC -o $@
+	$(CC) $(CFLAGS) $(TRACE_DEFS) $(LDFLAGS) $(L_TRACEDEP) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_TRACE) $(TRACESRC) -shared -fPIC -o $@
 
 ### Data-types lib
 $(ODTLIB): $(ODTSRC) $(ODTHEAD)
 	@echo COMPILING: $@ debug=$(DEBUG_ODT), ODT_DEFS=$(ODT_DEFS)
-	@$(CC) $(CFLAGS) $(ODT_DEFS) $(LDFLAGS) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_ODT) $(ODTSRC) -shared -fPIC -o $@
+	$(CC) $(CFLAGS) $(ODT_DEFS) $(LDFLAGS) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_ODT) $(ODTSRC) -shared -fPIC -o $@
 
 verbose: $(OTTERSRC) $(OTTERHEAD) $(OTTLIB)
-	@$(CC) $(CFLAGS) $(OTTER_DEFS) $(LDFLAGS) $(L_OTTLIB) $(DEBUG) -DDEBUG_LEVEL=3 $(OTTERSRC) -shared -fPIC -o $(OTTER).verbose
+	$(CC) $(CFLAGS) $(OTTER_DEFS) $(LDFLAGS) $(L_OTTLIB) $(DEBUG) -DDEBUG_LEVEL=3 $(OTTERSRC) -shared -fPIC -o $(OTTER).verbose
 
 run: $(BINS)
-	OMP_TOOL_LIBRARIES=`pwd`/$(OTTER) ./$(EXE)
+	@OMP_TOOL_LIBRARIES=`pwd`/$(OTTER) ./$(EXE)
 
 clean:
 	@-rm -f lib/* obj/* $(BINS) $(OMPEXE)
 
 cleanfiles:
-	@-rm -rf *.gv *.svg *.pdf *.png *.txt *.csv default-archive-path/
+	@-rm -rf *.gv *.svg *.pdf *.png *.txt *.csv *.json default-archive-path/

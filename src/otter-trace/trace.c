@@ -259,7 +259,8 @@ trace_finalise_archive()
        currently used
      */
     uint64_t nloc = get_unique_loc_ref();
-    for (int loc = 0; loc < nloc; loc++)
+    int loc = 0;
+    for (loc = 0; loc < nloc; loc++)
     {
         OTF2_DefWriter* dw = OTF2_Archive_GetDefWriter(Archive, loc);
         OTF2_Archive_CloseDefWriter(Archive, dw);

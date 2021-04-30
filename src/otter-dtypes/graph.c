@@ -28,7 +28,7 @@ struct graph_edge_t {
 graph_t *
 graph_create(void)
 {
-    graph_t *g = (graph_t*) malloc(szieof(*g));
+    graph_t *g = (graph_t*) malloc(sizeof(*g));
     g->nodes = queue_create(NULL);
     g->edges = queue_create(NULL);
     return g;
@@ -120,7 +120,7 @@ void graph_scan_nodes(
         return;
     }
     graph_node_t *node = NULL;
-    queue_scan(g->nodes, (graph_node_t*) &node, next);
+    queue_scan(g->nodes, (queue_item_t*) &node, next);
     if (id   ) *id   = node->id;
     if (type ) *type = node->type;
     if (data ) *data = node->data;
@@ -144,7 +144,7 @@ graph_scan_edges(
         return;
     }
     graph_edge_t *edge = NULL;
-    queue_scan(g->edges, (graph_edge_t*) &edge, next);
+    queue_scan(g->edges, (queue_item_t*) &edge, next);
     if (src_id    ) *src_id    = edge->src->id;
     if (src_type  ) *src_type  = edge->src->type; 
     if (src_data  ) *src_data  = edge->src->data; 

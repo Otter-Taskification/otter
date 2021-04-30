@@ -243,7 +243,7 @@ on_ompt_callback_parallel_begin(
     /* add node representing the start of a parallel region to the graph */
     parallel_data->parallel_begin_node_ref = task_graph_add_node(
         node_context_parallel_begin,
-        (task_graph_node_data_t) parallel_data
+        (task_graph_node_data_t) {.ptr = parallel_data}
     );
 
     /* declare an edge from the encountering task to the parallel-begin node */
@@ -296,7 +296,7 @@ on_ompt_callback_parallel_end(
 
         parallel_data->parallel_end_node_ref = task_graph_add_node(
             node_context_parallel_end,
-            (task_graph_node_data_t) parallel_data
+            (task_graph_node_data_t) {.ptr = parallel_data}
         );
         if (stack_size(parallel_data->context->context_task_graph_nodes) == 0)
         {
@@ -312,7 +312,7 @@ on_ompt_callback_parallel_end(
             task_graph_node_t *graph_node = NULL;
             while (stack_pop(
                 parallel_data->context->context_task_graph_nodes,
-                &graph_node))
+                (stack_item_t*) &graph_node))
             {
                 // if node has no immediate children, register edge
                 if (graph_node_has_children(graph_node) == false)
@@ -552,7 +552,7 @@ on_ompt_callback_implicit_task(
 
             /* Add a node to the task graph for this initial task */
             task_data->task_node_ref = task_graph_add_node(
-                node_task_initial, (task_graph_node_data_t) task_data
+                node_task_initial, (task_graph_node_data_t) {.ptr = task_data}
             );
 
             /* initialise the task's mutex so any child implicit tasks can

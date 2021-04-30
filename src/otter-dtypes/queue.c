@@ -179,7 +179,7 @@ queue_scan(
     if ((next == NULL) || (dest == NULL))
     {
         LOG_ERROR("null pointer");
-        return 0;
+        return;
     }
 
     node_t *next_node = (node_t*) *next;

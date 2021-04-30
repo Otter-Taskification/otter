@@ -9,7 +9,7 @@
 #include <otter-dtypes/queue.h>
 
 /* define arbitrary node types */
-typedef enum {_empty_enum_type} graph_node_type_t;
+typedef int graph_node_type_t;
 
 /* arbitrary data associated with a node */
 typedef union {

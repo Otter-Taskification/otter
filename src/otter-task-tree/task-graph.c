@@ -218,11 +218,9 @@ task_graph_attach_subgraph(graph_t *subgraph)
 
     /* lock the graph to ensure atomic access */
     pthread_mutex_lock(&Graph.lock);
-
     bool result = graph_union(Graph.g, subgraph);
-
     pthread_mutex_unlock(&Graph.lock);
-
+    return result;
 }
 
 bool
@@ -319,6 +317,7 @@ task_graph_write(void)
             break;
         default:
             // pass
+            break;
     }
 
     /* Write file footer */

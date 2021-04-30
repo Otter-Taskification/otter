@@ -133,6 +133,74 @@ queue_destroy(queue_t *q, bool items)
     return;
 }
 
+/* append a reference to the items in r to q (shallow) */
+bool
+queue_append(
+    queue_t *q,
+    queue_t *r)
+{
+    if ((q == NULL) || (r == NULL)) return false;
+
+    if (r->length == 0) return true;
+
+    #if DEBUG_LEVEL >= 4
+    queue_print(q);
+    queue_print(r);
+    #endif
+
+    if (q->length == 0)
+    {
+        q->head = r->head;
+        q->tail = r->tail;
+        q->length = r->length;
+        #if DEBUG_LEVEL >= 4
+        queue_print(q);
+        queue_print(r);
+        #endif
+        return true;
+    }
+
+    q->tail->next = r->head->next;
+    q->tail = r->tail;
+    q->length = q->length + r->length;
+    #if DEBUG_LEVEL >= 4
+    queue_print(q);
+    queue_print(r);
+    #endif
+    return true;
+}
+
+/* scan through the items in a queue without modifying the queue
+   write the current queue item to dest
+   save the address of the next item in the queue to [next]
+   if [next] == NULL, start with queue->head
+   (NOTE: up to the caller to track how many items to scan, otherwise will loop)
+*/
+void
+queue_scan(
+    queue_t *q,
+    queue_item_t *dest,
+    void **next)
+{
+    if ((next == NULL) || (dest == NULL))
+    {
+        LOG_ERROR("null pointer");
+        return 0;
+    }
+
+    node_t *next_node = (node_t*) *next;
+
+    if (next_node == NULL)
+    {
+        *dest = q->head->data;
+        *next = (void*) q->head->next;
+    } else {
+        *dest = next_node->data;
+        *next = (void*) next_node->next;
+    }
+    return;
+}
+
 #if DEBUG_LEVEL >= 4
 void
 queue_print(queue_t *q)

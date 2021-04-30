@@ -16,6 +16,7 @@ struct graph_node_t {
     uint64_t           id;
     graph_node_type_t  type;
     graph_node_data_t  data;
+    bool               has_children;
 };
 
 struct graph_edge_t {
@@ -45,6 +46,7 @@ graph_add_node(
     n->id = graph_get_unique_node_id();
     n->type = type;
     n->data = data;
+    n->has_children = false;
     queue_push(g->nodes, (queue_item_t){.ptr = n});
     return n;
 }
@@ -61,6 +63,7 @@ graph_add_edge(
     if ((g == NULL) || (n1 == NULL) || (n2 == NULL)) return NULL;
     graph_edge_t *e = (graph_edge_t*) malloc(sizeof(*e));
     e->src = n1, e->dest = n2;
+    n1->has_children = true;
     queue_push(g->edges, (queue_item_t){.ptr = e});
     return e;
 }
@@ -165,6 +168,12 @@ graph_get_num_nodes_edges(
     *nodes = queue_length(g->nodes);
     *edges = queue_length(g->edges);
     return;
+}
+
+bool
+graph_node_has_children(graph_node_t *n)
+{
+    return n == NULL ? false : n->has_children;
 }
 
 #if DEBUG_LEVEL >= 4

@@ -12,6 +12,7 @@
 #include <otter-core/ompt-common.h>
 #include <otter-dtypes/stack.h>
 #include <otter-task-tree/task-tree.h>
+#include <otter-task-tree/task-graph.h>
 #include <otter-trace/trace.h>
 
 /* forward declarations */
@@ -23,8 +24,11 @@ typedef struct region_context_t region_context_t;
 /* Parallel region type */
 struct parallel_data_t {
     unique_id_t         id;
+    task_graph_node_t  *parallel_begin_node_ref;
+    task_graph_node_t  *parallel_end_node_ref;
     task_data_t        *encountering_task_data;
     trace_region_def_t *region;
+    region_context_t   *context;
 };
 
 /* Thread type */
@@ -39,6 +43,7 @@ struct thread_data_t {
 /* Task type */
 struct task_data_t {
     unique_id_t         id;
+    task_graph_node_t  *task_node_ref;
     ompt_task_flag_t    type;
     tree_node_t        *tree_node;
 
@@ -62,6 +67,9 @@ struct task_data_t {
     */
     task_data_t        *workshare_child_task;
 
+    /* track the context that encloses this task */
+    // region_context_t   *context;
+
 };
 
 /* Label the various kinds of context that can be associated with begin/end 
@@ -78,7 +86,6 @@ typedef enum {
     /* Worksharing-loop Contexts */
     context_loop,
     context_taskloop,
-    // , <- not needed for now
 
     /* Synchronisation Contexts */
 
@@ -101,6 +108,8 @@ typedef enum {
 struct region_context_t {
     context_t    type;
     void        *context_data;
+    stack_t     *context_task_graph_nodes;
+    pthread_mutex_t lock;
 };
 
 #endif // OMPT_CORE_TYPES_H

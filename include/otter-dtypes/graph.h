@@ -51,7 +51,7 @@ void graph_scan_nodes(
 
 /* scan the edges of a graph without changing the graph */
 void graph_scan_edges(
-    graph_t *g,
+    graph_t            *g,
     uint64_t           *src_id,
     graph_node_type_t  *src_type, 
     graph_node_data_t  *src_data, 
@@ -61,6 +61,8 @@ void graph_scan_edges(
     void **next);
 
 void graph_get_num_nodes_edges(graph_t *g, size_t *nodes, size_t *edges);
+
+bool graph_node_has_children(graph_node_t *n);
 
 #if DEBUG_LEVEL >= 4
 void graph_print(graph_t *g);

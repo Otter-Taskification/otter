@@ -103,6 +103,81 @@ graph_destroy(
     return;
 }
 
+/* scan the nodes of a graph without changing the graph */
+void graph_scan_nodes(
+    graph_t             *g,
+    uint64_t            *id,
+    graph_node_type_t   *type,
+    graph_node_data_t   *data,
+    void               **next)
+{
+    if ((g == NULL) || (next == NULL))
+    {
+        LOG_ERROR("null pointer");
+        return;
+    }
+    graph_node_t *node = NULL;
+    queue_scan(g->nodes, (graph_node_t*) &node, next);
+    if (id   ) *id   = node->id;
+    if (type ) *type = node->type;
+    if (data ) *data = node->data;
+    return;
+}
+
+void 
+graph_scan_edges(
+    graph_t            *g,
+    uint64_t           *src_id,
+    graph_node_type_t  *src_type, 
+    graph_node_data_t  *src_data, 
+    uint64_t           *dest_id,
+    graph_node_type_t  *dest_type, 
+    graph_node_data_t  *dest_data,     
+    void              **next)
+{
+    if ((g == NULL) || (next == NULL))
+    {
+        LOG_ERROR("null pointer");
+        return;
+    }
+    graph_edge_t *edge = NULL;
+    queue_scan(g->edges, (graph_edge_t*) &edge, next);
+    if (src_id    ) *src_id    = edge->src->id;
+    if (src_type  ) *src_type  = edge->src->type; 
+    if (src_data  ) *src_data  = edge->src->data; 
+    if (dest_id   ) *dest_id   = edge->dest->id; 
+    if (dest_type ) *dest_type = edge->dest->type; 
+    if (dest_data ) *dest_data = edge->dest->data;  
+    return;
+}
+
+void 
+graph_get_num_nodes_edges(
+    graph_t *g,
+    size_t *nodes,
+    size_t *edges)
+{
+    if ((g == NULL) || (nodes == NULL) || (edges == NULL))
+    {
+        LOG_ERROR("null pointer");
+        return;
+    }
+    *nodes = queue_length(g->nodes);
+    *edges = queue_length(g->edges);
+    return;
+}
+
+#if DEBUG_LEVEL >= 4
+void
+graph_print(graph_t *g)
+{
+    fprintf(stderr, "GRAPH NODES %p->%p\n", g, g->nodes);
+    queue_print(g->nodes);
+    fprintf(stderr, "GRAPH EDGES %p->%p\n", g, g->edges);
+    queue_print(g->edges);
+}
+#endif
+
 static uint64_t
 graph_get_unique_node_id(void)
 {

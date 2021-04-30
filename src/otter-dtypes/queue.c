@@ -115,25 +115,23 @@ void
 queue_destroy(queue_t *q, bool items)
 {
     if (q == NULL) return;
-    if (items)
+
+    LOG_WARN_IF(((q->length != 0) && (items == false)),
+        "destroying queue %p (len=%lu) without destroying items may cause "
+        "memory leak", q, q->length);
+
+    queue_item_t d = {.value = 0};
+    while(queue_pop(q, &d))
     {
-        queue_item_t d = {.value = 0};
-        while(queue_pop(q, &d))
-        {
-            LOG_DEBUG("%p[0/%lu]=%p", q, q->length-1, d.ptr);
-            q->destroy(d.ptr);
-        }
-    } else {
-        LOG_WARN_IF(((q->length != 0)),
-            "destroying queue %p (len=%lu) without destroying items may cause "
-            "memory leak", q, q->length);
+        LOG_DEBUG("%p[0/%lu]=%p", q, q->length-1, d.ptr);
+        if (items) q->destroy(d.ptr);
     }
     LOG_DEBUG("%p", q);
     free(q);
     return;
 }
 
-/* append a reference to the items in r to q (shallow) */
+/* transfer items from r to q */
 bool
 queue_append(
     queue_t *q,
@@ -149,24 +147,20 @@ queue_append(
     #endif
 
     if (q->length == 0)
-    {
-        q->head = r->head;
-        q->tail = r->tail;
-        q->length = r->length;
-        #if DEBUG_LEVEL >= 4
-        queue_print(q);
-        queue_print(r);
-        #endif
-        return true;
-    }
-
-    q->tail->next = r->head->next;
-    q->tail = r->tail;
+        q->head   = r->head;
+    else
+        q->tail->next = r->head;
+    
+    q->tail   = r->tail;
     q->length = q->length + r->length;
+    r->head   = r->tail = NULL;
+    r->length = 0;
+
     #if DEBUG_LEVEL >= 4
     queue_print(q);
     queue_print(r);
     #endif
+
     return true;
 }
 

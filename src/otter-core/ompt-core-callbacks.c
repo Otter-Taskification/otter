@@ -20,7 +20,9 @@
 #include <otter-core/ompt-core-callbacks.h>
 #include <otter-core/ompt-core-types.h>
 #include <otter-core/ompt-callback-macros.h>
-#include <otter-task-tree/task-tree.h>
+
+// #include <otter-task-tree/task-tree.h>
+
 #include <otter-trace/trace.h>
 
 /* number of child tasks a parent task initially has space for */
@@ -55,10 +57,10 @@ tool_setup(
     include_callback(callbacks, ompt_callback_parallel_end);
     include_callback(callbacks, ompt_callback_thread_begin);
     include_callback(callbacks, ompt_callback_thread_end);
-    include_callback(callbacks, ompt_callback_task_create);
-    include_callback(callbacks, ompt_callback_task_schedule);
-    include_callback(callbacks, ompt_callback_implicit_task);
-    include_callback(callbacks, ompt_callback_work);
+    // include_callback(callbacks, ompt_callback_task_create);
+    // include_callback(callbacks, ompt_callback_task_schedule);
+    // include_callback(callbacks, ompt_callback_implicit_task);
+    // include_callback(callbacks, ompt_callback_work);
 
     get_thread_data = (ompt_get_thread_data_t) lookup("ompt_get_thread_data");
     get_parallel_info = 
@@ -91,7 +93,7 @@ tool_setup(
     LOG_INFO("%-30s %s",
         "OTTER_APPEND_HOSTNAME",opt.append_hostname ? "Yes" : "No");
 
-    tree_init(&opt);
+    // tree_init(&opt);
     trace_initialise_archive(&opt);
 
     return;
@@ -100,8 +102,8 @@ tool_setup(
 void
 tool_finalise(void)
 {
-    tree_write();
-    tree_destroy();
+    // tree_write();
+    // tree_destroy();
     trace_finalise_archive();
     print_resource_usage();
     return;
@@ -147,6 +149,7 @@ on_ompt_callback_thread_begin(
     thread_data->location = trace_new_location_definition(thread_data->id,
         OTF2_LOCATION_TYPE_CPU_THREAD, DEFAULT_LOCATION_GRP);
     trace_event_thread_begin(thread_data->location);
+    thread_data->region_context_stack = stack_create(NULL);
     LOG_DEBUG_THREAD_TYPE(thread_type, thread_data->id);
     return;
 }
@@ -173,6 +176,7 @@ on_ompt_callback_thread_end(
         thread_data_t *thread_data = thread->ptr;
         LOG_DEBUG_THREAD_TYPE(ompt_thread_unknown, thread_data->id);
         trace_event_thread_end(thread_data->location);
+        stack_destroy(thread_data->region_context_stack, false);
         free (thread_data);
     }
     return;
@@ -216,6 +220,19 @@ on_ompt_callback_parallel_begin(
 
     LOG_DEBUG_PARALLEL_RGN_TYPE(flags, parallel_data->id);
 
+    /* Create a new region context and push onto thread's stack */
+    region_context_t *parallel_context = malloc(sizeof(*parallel_context));
+    *parallel_context = (region_context_t) {
+        .type = context_parallel,
+        .context_data = parallel_data
+    };
+    stack_push(thread_data->region_context_stack,
+        (stack_item_t) {.ptr = parallel_context});
+
+    #if DEBUG_LEVEL >= 4
+    stack_print(thread_data->region_context_stack);
+    #endif
+
     parallel->ptr = parallel_data;
     return;
 }
@@ -234,6 +251,13 @@ on_ompt_callback_parallel_end(
     const void              *codeptr_ra)
 {
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
+
+    /* Pop the parallel region's context from the context stack */
+    region_context_t *parallel_context = NULL;
+    stack_pop(thread_data->region_context_stack,
+        (stack_item_t*) &parallel_context);
+    free(parallel_context);
+
     if ((parallel != NULL) && (parallel->ptr != NULL))
     {
         parallel_data_t *parallel_data = parallel->ptr;
@@ -241,6 +265,11 @@ on_ompt_callback_parallel_end(
         trace_event_leave(thread_data->location, parallel_data->region);
         free (parallel_data);
     }
+
+    #if DEBUG_LEVEL >= 4
+    stack_print(thread_data->region_context_stack);
+    #endif
+
     return;
 }
 
@@ -343,8 +372,8 @@ on_ompt_callback_task_create(
         LOG_DEBUG_TASK_TYPE(0L, task_data->id, flags);
         LOG_DEBUG("encountering task null; adding child to root");
         
-        tree_add_child_to_node(NULL, (tree_node_id_t) PACK_TASK_BITS(
-            flags, task_data->id, task_data->enclosing_parallel_id));
+        // tree_add_child_to_node(NULL, (tree_node_id_t) PACK_TASK_BITS(
+        //     flags, task_data->id, task_data->enclosing_parallel_id));
 
     } else { // not child of an initial task
         
@@ -365,19 +394,19 @@ on_ompt_callback_task_create(
 
         if (parent_task_data->tree_node == NULL)
         {
-            parent_task_data->tree_node = tree_add_node(
-                (tree_node_id_t) PACK_TASK_BITS(
-                    parent_task_data->type,
-                    parent_task_data->id,
-                    parent_task_data->enclosing_parallel_id),
-                OTTER_DEFAULT_TASK_CHILDREN
-            );
+            // parent_task_data->tree_node = tree_add_node(
+            //     (tree_node_id_t) PACK_TASK_BITS(
+            //         parent_task_data->type,
+            //         parent_task_data->id,
+            //         parent_task_data->enclosing_parallel_id),
+            //     OTTER_DEFAULT_TASK_CHILDREN
+            // );
         }
 
         /* add task as a child of the parent (encountering) task */
-        tree_add_child_to_node(parent_task_data->tree_node, 
-            (tree_node_id_t) PACK_TASK_BITS(
-                flags, task_data->id, task_data->enclosing_parallel_id));
+        // tree_add_child_to_node(parent_task_data->tree_node, 
+        //     (tree_node_id_t) PACK_TASK_BITS(
+        //         flags, task_data->id, task_data->enclosing_parallel_id));
 
     }
 
@@ -474,8 +503,8 @@ on_ompt_callback_implicit_task(
                 flags, task_data->id, 0L));
 
             // register an initial task as a child of the root node
-            tree_add_child_to_node(NULL, (tree_node_id_t) PACK_TASK_BITS(
-                flags, task_data->id, 0L));
+            // tree_add_child_to_node(NULL, (tree_node_id_t) PACK_TASK_BITS(
+            //     flags, task_data->id, 0L));
 
         } else if (task_data->type == ompt_task_implicit) {
             
@@ -517,13 +546,13 @@ on_ompt_callback_implicit_task(
 
             if (parent_task_data->tree_node == NULL)
             {
-                parent_task_data->tree_node = tree_add_node(
-                (tree_node_id_t) PACK_TASK_BITS(
-                    parent_task_data->type,
-                    parent_task_data->id,
-                    parent_task_data->enclosing_parallel_id),
-                OTTER_DEFAULT_TASK_CHILDREN
-            );
+            //     parent_task_data->tree_node = tree_add_node(
+            //     (tree_node_id_t) PACK_TASK_BITS(
+            //         parent_task_data->type,
+            //         parent_task_data->id,
+            //         parent_task_data->enclosing_parallel_id),
+            //     OTTER_DEFAULT_TASK_CHILDREN
+            // );
                 
             }
             
@@ -533,9 +562,9 @@ on_ompt_callback_implicit_task(
             LOG_INFO("%-20s: 0x%016lx", "CHILD ID PACKING",
                 PACK_TASK_BITS(flags, task_data->id, parallel_data->id));
 
-            tree_add_child_to_node(parent_task_data->tree_node,
-                (tree_node_id_t) PACK_TASK_BITS(
-                    flags, task_data->id, parallel_data->id));
+            // tree_add_child_to_node(parent_task_data->tree_node,
+            //     (tree_node_id_t) PACK_TASK_BITS(
+            //         flags, task_data->id, parallel_data->id));
 
             pthread_mutex_unlock(parent_task_data->lock);
             
@@ -709,8 +738,8 @@ on_ompt_callback_work(
     uint64_t                 count,
     const void              *codeptr_ra)
 {
-if ((wstype == ompt_work_single_executor) || (wstype == ompt_work_single_other))
-        return;
+// if ((wstype == ompt_work_single_executor) || (wstype == ompt_work_single_other))
+//         return;
 
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
     LOG_DEBUG_WORK_TYPE(thread_data->id, wstype, count,
@@ -719,64 +748,32 @@ if ((wstype == ompt_work_single_executor) || (wstype == ompt_work_single_other))
     task_data_t *task_data = (task_data_t*) task->ptr;
     task_data_t *workshare_task_data = NULL;
 
-    /* only want to handle ompt_work_taskloop initially - implement others once
-       this is working
-     */
-    if ((wstype == ompt_work_taskloop) || (wstype == ompt_work_loop))
+    region_context_t *context = NULL;
+    if ((wstype == ompt_work_single_executor)
+        || (wstype == ompt_work_loop)
+        || (wstype == ompt_work_taskloop)
+    )
     {
         if (endpoint == ompt_scope_begin)
         {
-            task_type_t workshare_task_type;
-            WSTYPE_TO_TASK_TYPE_ENUM(wstype, workshare_task_type);
-            workshare_task_data = new_task_data(
-                get_unique_task_id(),
-                /* set bit as per task_type enum in task_tree.h to be unpacked
-                   later */
-                (unique_id_t)(0x1 << workshare_task_type),
-                0L);
-            task_data->workshare_child_task = workshare_task_data;
-
-            LOG_DEBUG_TASK_TYPE(
-                task_data->id,
-                workshare_task_data->id,
-                workshare_task_data->type);
-            
-            LOG_INFO("%-20s: 0x%016lx", "CHILD ID PACKING",
-                PACK_TASK_BITS(
-                    workshare_task_data->type,
-                    workshare_task_data->id,
-                    workshare_task_data->enclosing_parallel_id)
-            );
-
-            /* if the parent task doesn't have a tree node yet, this is the 1st 
-               child task - create the node then use it to add the child
-            */
-            if (task_data->tree_node == NULL)
-            {
-                task_data->tree_node = tree_add_node(
-                    (tree_node_id_t) PACK_TASK_BITS(
-                        task_data->type,
-                        task_data->id,
-                        task_data->enclosing_parallel_id),
-                    OTTER_DEFAULT_TASK_CHILDREN
-                );
-            }
-
-            /* add task as a child of the parent (encountering) task */
-            tree_add_child_to_node(task_data->tree_node, 
-                (tree_node_id_t) PACK_TASK_BITS(
-                    workshare_task_data->type,
-                    workshare_task_data->id,
-                    workshare_task_data->enclosing_parallel_id)
-            );
+            context = malloc(sizeof(*context));
+            context->type = 
+                wstype == ompt_work_single_executor ? context_single :
+                wstype == ompt_work_loop ? context_loop : 
+                wstype == ompt_work_taskloop ? context_single : 0 ;
+            context->context_data = NULL;
+            stack_push(thread_data->region_context_stack,
+                (stack_item_t) {.ptr = context});
 
         } else if (endpoint == ompt_scope_end)
         {
-            workshare_task_data = task_data->workshare_child_task;
-            LOG_DEBUG("Destroying workshare pseudo-task %p", workshare_task_data);
-            free(workshare_task_data);
-            task_data->workshare_child_task = NULL;
+            stack_pop(thread_data->region_context_stack,
+                (stack_item_t*) &context);
+            free(context);
         }
+        #if DEBUG_LEVEL >= 4
+        stack_print(thread_data->region_context_stack);
+        #endif
     }
 
     return;

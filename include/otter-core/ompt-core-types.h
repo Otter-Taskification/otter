@@ -7,9 +7,10 @@
 #include <ompt.h>
 #endif
 
-#include <otter-core/ompt-common.h>
 #include <pthread.h>
 
+#include <otter-core/ompt-common.h>
+#include <otter-dtypes/stack.h>
 #include <otter-task-tree/task-tree.h>
 #include <otter-trace/trace.h>
 
@@ -17,22 +18,26 @@
 typedef struct parallel_data_t parallel_data_t;
 typedef struct thread_data_t thread_data_t;
 typedef struct task_data_t task_data_t;
+typedef struct region_context_t region_context_t;
 
 /* Parallel region type */
-typedef struct parallel_data_t {
+struct parallel_data_t {
     unique_id_t         id;
     task_data_t        *encountering_task_data;
     trace_region_def_t *region;
-} parallel_data_t;
+};
 
 /* Thread type */
-typedef struct thread_data_t {
+struct thread_data_t {
     unique_id_t           id;
     trace_location_def_t *location;
-} thread_data_t;
+
+    /* Record the sequence of nested regions that led to the current context */
+    stack_t            *region_context_stack;
+};
 
 /* Task type */
-typedef struct task_data_t {
+struct task_data_t {
     unique_id_t         id;
     ompt_task_flag_t    type;
     tree_node_t        *tree_node;
@@ -57,6 +62,45 @@ typedef struct task_data_t {
     */
     task_data_t        *workshare_child_task;
 
-} task_data_t;
+};
+
+/* Label the various kinds of context that can be associated with begin/end 
+   events
+*/
+typedef enum {
+
+    context_parallel,
+
+    /* Worksharing Contexts */
+    context_sections,
+    context_single,
+
+    /* Worksharing-loop Contexts */
+    context_loop,
+    context_taskloop,
+    // , <- not needed for now
+
+    /* Synchronisation Contexts */
+
+    context_sync_taskgroup,
+
+    /* Standalone (i.e. no nested contexts) synchronisation contexts */
+    context_sync_barrier,
+    context_sync_barrier_implicit,
+    context_sync_barrier_explicit,
+    context_sync_barrier_implementation,
+    context_sync_taskwait,
+
+    /* not needed for now, but may be later:
+        context_distribute,
+        context_sync_reduction
+    */
+
+} context_t;
+
+struct region_context_t {
+    context_t    type;
+    void        *context_data;
+};
 
 #endif // OMPT_CORE_TYPES_H

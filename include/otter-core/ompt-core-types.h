@@ -38,6 +38,10 @@ struct thread_data_t {
 
     /* Record the sequence of nested regions that led to the current context */
     stack_t            *region_context_stack;
+
+    /* Record a reference to an initial task's graph node for a subsequent
+       parallel region */
+    task_graph_node_t  *initial_task_graph_node_ref;
 };
 
 /* Task type */

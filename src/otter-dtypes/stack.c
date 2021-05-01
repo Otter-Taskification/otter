@@ -81,12 +81,15 @@ stack_pop(stack_t *s, stack_item_t *dest)
 
     if (dest != NULL) *dest = s->head->data;
     node_t *node = s->head;
-    s->head = s->head->next;
-    s->size -= 1;
-    LOG_DEBUG("%p[0] -> %p", s, dest->ptr);
+    if (node != NULL)
+    {
+        s->head = s->head->next;
+        s->size -= 1;
+        free(node);
+    }
+    LOG_DEBUG_IF((dest != NULL), "%p[0] -> %p", s, dest->ptr);
     LOG_WARN_IF(dest == NULL,
         "stack popped item without returning value (null destination pointer)");
-    free(node);
 
     return true;
 }

@@ -19,6 +19,9 @@
 #include <ompt.h>
 #endif
 
+static void destroy_graph_node_data(
+    void *node_data, graph_node_type_t node_type);
+
 /* flag which output format to use for task graph */
 enum {
     format_dot,

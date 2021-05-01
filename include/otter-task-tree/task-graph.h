@@ -26,6 +26,7 @@ typedef graph_node_t         task_graph_node_t;
 typedef graph_node_data_t    task_graph_node_data_t;
 
 /* Represent arbitrary node types the task graph can contain */
+#define FLAG_NODE_TYPE_END(f) (f & 0x1000)
 typedef enum {
 
     /* OMP task types */
@@ -36,28 +37,31 @@ typedef enum {
 
     /* Parallel region context */
     node_context_parallel_begin,
-    node_context_parallel_end,
 
     /* Worksharing Contexts */
     node_context_sections_begin,
-    node_context_sections_end,
     node_context_single_begin,
-    node_context_single_end,
 
     /* Worksharing-loop Contexts */
     node_context_loop_begin,
-    node_context_loop_end,
     node_context_taskloop_begin,
-    node_context_taskloop_end,
 
     /* Synchronisation Contexts */
     node_context_sync_taskgroup_begin,
+
+    /* Matching endpoints - switch on a flag for these */
+    node_context_parallel_end = FLAG_NODE_TYPE_END(node_context_parallel_begin),
+    node_context_sections_end,
+    node_context_single_end,
+    node_context_loop_end,
+    node_context_taskloop_end,
     node_context_sync_taskgroup_end,
 
     /* Standalone (i.e. never nested) synchronisation directives
        (not contexts)
+       restart numbering from before flag
     */
-    node_sync_barrier,
+    node_sync_barrier = node_context_sync_taskgroup_begin + 1,
     node_sync_barrier_implicit,
     node_sync_barrier_explicit,
     node_sync_barrier_implementation,

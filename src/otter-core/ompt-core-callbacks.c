@@ -38,6 +38,9 @@
 static void print_resource_usage(void);
 static unique_id_t get_unique_id(unique_id_type_t id_type);
 
+static void destroy_graph_node_data(
+    void *node_data, graph_node_type_t node_type);
+
 /* Task data constructor */
 static task_data_t *new_task_data(
     unique_id_t      id,
@@ -102,10 +105,23 @@ tool_setup(
     return;
 }
 
-void destroy_node_data(void *data, graph_node_type_t node_type)
+// static void
+// destroy_node_data(
+//     void               *data, 
+//     graph_node_type_t   node_type)
+// {
+//     LOG_DEBUG("%p", data);
+//     free(data);
+// }
+
+static void
+destroy_graph_node_data(
+    void               *node_data,
+    graph_node_type_t   node_type)
 {
-    LOG_DEBUG("%p", data);
-    free(data);
+    LOG_DEBUG("(0x%x) %p", node_type, node_data);
+    if (FLAG_NODE_TYPE_END(node_type)) free(node_data); // prevent double-free
+    return;
 }
 
 void
@@ -114,7 +130,7 @@ tool_finalise(void)
     // tree_write();
     // tree_destroy();
     task_graph_write();
-    task_graph_destroy(&destroy_node_data);
+    task_graph_destroy(&destroy_graph_node_data);
     trace_finalise_archive();
     print_resource_usage();
     return;
@@ -248,7 +264,7 @@ on_ompt_callback_parallel_begin(
 
     /* declare an edge from the encountering task to the parallel-begin node */
     task_graph_add_edge(
-        encountering_task_data->task_node_ref,
+        thread_data->initial_task_graph_node_ref,
         parallel_data->parallel_begin_node_ref);
 
     LOG_DEBUG_PARALLEL_RGN_TYPE(flags, parallel_data->id);
@@ -554,6 +570,7 @@ on_ompt_callback_implicit_task(
             task_data->task_node_ref = task_graph_add_node(
                 node_task_initial, (task_graph_node_data_t) {.ptr = task_data}
             );
+            thread_data->initial_task_graph_node_ref = task_data->task_node_ref;
 
             /* initialise the task's mutex so any child implicit tasks can
                have atomic access to the initial task's data
@@ -662,15 +679,12 @@ on_ompt_callback_implicit_task(
 
     } else { /* ompt_scope_end */
 
-        if (task_data->type == ompt_task_implicit)
-        {
-            /* Pop the enclosing context from the thread's stack */
-            stack_pop(thread_data->region_context_stack, NULL);
+        /* Pop the enclosing context from the thread's stack */
+        stack_pop(thread_data->region_context_stack, NULL);
 
-            #if DEBUG_LEVEL >= 4
-            stack_print(thread_data->region_context_stack);
-            #endif
-        }
+        #if DEBUG_LEVEL >= 4
+        stack_print(thread_data->region_context_stack);
+        #endif
         // if (task != NULL) task_data = (task_data_t*) task->ptr;
         // LOG_DEBUG_IMPLICIT_TASK(flags, "end", task_data->id);
         // if (task_data != NULL)

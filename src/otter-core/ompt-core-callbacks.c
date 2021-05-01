@@ -308,22 +308,23 @@ on_ompt_callback_parallel_end(
 {
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
 
-    /* pop current context */
+    /* get parallel context (was popped during implicit-end) */
     region_context_t *context = NULL;
-    if (false == stack_pop(thread_data->region_context_stack,
-        (stack_item_t*) &context))
-    {
-        LOG_ERROR("failed to get parallel context at parallel-end");
-    }
+    // if (false == stack_pop(thread_data->region_context_stack,
+    //     (stack_item_t*) &context))
+    // {
+    //     LOG_ERROR("failed to get parallel context at parallel-end");
+    // }
     
-    LOG_ERROR_IF(
-        (context->type != context_parallel),
-        "invalid context type"
-    );
+    // LOG_ERROR_IF(
+    //     (context->type != context_parallel),
+    //     "invalid context type"
+    // );
 
     if ((parallel != NULL) && (parallel->ptr != NULL))
     {
         parallel_data_t *parallel_data = parallel->ptr;
+        context = parallel_data->context;
         LOG_DEBUG_PARALLEL_RGN_TYPE(flags, parallel_data->id);
         trace_event_leave(thread_data->location, parallel_data->region);
 
@@ -744,7 +745,7 @@ on_ompt_callback_implicit_task(
     } else { /* ompt_scope_end */
 
         /* Pop the enclosing context from the thread's stack */
-        // stack_pop(thread_data->region_context_stack, NULL);
+        stack_pop(thread_data->region_context_stack, NULL);
 
         #if DEBUG_LEVEL >= 4
         stack_print(thread_data->region_context_stack);

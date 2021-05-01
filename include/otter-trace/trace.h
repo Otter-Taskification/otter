@@ -5,13 +5,8 @@
 #include <stdbool.h>
 #include <otf2/otf2.h>
 
-#if defined(__INTEL_COMPILER)
-#include <omp-tools.h>
-#else
-#include <ompt.h>
-#endif
-
-#include <otter-core/ompt-common.h>
+#include <otter-ompt-header.h>
+#include <otter-common.h>
 
 #define DEFAULT_LOCATION_GRP 0
 #define DEFAULT_SYSTEM_TREE  0

@@ -1,25 +1,9 @@
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
-OMPT-CORE.C
-
-Contains the standard code necessary to connect a particular tool's set of
-callbacks to the OMP runtime. Expects a tool to implement the functions in
-ompt-generic.h and registers the tool's callbacks with the runtime, printing the
-result to stderr.
-
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
 #include <stdio.h>
 
-#if defined(__INTEL_COMPILER)
-#include <omp-tools.h>
-#else
-#include <ompt.h>
-#endif
-
 #include <macros/debug.h>
-#include <otter-core/ompt-callback-macros.h>
-#include <otter-core/ompt-tool-generic.h>
+#include <macros/callback.h>
+#include <otter-ompt-header.h>
+#include <otter-core/otter-entry.h>
 
 /* Entry & exit functions passed back to the OMP runtime */
 static int ompt_initialise(ompt_function_lookup_t, int, ompt_data_t *);

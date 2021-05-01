@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <otter-core/ompt-common.h>
+#include <otter-common.h>
 #include <macros/debug.h>
 
 #if defined(__INTEL_COMPILER)

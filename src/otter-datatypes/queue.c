@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include <otter-dtypes/queue.h>
 #include <macros/debug.h>
+#include <otter-datatypes/queue.h>
 
 typedef struct node_t node_t;
 

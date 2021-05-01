@@ -1,12 +1,13 @@
-#if !defined(GRAPH_H)
-#define GRAPH_H
+#if !defined(OTTER_GRAPH_H)
+#define OTTER_GRAPH_H
 
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+
 #include <macros/debug.h>
-#include <otter-dtypes/queue.h>
+#include <otter-datatypes/queue.h>
 
 /* define arbitrary node types */
 typedef int graph_node_type_t;
@@ -68,4 +69,4 @@ bool graph_node_has_children(graph_node_t *n);
 void graph_print(graph_t *g);
 #endif
 
-#endif // GRAPH_H
+#endif // OTTER_GRAPH_H

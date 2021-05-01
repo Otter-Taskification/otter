@@ -4,10 +4,10 @@
 #include <errno.h>
 #include <pthread.h>
 
-#include <otter-task-tree/task-tree.h>
+#include <otter-task-graph/task-tree.h>
 
-#include <otter-dtypes/queue.h>
-#include <otter-dtypes/dynamic-array.h>
+#include <otter-datatypes/queue.h>
+#include <otter-datatypes/dynamic-array.h>
 
 #include <macros/debug.h>
 #include <macros/general.h>

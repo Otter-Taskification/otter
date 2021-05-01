@@ -2,8 +2,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+
 #include <macros/debug.h>
-#include <otter-dtypes/graph.h>
+#include <otter-datatypes/graph.h>
 
 static uint64_t graph_get_unique_node_id(void);
 

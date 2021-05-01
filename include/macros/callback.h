@@ -1,43 +1,7 @@
-#if !defined(OMPT_CALLBACK_MACROS_H)
-#define OMPT_CALLBACK_MACROS_H
+#if !defined(OTTER_MACROS_CALLBACK_H)
+#define OTTER_MACROS_CALLBACK_H
 
 #include <macros/debug.h>
-
-/* ancestor level for innermost parallel region */
-#define INNER 0
-
-/* return values from ompt_get_parallel_info_t */
-#define PARALLEL_INFO_AVAIL     2
-#define PARALLEL_INFO_UNAVAIL   1
-#define PARALLEL_INFO_NONE      0
-
-/* Packing task type & parallel region into task ID value
-
-   Have 64 bits available in unique_id_t/tree_node_id_t/array_id_t but never
-   going to need all of them for a unique task ID in any realistic scenario
-
-   => use some of the bits to also pass to task-tree a task's type & parallel
-        region
-
-   task type:       0xf000000000000000 => 16 values (60-bit shift)
-   parallel region: 0x00ff000000000000 => 255 values (48-bit shift)
-
-    __builtin_ctzll - Returns the number of trailing 0-bits in x, starting at 
-    the least significant bit position. If x is 0, the result is undefined
-
-    I use this built-in to convert ompt_task_flag_t to an int representing the
-    bit that is set i.e. 0x01 -> 0, 0x08 -> 3 etc. This converts a value like
-    0b1000 into 0b0011 which requires fewer bits. This means I can represent up
-    to 16 task types in the top 4 bits of the task ID, instead of setting 16
-    independent bits
-
-    NOTE: need to check whether this is portable between clang & icc
-
- */
-#define PACK_TASK_BITS(flags, task_id, parallel_id)                           \
-    (task_id \
-        | ( (unique_id_t)__builtin_ctzll(flags) << TASK_TREE_TASK_TYPE_SHFT ) \
-        | ((parallel_id & 0xFF)<<TASK_TREE_PARALLEL_ID_SHIFT) )
 
 /* Apply a macro to each of the possible values returned when setting a callback
    through ompt_set_callback */
@@ -143,4 +107,4 @@ do {                                                                           \
         thread, endpoint, "workshare", "taskloop", count);                     \
 } while(0);
 
-#endif // OMPT_CALLBACK_MACROS_H
+#endif // OTTER_MACROS_CALLBACK_H

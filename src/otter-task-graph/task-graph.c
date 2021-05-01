@@ -6,18 +6,13 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <otter-core/ompt-common.h>
-#include <otter-dtypes/graph.h>
-#include <otter-task-tree/task-graph.h>
-
 #include <macros/debug.h>
 #include <macros/general.h>
 
-#if defined(__INTEL_COMPILER)
-#include <omp-tools.h>
-#else
-#include <ompt.h>
-#endif
+#include <otter-ompt-header.h>
+#include <otter-common.h>
+#include <otter-datatypes/graph.h>
+#include <otter-task-graph/task-graph.h>
 
 static void destroy_graph_node_data(
     void *node_data, graph_node_type_t node_type);

@@ -1,5 +1,5 @@
-#if !defined(STACK_H)
-#define STACK_H
+#if !defined(OTTER_STACK_H)
+#define OTTER_STACK_H
 
 // Public
 
@@ -29,4 +29,4 @@ void           stack_destroy(stack_t *s, bool items);
 void           stack_print(stack_t *s);
 #endif
 
-#endif // STACK_H
+#endif // OTTER_STACK_H

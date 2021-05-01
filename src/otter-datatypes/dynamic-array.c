@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
-#include <otter-dtypes/dynamic-array.h>
 #include <macros/debug.h>
+#include <otter-datatypes/dynamic-array.h>
 
 #if !defined(DA_LEN) || (EXPAND(DA_LEN) == 1)
 #define DEFAULT_LENGTH 3000

@@ -3,9 +3,10 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <otter-core/ompt-common.h>
-#include <otter-dtypes/graph.h>
+
 #include <macros/debug.h>
+#include <otter-common.h>
+#include <otter-datatypes/graph.h>
 
 #if defined(__INTEL_COMPILER)
 #include <omp-tools.h>

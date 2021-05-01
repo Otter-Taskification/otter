@@ -8,23 +8,15 @@
 #include <otf2/otf2.h>
 
 #include <macros/debug.h>
+#include <macros/callback.h>
 
-#if defined(__INTEL_COMPILER)
-#include <omp-tools.h>
-#else
-#include <ompt.h>
-#endif
+#include <otter-ompt-header.h>
 
-#include <otter-core/ompt-tool-generic.h> // For the prototypes of tool_setup/tool_finalise
-#include <otter-core/ompt-common.h>       // Definitions relevant to all parts of a tool
-#include <otter-core/ompt-core-callbacks.h>
-#include <otter-core/ompt-core-types.h>
-#include <otter-core/ompt-callback-macros.h>
-
-// #include <otter-task-tree/task-tree.h>
-#include <otter-task-tree/task-graph.h>
-#include <otter-dtypes/graph.h>
-
+#include <otter-common.h>
+#include <otter-core/otter-entry.h>
+#include <otter-core/otter.h>
+#include <otter-datatypes/graph.h>
+#include <otter-task-graph/task-graph.h>
 #include <otter-trace/trace.h>
 
 /* number of child tasks a parent task initially has space for */

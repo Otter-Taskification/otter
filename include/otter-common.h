@@ -1,5 +1,9 @@
-#if !defined(OMPT_COMMON_H)
-#define OMPT_COMMON_H
+#if !defined(OTTER_COMMON_H)
+#define OTTER_COMMON_H
+
+/* 
+    Definitions common to multiple modules
+ */
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -23,4 +27,4 @@ typedef struct otter_opt_t {
     bool     append_hostname;
 } otter_opt_t;
 
-#endif // OMPT_COMMON_H
+#endif // OTTER_COMMON_H

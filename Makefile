@@ -60,7 +60,7 @@ BINS = $(OTTER) $(OTTLIB) $(ODTLIB) $(TRACELIB) $(OMPEXE)
 
 .PHONY: all clean run
 
-all: $(BINS)
+all: $(BINS) cleanfiles
 
 otter:     $(OTTER)
 
@@ -108,4 +108,4 @@ clean:
 	@-rm -f lib/* obj/* $(BINS) $(OMPEXE)
 
 cleanfiles:
-	@-rm -rf *.gv *.svg *.pdf *.png *.txt *.csv *.json default-archive-path/
+	@-rm -rf *.gv* *.svg *.pdf *.png *.txt *.csv* *.json* default-archive-path/

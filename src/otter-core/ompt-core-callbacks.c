@@ -62,7 +62,7 @@ tool_setup(
     include_callback(callbacks, ompt_callback_parallel_end);
     include_callback(callbacks, ompt_callback_thread_begin);
     include_callback(callbacks, ompt_callback_thread_end);
-    // include_callback(callbacks, ompt_callback_task_create);
+    include_callback(callbacks, ompt_callback_task_create);
     // include_callback(callbacks, ompt_callback_task_schedule);
     include_callback(callbacks, ompt_callback_implicit_task);
     // include_callback(callbacks, ompt_callback_work);
@@ -249,35 +249,39 @@ on_ompt_callback_parallel_begin(
         .region = NULL
     };
 
-    /* create trace region definition */
-    parallel_data->region = trace_new_region_definition(
-        parallel_data->id,OTF2_REGION_ROLE_PARALLEL);
-
-    /* record enter region event */
-    trace_event_enter(thread_data->location, parallel_data->region);
-
-    /* add node representing the start of a parallel region to the graph */
-    parallel_data->parallel_begin_node_ref = task_graph_add_node(
-        node_context_parallel_begin,
-        (task_graph_node_data_t) {.ptr = parallel_data}
-    );
-
-    /* declare an edge from the encountering task to the parallel-begin node */
-    task_graph_add_edge(
-        thread_data->initial_task_graph_node_ref,
-        parallel_data->parallel_begin_node_ref);
-
-    LOG_DEBUG_PARALLEL_RGN_TYPE(flags, parallel_data->id);
-
     /* Create a new region context */
     region_context_t *parallel_context = malloc(sizeof(*parallel_context));
     *parallel_context = (region_context_t) {
         .type = context_parallel,
         .context_data = parallel_data,
         .context_task_graph_nodes = stack_create(NULL),
+        .context_begin_node = NULL,
+        .context_end_node = NULL,
         .lock = PTHREAD_MUTEX_INITIALIZER
     };
     parallel_data->context = parallel_context;
+
+    /* create trace region definition */
+    parallel_data->region = trace_new_region_definition(
+        parallel_data->id, OTF2_REGION_ROLE_PARALLEL);
+
+    /* record enter region event */
+    trace_event_enter(thread_data->location, parallel_data->region);
+
+    /* add node representing the start of a parallel region to the graph */
+    parallel_context->context_begin_node = task_graph_add_node(
+        node_context_parallel_begin,
+        (task_graph_node_data_t) {.ptr = parallel_data}
+    );
+    parallel_data->parallel_begin_node_ref = 
+        parallel_context->context_begin_node;
+
+    /* declare an edge from the encountering task to the parallel-begin node */
+    task_graph_add_edge(
+        thread_data->initial_task_graph_node_ref,
+        parallel_context->context_begin_node);
+
+    LOG_DEBUG_PARALLEL_RGN_TYPE(flags, parallel_data->id);
     // stack_push(thread_data->region_context_stack,
     //     (stack_item_t) {.ptr = parallel_context});
 
@@ -304,37 +308,52 @@ on_ompt_callback_parallel_end(
 {
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
 
+    /* pop current context */
+    region_context_t *context = NULL;
+    if (false == stack_pop(thread_data->region_context_stack,
+        (stack_item_t*) &context))
+    {
+        LOG_ERROR("failed to get parallel context at parallel-end");
+    }
+    
+    LOG_ERROR_IF(
+        (context->type != context_parallel),
+        "invalid context type"
+    );
+
     if ((parallel != NULL) && (parallel->ptr != NULL))
     {
         parallel_data_t *parallel_data = parallel->ptr;
         LOG_DEBUG_PARALLEL_RGN_TYPE(flags, parallel_data->id);
         trace_event_leave(thread_data->location, parallel_data->region);
 
-        parallel_data->parallel_end_node_ref = task_graph_add_node(
+        /* add parallel-end node */
+        context->context_end_node = task_graph_add_node(
             node_context_parallel_end,
             (task_graph_node_data_t) {.ptr = parallel_data}
         );
-        if (stack_size(parallel_data->context->context_task_graph_nodes) == 0)
+        parallel_data->parallel_end_node_ref = context->context_end_node;
+        if (stack_size(context->context_task_graph_nodes) == 0)
         {
             /* no graph nodes created in this context -> join begin & end nodes
                with edge */
             task_graph_add_edge(
-                parallel_data->parallel_begin_node_ref,
-                parallel_data->parallel_end_node_ref
-            );
+                context->context_begin_node,
+                context->context_end_node);
         } else {
             /* for the graph nodes created in this context, join terminal nodes
                to the context's end node */
             task_graph_node_t *graph_node = NULL;
             while (stack_pop(
-                parallel_data->context->context_task_graph_nodes,
+                context->context_task_graph_nodes,
                 (stack_item_t*) &graph_node))
             {
-                // if node has no immediate children, register edge
+                /* if node has no immediate children, register edge to
+                   context-end */
                 if (graph_node_has_children(graph_node) == false)
                 {
                     task_graph_add_edge(graph_node,
-                        parallel_data->parallel_end_node_ref);
+                        context->context_end_node);
                 }
             }
         }
@@ -394,46 +413,78 @@ on_ompt_callback_task_create(
     int                      has_dependences,
     const void              *codeptr_ra)
 {
+    thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
+
+    /* get enclosing context */
+    region_context_t *context = NULL;
+    stack_peek(thread_data->region_context_stack,
+        (stack_item_t*) &context);
+
     /* make space for the newly-created task */
     task_data_t *task_data = new_task_data(get_unique_task_id(), flags, 0L);
+    task_graph_node_type_t node_type = 
+        flags & ompt_task_initial  ? node_task_initial  :
+        flags & ompt_task_implicit ? node_task_implicit :
+        flags & ompt_task_explicit ? node_task_explicit :
+        flags & ompt_task_target   ? node_task_target   : node_type_unknown;
+
+    /* create task graph node for this task */
+    task_data->task_node_ref = task_graph_add_node(
+        node_type, (task_graph_node_data_t) {.ptr = task_data});
     new_task->ptr = task_data;
+
+    /* include task's node in the context's stack */
+    pthread_mutex_lock(&context->lock);
+    stack_push(context->context_task_graph_nodes,
+        (stack_item_t) {.ptr = task_data->task_node_ref});
+    pthread_mutex_unlock(&context->lock);
+
+    /* 
+        TODO:
+        ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ?
+       give the task a reference to the context in which it was created so 
+       child tasks (which may occur in other threads) can share the same context
+            parent task is implicit -> get context from thread
+            otherwise -> get context from parent task
+        ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ?
+    */    
 
     /* initialise the task's mutex so any child implicit tasks can
        have atomic access to the initial task's data
     */            
-    task_data->lock = malloc(sizeof(*task_data->lock));
-    pthread_mutex_init(task_data->lock, NULL);
+    // task_data->lock = malloc(sizeof(*task_data->lock));
+    // pthread_mutex_init(task_data->lock, NULL);
 
     /* get the task data of the parent, if it exists */
     task_data_t *parent_task_data = NULL;
 
     /* get enclosing parallel region data if it exists */
-    ompt_data_t *parallel = NULL;
-    parallel_data_t *parallel_data = NULL;
-    if (get_parallel_info(INNER, &parallel, NULL) == PARALLEL_INFO_AVAIL)
-    {
-        parallel_data = (parallel_data_t*) parallel->ptr;
-        if (parallel_data == NULL)
-        {
-            LOG_ERROR(
-                "(flags=%d, task=%lu) enclosing parallel data not initialised",
-                flags, task_data->id);
-        } else {
-            LOG_DEBUG("got parallel data %p->%p (region=%lu)",
-                parallel, parallel_data, parallel_data->id);
-        }        
-        task_data->enclosing_parallel_id = 
-            (parallel_data == NULL) ? 0L : parallel_data->id;        
-    } else {
-        LOG_DEBUG("enclosing parallel data unavailable");
-    }
+    // ompt_data_t *parallel = NULL;
+    // parallel_data_t *parallel_data = NULL;
+    // if (get_parallel_info(INNER, &parallel, NULL) == PARALLEL_INFO_AVAIL)
+    // {
+    //     parallel_data = (parallel_data_t*) parallel->ptr;
+    //     if (parallel_data == NULL)
+    //     {
+    //         LOG_ERROR(
+    //             "(flags=%d, task=%lu) enclosing parallel data not initialised",
+    //             flags, task_data->id);
+    //     } else {
+    //         LOG_DEBUG("got parallel data %p->%p (region=%lu)",
+    //             parallel, parallel_data, parallel_data->id);
+    //     }        
+    //     task_data->enclosing_parallel_id = 
+    //         (parallel_data == NULL) ? 0L : parallel_data->id;        
+    // } else {
+    //     LOG_DEBUG("enclosing parallel data unavailable");
+    // }
 
     /* Pack task type & enclosing parallel region into child id for 
        tree_add_child_to_node
      */
-    LOG_INFO("%-20s: 0x%016lx", "CHILD ID PACKING",
-        PACK_TASK_BITS(flags, task_data->id, task_data->enclosing_parallel_id)
-    );
+    // LOG_INFO("%-20s: 0x%016lx", "CHILD ID PACKING",
+    //     PACK_TASK_BITS(flags, task_data->id, task_data->enclosing_parallel_id)
+    // );
 
     if (encountering_task == NULL) // child of initial task
     {
@@ -441,8 +492,8 @@ on_ompt_callback_task_create(
            initial task
          */
 
-        LOG_DEBUG_TASK_TYPE(0L, task_data->id, flags);
-        LOG_DEBUG("encountering task null; adding child to root");
+        // LOG_DEBUG_TASK_TYPE(0L, task_data->id, flags);
+        // LOG_DEBUG("encountering task null; adding child to root");
         
         // tree_add_child_to_node(NULL, (tree_node_id_t) PACK_TASK_BITS(
         //     flags, task_data->id, task_data->enclosing_parallel_id));
@@ -451,21 +502,35 @@ on_ompt_callback_task_create(
         
         parent_task_data = (task_data_t*) encountering_task->ptr;
 
-        /* Check if parent_task_data has a workshare_task_child - use this as
-           parent if so */
-        if (parent_task_data->workshare_child_task != NULL)
+        /* If the encountering task is an implicit task, create an edge from the
+           enclosing context's node */
+        if (parent_task_data->type == ompt_task_implicit)
         {
-            parent_task_data = parent_task_data->workshare_child_task;
+            task_graph_add_edge(context->context_begin_node,
+                task_data->task_node_ref);
         }
 
-        LOG_DEBUG_TASK_TYPE(parent_task_data->id, task_data->id, flags);
+        /* Otherwise, create an edge from the encountering task */
+        else {
+            task_graph_add_edge(parent_task_data->task_node_ref,
+                task_data->task_node_ref);
+        }
+
+        /* Check if parent_task_data has a workshare_task_child - use this as
+           parent if so */
+        // if (parent_task_data->workshare_child_task != NULL)
+        // {
+        //     parent_task_data = parent_task_data->workshare_child_task;
+        // }
+
+        // LOG_DEBUG_TASK_TYPE(parent_task_data->id, task_data->id, flags);
 
         /* if the parent task doesn't have a tree node yet, this is the 1st 
            child task - create the node then use it to add the child
          */
 
-        if (parent_task_data->tree_node == NULL)
-        {
+        // if (parent_task_data->tree_node == NULL)
+        // {
             // parent_task_data->tree_node = tree_add_node(
             //     (tree_node_id_t) PACK_TASK_BITS(
             //         parent_task_data->type,
@@ -473,7 +538,7 @@ on_ompt_callback_task_create(
             //         parent_task_data->enclosing_parallel_id),
             //     OTTER_DEFAULT_TASK_CHILDREN
             // );
-        }
+        // }
 
         /* add task as a child of the parent (encountering) task */
         // tree_add_child_to_node(parent_task_data->tree_node, 
@@ -554,6 +619,7 @@ on_ompt_callback_implicit_task(
 		} else {			
 			/* make space for this initial or implicit task */
 			task_data = new_task_data(get_unique_task_id(), flags, 0L);
+            task->ptr = task_data;
 		}
 
 		LOG_DEBUG_IMPLICIT_TASK(flags, "begin", task_data->id);
@@ -674,13 +740,11 @@ on_ompt_callback_implicit_task(
 
         /* register this task in the task tree */
 
-        // task->ptr = task_data;
-
 
     } else { /* ompt_scope_end */
 
         /* Pop the enclosing context from the thread's stack */
-        stack_pop(thread_data->region_context_stack, NULL);
+        // stack_pop(thread_data->region_context_stack, NULL);
 
         #if DEBUG_LEVEL >= 4
         stack_print(thread_data->region_context_stack);

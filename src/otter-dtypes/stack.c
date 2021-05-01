@@ -79,10 +79,10 @@ stack_pop(stack_t *s, stack_item_t *dest)
         return false;
     }
 
-    if (dest != NULL) *dest = s->head->data;
     node_t *node = s->head;
     if (node != NULL)
     {
+        if (dest != NULL) *dest = node->data;
         s->head = s->head->next;
         s->size -= 1;
         free(node);
@@ -91,6 +91,14 @@ stack_pop(stack_t *s, stack_item_t *dest)
     LOG_WARN_IF(dest == NULL,
         "stack popped item without returning value (null destination pointer)");
 
+    return true;
+}
+
+bool
+stack_peek(stack_t *s, stack_item_t *dest)
+{
+    if ((s == NULL) || (dest == NULL) || ((s->head == NULL))) return false;
+    *dest = s->head->data;
     return true;
 }
 

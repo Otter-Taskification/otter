@@ -110,10 +110,12 @@ typedef enum {
 } context_t;
 
 struct region_context_t {
-    context_t    type;
-    void        *context_data;
-    stack_t     *context_task_graph_nodes;
-    pthread_mutex_t lock;
+    context_t           type;
+    void               *context_data;
+    stack_t            *context_task_graph_nodes;
+    task_graph_node_t  *context_begin_node;
+    task_graph_node_t  *context_end_node;
+    pthread_mutex_t     lock;
 };
 
 #endif // OMPT_CORE_TYPES_H

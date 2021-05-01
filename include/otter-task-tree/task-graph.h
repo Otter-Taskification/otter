@@ -29,6 +29,8 @@ typedef graph_node_data_t    task_graph_node_data_t;
 #define FLAG_NODE_TYPE_END(f) (f & 0x1000)
 typedef enum {
 
+    node_type_unknown,
+
     /* OMP task types */
     node_task_initial,
     node_task_implicit,

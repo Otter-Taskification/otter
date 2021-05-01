@@ -16,7 +16,6 @@
 #include <otter-common.h>
 #include <otter-core/otter-entry.h>
 #include <otter-datatypes/stack.h>
-#include <otter-task-graph/task-tree.h>
 #include <otter-task-graph/task-graph.h>
 #include <otter-trace/trace.h>
 
@@ -87,7 +86,6 @@ struct task_data_t {
     unique_id_t         id;
     task_graph_node_t  *task_node_ref;
     ompt_task_flag_t    type;
-    tree_node_t        *tree_node;
 
     /* only accessed by implicit tasks which are children of an initial task to
        atomically register as children of the initial task. This is because the

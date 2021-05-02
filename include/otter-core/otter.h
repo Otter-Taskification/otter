@@ -37,6 +37,7 @@
 #define implements_callback_task_schedule  
 #define implements_callback_implicit_task
 #define implements_callback_work
+#define implements_callback_sync_region
 #include <otter-core/ompt-callback-prototypes.h>
 
 /* Used as an array index to keep track of unique id's for different entities */
@@ -56,7 +57,7 @@ typedef enum unique_id_type_t {
 typedef struct parallel_data_t parallel_data_t;
 typedef struct thread_data_t thread_data_t;
 typedef struct task_data_t task_data_t;
-typedef struct region_context_t region_context_t;
+typedef struct region_scope_t region_scope_t;
 
 /* Parallel region type */
 struct parallel_data_t {
@@ -65,7 +66,7 @@ struct parallel_data_t {
     task_graph_node_t  *parallel_end_node_ref;
     task_data_t        *encountering_task_data;
     trace_region_def_t *region;
-    region_context_t   *context;
+    region_scope_t     *scope;
 };
 
 /* Thread type */
@@ -73,12 +74,17 @@ struct thread_data_t {
     unique_id_t           id;
     trace_location_def_t *location;
 
-    /* Record the sequence of nested regions that led to the current context */
-    stack_t            *region_context_stack;
+    /* Record the sequence of nested regions that led to the current scope */
+    stack_t            *region_scope_stack;
+
+    /* Scope most recently popped from OR pushed to the region_scope_stack */
+    region_scope_t     *prior_scope;
 
     /* Record a reference to an initial task's graph node for a subsequent
        parallel region */
     task_graph_node_t  *initial_task_graph_node_ref;
+
+    bool                is_master_thread; // of current parallel region
 };
 
 /* Task type */
@@ -89,7 +95,7 @@ struct task_data_t {
 
     /* only accessed by implicit tasks which are children of an initial task to
        atomically register as children of the initial task. This is because the
-       implicit-task-begin event happens in the context of the implicit child
+       implicit-task-begin event happens in the scope of the implicit child
        task rather than in that of the initial parent task
      */
     pthread_mutex_t    *lock;
@@ -107,51 +113,50 @@ struct task_data_t {
     */
     task_data_t        *workshare_child_task;
 
-    /* track the context that encloses this task */
-    // region_context_t   *context;
+    /* track the scope that encloses this task */
+    // region_scope_t   *scope;
 
 };
 
-/* Label the various kinds of context that can be associated with begin/end 
-   events
-*/
+/* Label the various kinds of scopes that a thread can encounter */
 typedef enum {
 
-    context_parallel,
+    scope_parallel,
 
-    /* Worksharing Contexts */
-    context_sections,
-    context_single,
+    /* Worksharing scopes */
+    scope_sections,
+    scope_single,
 
-    /* Worksharing-loop Contexts */
-    context_loop,
-    context_taskloop,
+    /* Worksharing-loop scopes */
+    scope_loop,
+    scope_taskloop,
 
-    /* Synchronisation Contexts */
+    /* Synchronisation scopes */
 
-    context_sync_taskgroup,
+    scope_sync_taskgroup,
 
-    /* Standalone (i.e. no nested contexts) synchronisation contexts */
-    context_sync_barrier,
-    context_sync_barrier_implicit,
-    context_sync_barrier_explicit,
-    context_sync_barrier_implementation,
-    context_sync_taskwait,
+    /* Standalone (i.e. no nested scopes) synchronisation scopes */
+    scope_sync_barrier,
+    scope_sync_barrier_implicit,
+    scope_sync_barrier_explicit,
+    scope_sync_barrier_implementation,
+    scope_sync_taskwait,
 
     /* not needed for now, but may be later:
-        context_distribute,
-        context_sync_reduction
+        scope_distribute,
+        scope_sync_reduction
     */
 
-} context_t;
+} scope_t;
 
-struct region_context_t {
-    context_t           type;
-    void               *context_data;
-    stack_t            *context_task_graph_nodes;
-    task_graph_node_t  *context_begin_node;
-    task_graph_node_t  *context_end_node;
-    pthread_mutex_t     lock;
+struct region_scope_t {
+    scope_t                 type;
+    ompt_scope_endpoint_t   endpoint;
+    void                   *data;
+    stack_t                *task_graph_nodes;
+    task_graph_node_t      *begin_node;
+    task_graph_node_t      *end_node;
+    pthread_mutex_t         lock;
 };
 
 /* ancestor level for innermost parallel region */
@@ -161,33 +166,5 @@ struct region_context_t {
 #define PARALLEL_INFO_AVAIL     2
 #define PARALLEL_INFO_UNAVAIL   1
 #define PARALLEL_INFO_NONE      0
-
-/* Packing task type & parallel region into task ID value
-
-   Have 64 bits available in unique_id_t/tree_node_id_t/array_id_t but never
-   going to need all of them for a unique task ID in any realistic scenario
-
-   => use some of the bits to also pass to task-tree a task's type & parallel
-        region
-
-   task type:       0xf000000000000000 => 16 values (60-bit shift)
-   parallel region: 0x00ff000000000000 => 255 values (48-bit shift)
-
-    __builtin_ctzll - Returns the number of trailing 0-bits in x, starting at 
-    the least significant bit position. If x is 0, the result is undefined
-
-    I use this built-in to convert ompt_task_flag_t to an int representing the
-    bit that is set i.e. 0x01 -> 0, 0x08 -> 3 etc. This converts a value like
-    0b1000 into 0b0011 which requires fewer bits. This means I can represent up
-    to 16 task types in the top 4 bits of the task ID, instead of setting 16
-    independent bits
-
-    NOTE: need to check whether this is portable between clang & icc
-
- */
-#define PACK_TASK_BITS(flags, task_id, parallel_id)                           \
-    (task_id \
-        | ( (unique_id_t)__builtin_ctzll(flags) << TASK_TREE_TASK_TYPE_SHFT ) \
-        | ((parallel_id & 0xFF)<<TASK_TREE_PARALLEL_ID_SHIFT) )
 
 #endif // OTTER_H

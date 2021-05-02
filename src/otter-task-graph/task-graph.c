@@ -17,6 +17,9 @@
 static void destroy_graph_node_data(
     void *node_data, graph_node_type_t node_type);
 
+#define NODE_STYLE_STR_MAXLEN 64
+static char *task_graph_node_style(task_graph_node_type_t node_type);
+
 /* flag which output format to use for task graph */
 enum {
     format_dot,
@@ -253,9 +256,9 @@ task_graph_write(void)
         case format_dot:
             fprintf(taskgraph,
                 "digraph \"\" {\n"
-                "    graph   [fontname=\"helvetica\"];\n"
-                "    node    [fontname=\"helvetica\" "
-                    "shape=circle color=red style=solid"
+                "    graph   [fontname=\"Source Code Pro\"];\n"
+                "    node    [fontname=\"Source Code Pro\" "
+                        "shape=circle color=red style=\"rounded,filled\""
                 "];\n"
                 "    label = \"\";\n"
                 "\n"
@@ -281,14 +284,15 @@ task_graph_write(void)
     {
         uint64_t graph_node_id;
         graph_node_type_t graph_node_type;
-        unique_id_t *otter_id = NULL;
+        void *graph_node_data = NULL;
         for (k=0; k<num_nodes; k++)
         {
             graph_scan_nodes(Graph.g,
                 &graph_node_id, &graph_node_type,
-                (graph_node_data_t*) &otter_id, &next);
-            fprintf(taskgraph, "  %lu [node_type=%d otter_id=%lu]\n",
-                graph_node_id, graph_node_type, *otter_id);
+                (graph_node_data_t*) &graph_node_data, &next);
+            fprintf(taskgraph, "  %lu [node_type=%d %s]\n",
+                graph_node_id, graph_node_type,
+                task_graph_node_style(graph_node_type));
         }
     }
 
@@ -329,4 +333,51 @@ task_graph_write(void)
             break;
     }
     return true;
+}
+
+static char *
+task_graph_node_style(task_graph_node_type_t node_type)
+{
+    static char node_style_str[NODE_STYLE_STR_MAXLEN + 1] = {0};
+    const char *fmt_string = "shape=%s color=%s";
+
+    char *shape =
+        node_type == node_task_initial  ?               "star" :
+        node_type == node_task_implicit ?               "record" :
+        node_type == node_task_explicit ?               "record" :
+        node_type == node_task_target   ?               "record" :
+        (node_type == node_scope_parallel_begin) 
+            || (node_type == node_scope_parallel_end) ? "parallelogram" :
+        (node_type == node_scope_loop_begin) 
+            || (node_type == node_scope_loop_end) ?     "diamond" :
+        (node_type == node_scope_taskloop_begin) 
+            || (node_type == node_scope_taskloop_end) ? "diamond" :
+        node_type == node_sync_barrier ?                "hexagon" :
+        node_type == node_sync_barrier_implicit ?       "hexagon" :
+        node_type == node_sync_barrier_explicit ?       "hexagon" :
+        node_type == node_sync_barrier_implementation ? "hexagon" :
+        node_type == node_sync_taskgroup?               "hexagon" :
+                                                        "circle";
+
+    char *color = 
+        node_type == node_task_initial  ?               "yellow" :
+        node_type == node_task_implicit ?               "blue" :
+        node_type == node_task_explicit ?               "red" :
+        node_type == node_task_target   ?               "purple" :
+        (node_type == node_scope_parallel_begin) 
+            || (node_type == node_scope_parallel_end) ? "green" :
+        (node_type == node_scope_loop_begin) 
+            || (node_type == node_scope_loop_end) ?     "orange" :
+        (node_type == node_scope_taskloop_begin) 
+            || (node_type == node_scope_taskloop_end) ? "cyan" :
+        node_type == node_sync_barrier ?                "black" :
+        node_type == node_sync_barrier_implicit ?       "black" :
+        node_type == node_sync_barrier_explicit ?       "black" :
+        node_type == node_sync_barrier_implementation ? "black" :
+        node_type == node_sync_taskgroup?               "darkgrey" :
+                                                        "white";
+
+    snprintf(&node_style_str[0], NODE_STYLE_STR_MAXLEN,
+        fmt_string, shape, color);
+    return &node_style_str[0];
 }

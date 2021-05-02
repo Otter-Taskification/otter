@@ -8,12 +8,6 @@
 #include <otter-common.h>
 #include <otter-datatypes/graph.h>
 
-#if defined(__INTEL_COMPILER)
-#include <omp-tools.h>
-#else
-#include <ompt.h>
-#endif
-
 #define TASK_GRAPH_BUFFSZ                   512
 #define TASK_GRAPH_DEFAULT_GRAPH_NAME       "OTTER_TASK_GRAPH"
 #define TASK_GRAPH_DEFAULT_GRAPH_ATTR_NAME  "OTTER_TASK_GRAPH_NODE_ATTR.csv"
@@ -26,7 +20,8 @@
 typedef graph_node_t         task_graph_node_t;
 typedef graph_node_data_t    task_graph_node_data_t;
 
-/* Represent arbitrary node types the task graph can contain */
+/* Represents the types of nodes the task graph can contain. Closely aligned to
+   the scope_t enum in otter.h */
 #define FLAG_NODE_TYPE_END(f) (f & 0x1000)
 typedef enum {
 
@@ -38,37 +33,35 @@ typedef enum {
     node_task_explicit,
     node_task_target,
 
-    /* Parallel region context */
-    node_context_parallel_begin,
+    /* Scope begin nodes */
+    node_scope_parallel_begin,
+    node_scope_sections_begin,
+    node_scope_single_begin,
+    node_scope_loop_begin,
+    node_scope_taskloop_begin,
+    node_scope_sync_taskgroup_begin,
 
-    /* Worksharing Contexts */
-    node_context_sections_begin,
-    node_context_single_begin,
-
-    /* Worksharing-loop Contexts */
-    node_context_loop_begin,
-    node_context_taskloop_begin,
-
-    /* Synchronisation Contexts */
-    node_context_sync_taskgroup_begin,
-
-    /* Matching endpoints - switch on a flag for these */
-    node_context_parallel_end = FLAG_NODE_TYPE_END(node_context_parallel_begin),
-    node_context_sections_end,
-    node_context_single_end,
-    node_context_loop_end,
-    node_context_taskloop_end,
-    node_context_sync_taskgroup_end,
+    /* Matching endpoints - switch on a flag for these so that a node's metadata
+       is only freed when the context-end node is popped from the graph's node
+       stack */
+    node_scope_parallel_end = FLAG_NODE_TYPE_END(node_scope_parallel_begin),
+    node_scope_sections_end,
+    node_scope_single_end,
+    node_scope_loop_end,
+    node_scope_taskloop_end,
+    node_scope_sync_taskgroup_end,
 
     /* Standalone (i.e. never nested) synchronisation directives
-       (not contexts)
+       (not scopes)
        restart numbering from before flag
     */
-    node_sync_barrier = node_context_sync_taskgroup_begin + 1,
+    node_sync_barrier = node_scope_sync_taskgroup_begin + 1,
     node_sync_barrier_implicit,
     node_sync_barrier_explicit,
     node_sync_barrier_implementation,
-    node_sync_taskwait
+    node_sync_taskwait,
+    node_sync_taskgroup,
+    node_sync_reduction
 
     /* etc... */
 } task_graph_node_type_t;

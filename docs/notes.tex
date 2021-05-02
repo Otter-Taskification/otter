@@ -1,0 +1,52 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[hscale=0.83,vscale=0.92]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage[font=footnotesize,labelfont=bf]{caption}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\graphicspath{{./analysis/}}
+
+\newcommand{\ord}{\textsuperscript{th} }
+\newcommand{\code}[1]{\texttt{#1} }
+
+\title{OTTER:\\OpenMP Task Tracer}
+\begin{document}
+
+\author{Adam Tuft}
+\maketitle
+
+\section{Introduction}
+
+\section{OTTER Core}
+
+OTTER Core implements the OMPT callbacks defined by the OMP runtime. It collects the data required to build the task graph and to record OTF2 locations, regions and events. OTTER core defines various types used to store data relevant to corresponding OMP constructs such as parallel regions, threads, tasks etc.
+
+OTTER Core defines the \code{scope\_t} type which enumerates the OMP scopes relevant to OTTER (e.g. \code{scope\_parallel}, \code{scope\_barrier} etc) and the \code{region\_scope\_t} struct which contains data used to record entry into and exit from scopes. The scopes defined by OTTER are associated with OMP scopes which emit begin and end execution model events e.g. \code{scope\_parallel} is associated with parallel regions and their \emph{parallel-begin} and \emph{parallel-end} events.
+
+The \code{region\_scope\_t} struct collects data owned by a given scope, a flag indicating whether the scope has encountered its \emph{scope-end} event, references to the scope's begin and end task graph nodes, a stack used to record the task graph nodes created while a scope is active and a mutex to ensure thread-safe updates of the scope.
+
+The scopes enumerated by OTTER which represent OMP constructs that can be nested (e.g. parallel regions) are represented in the task graph by pairs of nodes (scope entry and exit nodes) which allows representations of nested constructs to be similarly nested in the task graph. Those scopes representing standalone constructs (such as implicit barriers) are represented by single task graph nodes generated during their \emph{scope-end} events.
+
+\section{Graph Data Structure}
+
+OTTER uses a simple representation of a graph which allows addition of arbitrary nodes and directed edges. The graph is represented as a pair of queues; one for the nodes and another for the edges. A node is a struct containing an id, a type indicator, a pointer to arbitrary data and a flag to indicate whether it is the source of any edges. An edge is a struct with pointers to its start and end nodes.
+
+Note that OTTER's graph implementation is very basic as it is not intended to be a general-purpose graph. For example, it does not support deletion of nodes or edges. It does support iterating over its nodes and edges with \code{graph\_scan\_nodes} and \code{graph\_scan\_edges}.
+
+\section{OTTER Task Graph}
+
+The task graph module manages the underlying graph data structure that represents the task graph of the OMP program. It manages a single global instance of a graph which is exposed to OTTER-core only through the \code{task\_graph\_} functions. The task graph is initialised once when OTTER starts (before the OMP program begins) and is destroyed when OTTER exits (after the OMP program is finished). Any other initialisation or destruction is an error. The task graph struct includes a mutex that is locked when a node or edge is added to ensure thread-safe updates of the task graph.
+
+The module header defines the \code{task\_graph\_node\_type\_t} enum which lists the kinds of nodes that can be represented in the task graph. This enum is closely aligned to the \code{scope\_t} enum defined in \code{otter-core/otter.h} and is used to format the nodes when the task graph is saved.
+
+Task graph output file name and format are controlled through environment variables. OTTER can save the task graph as a dot-file (.gv) or edge list (.csv).
+
+\section{OTTER Trace}
+
+\end{document}

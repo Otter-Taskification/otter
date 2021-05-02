@@ -8,3 +8,4 @@ omp-*
 *.png
 *.svg
 
+docs/*.pdf

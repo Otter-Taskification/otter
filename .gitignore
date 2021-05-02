@@ -1,4 +1,4 @@
-omp-*
+./omp-*
 .*
 *.csv
 *.txt

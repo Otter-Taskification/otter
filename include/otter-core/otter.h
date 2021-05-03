@@ -62,6 +62,8 @@ typedef struct region_scope_t region_scope_t;
 /* Parallel region type */
 struct parallel_data_t {
     unique_id_t         id;
+    int                 flags;
+    unsigned int        actual_parallelism;
     task_graph_node_t  *parallel_begin_node_ref;
     task_graph_node_t  *parallel_end_node_ref;
     task_data_t        *encountering_task_data;
@@ -92,6 +94,7 @@ struct task_data_t {
     unique_id_t         id;
     task_graph_node_t  *task_node_ref;
     ompt_task_flag_t    type;
+    ompt_task_flag_t    flags;
 
     /* only accessed by implicit tasks which are children of an initial task to
        atomically register as children of the initial task. This is because the

@@ -10,15 +10,26 @@
 #include <macros/general.h>
 
 #include <otter-ompt-header.h>
+
+#include <otter-ompt-header.h>
 #include <otter-common.h>
+#include <otter-core/otter.h>
 #include <otter-datatypes/graph.h>
 #include <otter-task-graph/task-graph.h>
 
-static void destroy_graph_node_data(
+static void destroy_node_data(
     void *node_data, graph_node_type_t node_type);
 
 #define NODE_STYLE_STR_MAXLEN 64
+#define NODE_ATTR_STR_MAXLEN  1024
+#define NODE_DATA_STR_MAXLEN  1024
 static char *task_graph_node_style(task_graph_node_type_t node_type);
+
+static char *task_graph_node_attr(
+    uint64_t node_id, task_graph_node_type_t node_type, void *node_data);
+
+static char *task_graph_node_data_repr(
+    task_graph_node_type_t node_type, void *node_data);
 
 /* flag which output format to use for task graph */
 enum {
@@ -146,7 +157,7 @@ task_graph_destroy(graph_free_node_data_t free_node_data)
 task_graph_node_t *
 task_graph_add_node(
     task_graph_node_type_t node_type,
-    task_graph_node_data_t node_data)
+    graph_node_data_t node_data)
 {
     /* if tree not initialised when trying to add a node, abort execution */
     if (false == Graph.initialised)
@@ -251,6 +262,9 @@ task_graph_write(void)
     }
 
     /* Write file headers */
+
+    fprintf(nodeattr, "{ \"nodes\":  [\n");
+
     switch (Graph.graph_output_format)
     {
         case format_dot:
@@ -279,21 +293,26 @@ task_graph_write(void)
     void *next = NULL;
     graph_get_num_nodes_edges(Graph.g, &num_nodes, &num_edges);
 
-    /* For a dot-file, declare all nodes before writing edges */
-    if (Graph.graph_output_format == format_dot)
+    /* Write node attributes. For a dot-file, also declare all nodes before 
+       writing edges */
+    uint64_t node_id;
+    graph_node_type_t node_type;
+    void *node_data = NULL;
+    for (k=0; k<num_nodes; k++)
     {
-        uint64_t graph_node_id;
-        graph_node_type_t graph_node_type;
-        void *graph_node_data = NULL;
-        for (k=0; k<num_nodes; k++)
+        graph_scan_nodes(Graph.g, &node_id, &node_type, (graph_node_data_t*) &node_data, &next);
+        if (Graph.graph_output_format == format_dot)
         {
-            graph_scan_nodes(Graph.g,
-                &graph_node_id, &graph_node_type,
-                (graph_node_data_t*) &graph_node_data, &next);
-            fprintf(taskgraph, "  %lu [node_type=%d %s]\n",
-                graph_node_id, graph_node_type,
-                task_graph_node_style(graph_node_type));
+            fprintf(taskgraph, "  %lu [node_type=%d %s %s]\n",
+                node_id, node_type,
+                task_graph_node_style(node_type),
+                "" // node label derived from node_data
+            );
         }
+        fprintf(nodeattr, "%s%s",
+            task_graph_node_attr(node_id, node_type, node_data),
+            k < num_nodes-1 ? ",\n" : ""
+        );
     }
 
     /* Write edges */
@@ -323,6 +342,9 @@ task_graph_write(void)
     }
 
     /* Write file footer */
+
+    fprintf(nodeattr, "]  \n}\n");
+
     switch (Graph.graph_output_format)
     {
         case format_dot:
@@ -332,6 +354,8 @@ task_graph_write(void)
             // pass
             break;
     }
+    fclose(taskgraph);
+    fclose(nodeattr);
     return true;
 }
 
@@ -339,7 +363,7 @@ static char *
 task_graph_node_style(task_graph_node_type_t node_type)
 {
     static char node_style_str[NODE_STYLE_STR_MAXLEN + 1] = {0};
-    const char *fmt_string = "shape=%s color=%s";
+    static const char *fmt_string = "shape=%s color=%s";
 
     char *shape =
         node_type == node_task_initial  ?               "star" :
@@ -370,14 +394,126 @@ task_graph_node_style(task_graph_node_type_t node_type)
             || (node_type == node_scope_loop_end) ?     "orange" :
         (node_type == node_scope_taskloop_begin) 
             || (node_type == node_scope_taskloop_end) ? "cyan" :
-        node_type == node_sync_barrier ?                "black" :
-        node_type == node_sync_barrier_implicit ?       "black" :
-        node_type == node_sync_barrier_explicit ?       "black" :
-        node_type == node_sync_barrier_implementation ? "black" :
+        node_type == node_sync_barrier ?                "red" :
+        node_type == node_sync_barrier_implicit ?       "blue" :
+        node_type == node_sync_barrier_explicit ?       "magenta" :
+        node_type == node_sync_barrier_implementation ? "green" :
         node_type == node_sync_taskgroup?               "darkgrey" :
                                                         "white";
 
     snprintf(&node_style_str[0], NODE_STYLE_STR_MAXLEN,
         fmt_string, shape, color);
     return &node_style_str[0];
+}
+
+static char *task_graph_node_attr(
+    uint64_t                 node_id,
+    task_graph_node_type_t   node_type,
+    void                    *node_data)
+{
+    static char node_attr_str[NODE_ATTR_STR_MAXLEN + 1] = {0};
+    static const char *fmt_string =
+        "  {\n" 
+        "    \"id\":         %lu,\n"
+        "    \"type\":       %d,\n"
+        "    \"endpoint\":   %s,\n"
+        "    \"data\":       %s\n"
+        "  }"
+    ;
+    snprintf(node_attr_str, NODE_ATTR_STR_MAXLEN, fmt_string,
+        node_id,
+        node_type & ~SCOPE_END_BIT,
+        node_type & SCOPE_END_BIT ? "\"end\"" : "\"begin\"",
+        task_graph_node_data_repr(node_type, node_data)
+    );
+    return &node_attr_str[0];
+}
+
+static char *
+task_graph_node_data_repr(
+    task_graph_node_type_t  node_type,
+    void                   *node_data)
+{
+    static char node_data_repr[NODE_DATA_STR_MAXLEN + 1] = {0};
+    const char *fmt_string = NULL;
+    switch (node_type & ~SCOPE_END_BIT)
+    {
+        case node_scope_parallel_begin:
+        case node_scope_parallel_end:
+        {
+            parallel_data_t *parallel_data = (parallel_data_t*) node_data;
+            fmt_string = "\n"
+                "      {\n"
+                "        \"otter_id\":             %lu,\n"
+                "        \"actual_parallelism\":   %d,\n"
+                "        \"is_league\":            %s \n"
+                "      }\n";
+            snprintf(node_data_repr, NODE_DATA_STR_MAXLEN, fmt_string,
+                parallel_data->id,
+                parallel_data->actual_parallelism,
+                parallel_data->flags & ompt_parallel_league ? 
+                    "true" : "false"
+            );
+            break;
+        }
+        case node_task_initial:
+        case node_task_implicit:
+        case node_task_explicit:
+        case node_task_target:
+        {
+            task_data_t *task_data = (task_data_t*) node_data;
+            ompt_task_flag_t type = task_data->type;
+            int flags = task_data->flags;
+            fmt_string = "\n"
+                "      {\n"
+                "        \"otter_id\":             %lu,\n"
+                "        \"task_type\":            \"%s\",\n"
+                "        \"undeferred\":           %s,\n"
+                "        \"untied\":               %s,\n"
+                "        \"final\":                %s,\n"
+                "        \"mergeable\":            %s,\n"
+                "        \"merged\":               %s\n"
+                "      }\n";
+            snprintf(node_data_repr, NODE_DATA_STR_MAXLEN, fmt_string,
+                task_data->id,
+                type == ompt_task_initial ? "initial" :
+                    type == ompt_task_implicit ? "implicit" :
+                    type == ompt_task_explicit ? "explicit" :
+                    type == ompt_task_target ? "target" : "unknown",
+                flags & ompt_task_undeferred ? "true" : "false",
+                flags & ompt_task_untied     ? "true" : "false",
+                flags & ompt_task_final      ? "true" : "false",
+                flags & ompt_task_mergeable  ? "true" : "false",
+                flags & ompt_task_merged     ? "true" : "false"
+            );
+            break;
+        }
+        case node_sync_barrier:
+        case node_sync_barrier_implicit:
+        case node_sync_barrier_explicit:
+        case node_sync_barrier_implementation:
+        case node_sync_taskwait:
+        case node_sync_taskgroup:
+        case node_sync_reduction:
+        {
+            int sync_type = node_type & ~SCOPE_END_BIT;
+            fmt_string = "\n"
+                "      {\n"
+                "        \"synchronisation_type\": \"%s\"\n"
+                "      }\n";
+            snprintf(node_data_repr, NODE_DATA_STR_MAXLEN, fmt_string,
+                sync_type == node_sync_barrier ? "barrier" :
+                sync_type == node_sync_barrier_implicit ? "implicit barrier" :
+                sync_type == node_sync_barrier_explicit ? "explicit barrier" :
+                sync_type == node_sync_barrier_implementation ? "implementation barrier" :
+                sync_type == node_sync_taskwait ? "taskwait" :
+                sync_type == node_sync_taskgroup ? "taskgroup" :
+                sync_type == node_sync_reduction ? "reduction" : "unknown"
+            );
+            break;
+        }
+        default:
+            return "null";
+    }
+    return node_data_repr;
 }

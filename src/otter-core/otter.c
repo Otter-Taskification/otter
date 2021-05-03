@@ -99,7 +99,7 @@ destroy_graph_node_data(
     graph_node_type_t   node_type)
 {
     LOG_DEBUG("(0x%x) %p", node_type, node_data);
-    if (FLAG_NODE_TYPE_END(node_type)) free(node_data); // prevent double-free
+    if (node_type & SCOPE_END_BIT) free(node_data); // prevent double-free
     return;
 }
 
@@ -223,6 +223,8 @@ on_ompt_callback_parallel_begin(
     parallel_data_t *parallel_data = malloc(sizeof(*parallel_data));
     *parallel_data = (parallel_data_t) {
         .id = get_unique_parallel_id(),
+        .flags = flags,
+        .actual_parallelism = 0,
         .parallel_begin_node_ref = NULL,
         .parallel_end_node_ref = NULL,
         .region = NULL
@@ -331,8 +333,6 @@ on_ompt_callback_parallel_end(
                 if (graph_node_has_children(graph_node) == false)
                     task_graph_add_edge(graph_node, scope->end_node);
         }
-
-        task_graph_add_edge(scope->begin_node, scope->end_node);
 
         /* reset flag */
         thread_data->is_master_thread = false;
@@ -531,6 +531,9 @@ on_ompt_callback_implicit_task(
             stack_push(thread_data->region_scope_stack,
                 (stack_item_t) {.ptr = parallel_data->scope});
             thread_data->prior_scope = parallel_data->scope;
+
+            if (thread_data->is_master_thread)
+                parallel_data->actual_parallelism = actual_parallelism;
 
             #if DEBUG_LEVEL >= 4
             stack_print(thread_data->region_scope_stack);
@@ -799,7 +802,8 @@ on_ompt_callback_sync_region(
             kind == ompt_sync_region_reduction ? 
                            node_sync_reduction : node_type_unknown;
 
-        task_graph_node_t *sync_node = task_graph_add_node(sync_type,
+        task_graph_node_t *sync_node = task_graph_add_node(
+                SET_BIT_SCOPE_END(sync_type),
                 (task_graph_node_data_t) {.ptr = NULL});
 
         // get enclosing scope
@@ -920,6 +924,7 @@ new_task_data(
     *new = (task_data_t) {
         .id         = id,
         .type       = flags & OMPT_TASK_TYPE_BITS,
+        .flags      = flags,
         .lock       = NULL,
         .enclosing_parallel_id = parallel,
         .workshare_child_task = NULL

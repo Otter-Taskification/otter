@@ -16,12 +16,14 @@ int main(void)
     #pragma omp for
     for (k=0; k<3; k++)
     {
+        #pragma omp task
         num[k] = omp_get_thread_num();
     }
 
     #pragma omp parallel for
     for (k=0; k<5; k++)
     {
+        #pragma omp task
         num[k] = omp_get_thread_num();
     }
 

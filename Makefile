@@ -60,7 +60,7 @@ $(OMPEXE): $(OMPSRC)
 
 ### Otter as a dynamic tool to be loaded by the runtime
 $(OTTER): $(OTTERSRC) $(OTTERHEAD) $(LIBGRAPH) $(LIBTRACE) $(LIBGRAPH)
-	printf "COMPILING %-12s (debug=%s, OTTER_DEFS=%s)" $@ $(DEBUG_OTTER) $(OTTER_DEFS)
+	@printf "COMPILING %-12s (debug=%s, OTTER_DEFS=%s)" $@ $(DEBUG_OTTER) $(OTTER_DEFS)
 	@$(CC) $(CFLAGS) $(OTTER_DEFS) $(LDFLAGS) $(L_LIBGRAPH) $(L_LIBTRACE) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_OTTER) $(OTTERSRC) -shared -fPIC -o $@
 
 ### Task-graph lib

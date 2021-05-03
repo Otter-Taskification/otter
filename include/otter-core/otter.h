@@ -124,6 +124,8 @@ struct task_data_t {
 /* Label the various kinds of scopes that a thread can encounter */
 typedef enum {
 
+    scope_unknown,
+
     scope_parallel,
 
     /* Worksharing scopes */

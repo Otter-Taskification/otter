@@ -35,12 +35,12 @@ typedef enum {
     node_task_target,
 
     /* Scope begin nodes */
-    node_scope_parallel_begin,                                  //  5
+    node_scope_parallel_begin,              //  5
     node_scope_sections_begin,
     node_scope_single_begin,
     node_scope_loop_begin,
     node_scope_taskloop_begin,
-    node_scope_sync_taskgroup_begin,                            // 10
+    node_scope_sync_taskgroup_begin,             // 10      
 
     /* Standalone (i.e. never nested) synchronisation directives
        restart numbering from before flag
@@ -48,9 +48,8 @@ typedef enum {
     node_sync_barrier,
     node_sync_barrier_implicit,
     node_sync_barrier_explicit,
-    node_sync_barrier_implementation,
-    node_sync_taskwait,                                         // 15
-    node_sync_taskgroup, // <-- suspect this is nestable
+    node_sync_barrier_implementation,       // 15
+    node_sync_taskwait,              
     node_sync_reduction,
 
     /* Matching endpoints - switch on a flag for these so that a node's metadata

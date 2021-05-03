@@ -91,19 +91,19 @@ do {                                                                           \
 
 #define LOG_DEBUG_WORK_TYPE(thread, wstype, count, endpoint)                   \
 do {                                                                           \
-    LOG_DEBUG_IF(wstype == ompt_work_loop           , "[%lu] %s %s %s %lu",    \
+    LOG_DEBUG_IF(wstype == ompt_work_loop           , "[t=%lu] %-6s %s %s %lu",\
         thread, endpoint, "workshare", "loop", count);                         \
-    LOG_DEBUG_IF(wstype == ompt_work_sections       , "[%lu] %s %s %s %lu",    \
+    LOG_DEBUG_IF(wstype == ompt_work_sections       , "[t=%lu] %-6s %s %s %lu",\
         thread, endpoint, "workshare", "sections", count);                     \
-    LOG_DEBUG_IF(wstype == ompt_work_single_executor, "[%lu] %s %s %s %lu",    \
+    LOG_DEBUG_IF(wstype == ompt_work_single_executor, "[t=%lu] %-6s %s %s %lu",\
         thread, endpoint, "workshare", "single", count);                       \
-    LOG_DEBUG_IF(wstype == ompt_work_single_other   , "[%lu] %s %s %s %lu",    \
+    LOG_DEBUG_IF(wstype == ompt_work_single_other   , "[t=%lu] %-6s %s %s %lu",\
         thread, endpoint, "workshare", "single (other)", count);               \
-    LOG_DEBUG_IF(wstype == ompt_work_workshare      , "[%lu] %s %s %s %lu",    \
+    LOG_DEBUG_IF(wstype == ompt_work_workshare      , "[t=%lu] %-6s %s %s %lu",\
         thread, endpoint, "workshare", "workshare", count);                    \
-    LOG_DEBUG_IF(wstype == ompt_work_distribute     , "[%lu] %s %s %s %lu",    \
+    LOG_DEBUG_IF(wstype == ompt_work_distribute     , "[t=%lu] %-6s %s %s %lu",\
         thread, endpoint, "workshare", "distribute", count);                   \
-    LOG_DEBUG_IF(wstype == ompt_work_taskloop       , "[%lu] %s %s %s %lu",    \
+    LOG_DEBUG_IF(wstype == ompt_work_taskloop       , "[t=%lu] %-6s %s %s %lu",\
         thread, endpoint, "workshare", "taskloop", count);                     \
 } while(0);
 

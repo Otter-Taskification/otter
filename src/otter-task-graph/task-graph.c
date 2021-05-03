@@ -376,11 +376,12 @@ task_graph_node_style(task_graph_node_type_t node_type)
             || (node_type == node_scope_loop_end) ?     "diamond" :
         (node_type == node_scope_taskloop_begin) 
             || (node_type == node_scope_taskloop_end) ? "diamond" :
-        node_type == node_sync_barrier ?                "hexagon" :
-        node_type == node_sync_barrier_implicit ?       "hexagon" :
-        node_type == node_sync_barrier_explicit ?       "hexagon" :
-        node_type == node_sync_barrier_implementation ? "hexagon" :
-        node_type == node_sync_taskgroup?               "hexagon" :
+        (node_type & ~SCOPE_END_BIT) == node_sync_barrier ?                "hexagon" :
+        (node_type & ~SCOPE_END_BIT) == node_sync_barrier_implicit ?       "hexagon" :
+        (node_type & ~SCOPE_END_BIT) == node_sync_barrier_explicit ?       "hexagon" :
+        (node_type & ~SCOPE_END_BIT) == node_sync_barrier_implementation ? "hexagon" :
+        (node_type == node_scope_sync_taskgroup_begin) 
+            || (node_type == node_scope_sync_taskgroup_end) ? "hexagon" :
                                                         "circle";
 
     char *color = 
@@ -394,11 +395,12 @@ task_graph_node_style(task_graph_node_type_t node_type)
             || (node_type == node_scope_loop_end) ?     "orange" :
         (node_type == node_scope_taskloop_begin) 
             || (node_type == node_scope_taskloop_end) ? "cyan" :
-        node_type == node_sync_barrier ?                "red" :
-        node_type == node_sync_barrier_implicit ?       "blue" :
-        node_type == node_sync_barrier_explicit ?       "magenta" :
-        node_type == node_sync_barrier_implementation ? "green" :
-        node_type == node_sync_taskgroup?               "darkgrey" :
+        (node_type & ~SCOPE_END_BIT) == node_sync_barrier ?                "red" :
+        (node_type & ~SCOPE_END_BIT) == node_sync_barrier_implicit ?       "blue" :
+        (node_type & ~SCOPE_END_BIT) == node_sync_barrier_explicit ?       "magenta" :
+        (node_type & ~SCOPE_END_BIT) == node_sync_barrier_implementation ? "green" :
+        (node_type == node_scope_sync_taskgroup_begin) 
+            || (node_type == node_scope_sync_taskgroup_end) ? "darkgrey" :
                                                         "white";
 
     snprintf(&node_style_str[0], NODE_STYLE_STR_MAXLEN,
@@ -493,22 +495,26 @@ task_graph_node_data_repr(
         case node_sync_barrier_explicit:
         case node_sync_barrier_implementation:
         case node_sync_taskwait:
-        case node_sync_taskgroup:
+        case node_scope_sync_taskgroup_begin:
+        case node_scope_sync_taskgroup_end:
         case node_sync_reduction:
         {
             int sync_type = node_type & ~SCOPE_END_BIT;
             fmt_string = "\n"
                 "      {\n"
-                "        \"synchronisation_type\": \"%s\"\n"
+                "        \"sync_type\":     \"%s\"\n"
+                "        \"sync_endpoint\": \"%s\"\n"
                 "      }\n";
             snprintf(node_data_repr, NODE_DATA_STR_MAXLEN, fmt_string,
                 sync_type == node_sync_barrier ? "barrier" :
-                sync_type == node_sync_barrier_implicit ? "implicit barrier" :
-                sync_type == node_sync_barrier_explicit ? "explicit barrier" :
-                sync_type == node_sync_barrier_implementation ? "implementation barrier" :
-                sync_type == node_sync_taskwait ? "taskwait" :
-                sync_type == node_sync_taskgroup ? "taskgroup" :
-                sync_type == node_sync_reduction ? "reduction" : "unknown"
+                    sync_type == node_sync_barrier_implicit ? "implicit barrier" :
+                    sync_type == node_sync_barrier_explicit ? "explicit barrier" :
+                    sync_type == node_sync_barrier_implementation ? "implementation barrier" :
+                    sync_type == node_sync_taskwait ? "taskwait" :
+                    sync_type == node_scope_sync_taskgroup_begin ? "taskgroup" :
+                    sync_type == node_scope_sync_taskgroup_end ? "taskgroup" :
+                    sync_type == node_sync_reduction ? "reduction" : "unknown",
+                node_type == node_scope_sync_taskgroup_begin ? "begin" : "end"
             );
             break;
         }

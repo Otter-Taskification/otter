@@ -2,8 +2,8 @@
 #include <unistd.h>
 #include <stdio.h>
 
-#define THREADS 4
-#define LEN 4
+#define THREADS 2
+#define LEN 3
 
 int main(void)
 {

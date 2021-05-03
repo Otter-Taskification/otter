@@ -382,7 +382,7 @@ on_ompt_callback_task_create(
        defer initial task node creation until the implicit-task-begin event for
        simplicity */
     #if defined(__INTEL_COMPILER)
-    if (flags && ompt_task_initial)
+    if (flags & ompt_task_initial)
     {
         LOG_DEBUG("Intel detected -> defer intial task node creation until implicit-task-begin");
         return;

@@ -366,7 +366,7 @@ task_graph_node_style(task_graph_node_type_t node_type)
     static const char *fmt_string = "shape=%s color=%s";
 
     char *shape =
-        node_type == node_task_initial  ?               "star" :
+        node_type == node_task_initial  ?               "record" :
         node_type == node_task_implicit ?               "record" :
         node_type == node_task_explicit ?               "record" :
         node_type == node_task_target   ?               "record" :

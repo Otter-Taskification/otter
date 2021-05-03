@@ -26,6 +26,7 @@ int main(void)
         #pragma omp task
         num[k] = omp_get_thread_num();
     }
+    // #pragma omp taskwait
 
     printf("PARALLEL TASKLOOP\n");
     #pragma omp parallel

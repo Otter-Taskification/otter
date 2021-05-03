@@ -87,6 +87,10 @@ struct thread_data_t {
     task_graph_node_t  *initial_task_graph_node_ref;
 
     bool                is_master_thread; // of current parallel region
+
+    /* The master thread of a paralllel region collects synchronisation nodes
+       which are connected at scope-end */
+    queue_t            *sync_node_queue;
 };
 
 /* Task type */

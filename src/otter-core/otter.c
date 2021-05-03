@@ -164,12 +164,13 @@ on_ompt_callback_thread_begin(
 {   
     thread_data_t *thread_data = malloc(sizeof(*thread_data));
     *thread_data = (thread_data_t) {
-        .id = get_unique_thread_id(),
-        .location = NULL,
-        .region_scope_stack = stack_create(NULL),
+        .id                          = get_unique_thread_id(),
+        .location                    = NULL,
+        .region_scope_stack          = stack_create(NULL),
         .initial_task_graph_node_ref = NULL,
-        .is_master_thread = false,
-        .prior_scope = NULL
+        .is_master_thread            = false,
+        .prior_scope                 = NULL,
+        .sync_node_queue             = queue_create(NULL)
     };
     thread->ptr = thread_data;
 
@@ -302,6 +303,16 @@ on_ompt_callback_parallel_end(
         LOG_DEBUG("[t=%lu] %-6s %s", thread_data->id, "end", "parallel");
 
         trace_event_leave(thread_data->location, parallel_data->region);
+
+        /* process queue of sync nodes to connect enclosed nodes */
+        task_graph_node_t *sync_node = NULL;
+        while (queue_pop(
+            thread_data->sync_node_queue, (queue_item_t*) &sync_node))
+        {
+            connect_enclosed_nodes(parallel_data->scope, sync_node);
+            stack_push(parallel_data->scope->task_graph_nodes,
+                (stack_item_t) {.ptr = sync_node});
+        }
 
         /* make sure enclosed nodes connect to scope-end node */
         connect_enclosed_nodes(parallel_data->scope,
@@ -874,8 +885,8 @@ on_ompt_callback_sync_region(
     if (endpoint == ompt_scope_begin) return;
 
     /* At sync-end:
-        - if enclosing scope is parallel scope, only the master thread cleans 
-            up graph edges
+        - if enclosing scope is parallel scope, master thread collects
+            synchronisation nodes for clean-up at scope-end 
         - otherwise, each thread cleans up edges for its enclosing scope and
             adds the scope-end node to the enclosing scope's stack
     */
@@ -911,11 +922,14 @@ on_ompt_callback_sync_region(
     );
 
     /* Connect nodes enclosed by the present scope to the sync node */
-    connect_enclosed_nodes(enclosing_scope, sync_node);
+    // connect_enclosed_nodes(enclosing_scope, sync_node);
 
     /* Add self to enclosing scope's node stack */
-    stack_push(enclosing_scope->task_graph_nodes,
-        (stack_item_t) {.ptr = sync_node});
+    // stack_push(enclosing_scope->task_graph_nodes,
+    //     (stack_item_t) {.ptr = sync_node});
+
+    /* Add sync node to queue for master thread to process at scope-end */
+    queue_push(thread_data->sync_node_queue, (queue_item_t) {.ptr = sync_node});
     
     return;
 }
@@ -1067,10 +1081,16 @@ connect_prior_scope_node(
         node (check prior_scope->endpoint)
        otherwise connect to the encountering task's node */
 
-    if (encountering_task->type == ompt_task_implicit)
+    if (encountering_task->type == ompt_task_initial)
     {
         task_graph_add_edge(
-            prior_scope->endpoint == ompt_scope_begin?
+            prior_scope == NULL ?
+                encountering_task->task_node_ref : prior_scope->end_node,
+            new_scope_begin_node);
+    } else if (encountering_task->type == ompt_task_implicit)
+    {
+        task_graph_add_edge(
+            prior_scope->endpoint == ompt_scope_begin ?
                 prior_scope->begin_node : prior_scope->end_node,
             new_scope_begin_node);
     } else {

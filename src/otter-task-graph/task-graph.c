@@ -279,7 +279,7 @@ task_graph_write(void)
             );
             break;
         case format_edge:
-            fprintf(taskgraph, "%s,%s\n", "parent_task_id", "child_task_id");
+            fprintf(taskgraph, "%s,%s\n", "parent_node_id", "child_node_id");
             break;
         default:
             LOG_ERROR("invalid output format identifier: %d",
@@ -365,49 +365,49 @@ task_graph_node_style(task_graph_node_type_t node_type)
     static char node_style_str[NODE_STYLE_STR_MAXLEN + 1] = {0};
     static const char *fmt_string = "shape=%s color=%s";
 
+    task_graph_node_type_t node = node_type & ~SCOPE_END_BIT;
+
     char *shape =
-        node_type == node_task_initial  ?               "record" :
-        node_type == node_task_implicit ?               "record" :
-        node_type == node_task_explicit ?               "record" :
-        node_type == node_task_target   ?               "record" :
-        (node_type == node_scope_parallel_begin) 
-            || (node_type == node_scope_parallel_end) ? "parallelogram" :
-        (node_type == node_scope_loop_begin) 
-            || (node_type == node_scope_loop_end) ?     "diamond" :
-        (node_type == node_scope_taskloop_begin) 
-            || (node_type == node_scope_taskloop_end) ? "diamond" :
-        (node_type & ~SCOPE_END_BIT) == node_sync_barrier ?                "hexagon" :
-        (node_type & ~SCOPE_END_BIT) == node_sync_barrier_implicit ?       "hexagon" :
-        (node_type & ~SCOPE_END_BIT) == node_sync_barrier_explicit ?       "hexagon" :
-        (node_type & ~SCOPE_END_BIT) == node_sync_barrier_implementation ? "hexagon" :
-        (node_type & ~SCOPE_END_BIT) == node_sync_taskwait ?               "hexagon" :
-        (node_type == node_scope_sync_taskgroup_begin) 
-            || (node_type == node_scope_sync_taskgroup_end) ? "hexagon" :
-        (node_type == node_scope_single_begin)
-            || (node_type == node_scope_single_end) ? "triangle" :
-                                                        "circle";
+           node == node_task_initial                
+        || node == node_task_implicit          
+        || node == node_task_explicit          
+        || node == node_task_target              ? "record"        :
+           node == node_scope_parallel_begin   
+        || node == node_scope_parallel_end       ? "parallelogram" :
+           node == node_scope_loop_begin          
+        || node == node_scope_loop_end        
+        || node == node_scope_taskloop_begin  
+        || node == node_scope_taskloop_end       ? "diamond"       :
+           node == node_scope_sync_taskgroup_begin
+        || node == node_scope_sync_taskgroup_end ? "hexagon"       :
+           node == node_scope_single_begin
+        || node == node_scope_single_end         ? "triangle"      :
+           node == node_sync_barrier                
+        || node == node_sync_barrier_implicit       
+        || node == node_sync_barrier_explicit       
+        || node == node_sync_barrier_implementation 
+        || node == node_sync_taskwait            ? "hexagon" : "circle";
 
     char *color = 
-        node_type == node_task_initial  ?               "yellow" :
-        node_type == node_task_implicit ?               "blue" :
-        node_type == node_task_explicit ?               "red" :
-        node_type == node_task_target   ?               "purple" :
-        (node_type == node_scope_parallel_begin) 
-            || (node_type == node_scope_parallel_end) ? "green" :
-        (node_type == node_scope_loop_begin) 
-            || (node_type == node_scope_loop_end) ?     "orange" :
-        (node_type == node_scope_taskloop_begin) 
-            || (node_type == node_scope_taskloop_end) ? "cyan" :
-        (node_type & ~SCOPE_END_BIT) == node_sync_barrier ?                "red" :
-        (node_type & ~SCOPE_END_BIT) == node_sync_barrier_implicit ?       "blue" :
-        (node_type & ~SCOPE_END_BIT) == node_sync_barrier_explicit ?       "magenta" :
-        (node_type & ~SCOPE_END_BIT) == node_sync_barrier_implementation ? "green" :
-        (node_type & ~SCOPE_END_BIT) == node_sync_taskwait ?               "cyan" :
-        (node_type == node_scope_sync_taskgroup_begin) 
-            || (node_type == node_scope_sync_taskgroup_end) ? "grey" :
-        (node_type == node_scope_single_begin)
-            || (node_type == node_scope_single_end) ? "orange" :
-                                                        "white";
+        node == node_task_initial                  ? "yellow"  :
+        node == node_task_implicit                 ? "blue"    :
+        node == node_task_explicit                 ? "red"     :
+        node == node_task_target                   ? "purple"  :
+        node == node_scope_parallel_begin
+          || node == node_scope_parallel_end       ? "green"   :
+        node == node_scope_loop_begin
+          || node == node_scope_loop_end           ? "orange"  :
+        node == node_scope_taskloop_begin
+          || node == node_scope_taskloop_end       ? "cyan"    :
+        node == node_sync_barrier                  ? "red"     :
+        node == node_sync_barrier_implicit         ? "blue"    :
+        node == node_sync_barrier_explicit         ? "magenta" :
+        node == node_sync_barrier_implementation   ? "green"   :
+        node == node_sync_taskwait                 ? "cyan"    :
+        node == node_scope_sync_taskgroup_begin
+          || node == node_scope_sync_taskgroup_end ? "grey"    :
+        node == node_scope_single_begin
+          || node == node_scope_single_end         ? "orange"  : "white";
 
     snprintf(&node_style_str[0], NODE_STYLE_STR_MAXLEN,
         fmt_string, shape, color);
@@ -461,9 +461,9 @@ task_graph_node_label(
             fmt_string = "label=\"%s task %lu\"";
             snprintf(node_label_str, NODE_DATA_STR_MAXLEN, fmt_string,
                 type == ompt_task_initial ? "initial" :
-                    type == ompt_task_implicit ? "implicit" :
-                    type == ompt_task_explicit ? "explicit" :
-                    type == ompt_task_target ? "target" : "unknown",
+                type == ompt_task_implicit ? "implicit" :
+                type == ompt_task_explicit ? "explicit" :
+                type == ompt_task_target ? "target" : "unknown",
                 task_data->id
             );
             break;
@@ -486,13 +486,13 @@ task_graph_node_label(
             fmt_string = "label=\"%s\"";
             snprintf(node_label_str, NODE_DATA_STR_MAXLEN, fmt_string,
                 sync_type == node_sync_barrier ? "barrier" :
-                    sync_type == node_sync_barrier_implicit ? "implicit barrier" :
-                    sync_type == node_sync_barrier_explicit ? "explicit barrier" :
-                    sync_type == node_sync_barrier_implementation ? "implementation barrier" :
-                    sync_type == node_sync_taskwait ? "taskwait" :
-                    sync_type == node_scope_sync_taskgroup_begin ? "taskgroup" :
-                    sync_type == node_scope_sync_taskgroup_end ? "taskgroup" :
-                    sync_type == node_sync_reduction ? "reduction" : "unknown barrier"
+                sync_type == node_sync_barrier_implicit ? "implicit barrier" :
+                sync_type == node_sync_barrier_explicit ? "explicit barrier" :
+                sync_type == node_sync_barrier_implementation ? "implementation barrier" :
+                sync_type == node_sync_taskwait ? "taskwait" :
+                sync_type == node_scope_sync_taskgroup_begin ? "taskgroup" :
+                sync_type == node_scope_sync_taskgroup_end ? "taskgroup" :
+                sync_type == node_sync_reduction ? "reduction" : "unknown barrier"
             );
             break;
         }
@@ -601,13 +601,13 @@ task_graph_node_data_repr(
                 "      }\n";
             snprintf(node_data_repr, NODE_DATA_STR_MAXLEN, fmt_string,
                 sync_type == node_sync_barrier ? "barrier" :
-                    sync_type == node_sync_barrier_implicit ? "implicit barrier" :
-                    sync_type == node_sync_barrier_explicit ? "explicit barrier" :
-                    sync_type == node_sync_barrier_implementation ? "implementation barrier" :
-                    sync_type == node_sync_taskwait ? "taskwait" :
-                    sync_type == node_scope_sync_taskgroup_begin ? "taskgroup" :
-                    sync_type == node_scope_sync_taskgroup_end ? "taskgroup" :
-                    sync_type == node_sync_reduction ? "reduction" : "unknown",
+                sync_type == node_sync_barrier_implicit ? "implicit barrier" :
+                sync_type == node_sync_barrier_explicit ? "explicit barrier" :
+                sync_type == node_sync_barrier_implementation ? "implementation barrier" :
+                sync_type == node_sync_taskwait ? "taskwait" :
+                sync_type == node_scope_sync_taskgroup_begin ? "taskgroup" :
+                sync_type == node_scope_sync_taskgroup_end ? "taskgroup" :
+                sync_type == node_sync_reduction ? "reduction" : "unknown",
                 node_type == node_scope_sync_taskgroup_begin ? "begin" : "end"
             );
             break;

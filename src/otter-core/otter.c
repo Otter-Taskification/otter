@@ -375,6 +375,20 @@ on_ompt_callback_task_create(
 {
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
 
+    LOG_DEBUG_TASK_TYPE(encountering_task, new_task, flags);
+
+    /* Intel runtime seems to give the initial task a task-create event while
+       LLVM just gives it an implicit-task-begin event. If compiling with Intel,
+       defer initial task node creation until the implicit-task-begin event for
+       simplicity */
+    #if defined(__INTEL_COMPILER)
+    if (flags && ompt_task_initial)
+    {
+        LOG_DEBUG("Intel detected -> defer intial task node creation until implicit-task-begin");
+        return;
+    }
+    #endif
+
     /* get enclosing scope */
     region_scope_t *scope = NULL;
     stack_peek(thread_data->region_scope_stack, (stack_item_t*) &scope);
@@ -397,16 +411,6 @@ on_ompt_callback_task_create(
     stack_push(scope->task_graph_nodes,
         (stack_item_t) {.ptr = task_data->task_node_ref});
     pthread_mutex_unlock(&scope->lock);
-
-    /* 
-        TODO:
-        ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ?
-       give the task a reference to the scope in which it was created so 
-       child tasks (which may occur in other threads) can share the same scope
-            parent task is implicit -> get scope from thread
-            otherwise -> get scope from parent task
-        ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ?
-    */
 
     /* get the task data of the parent, if it exists */
     task_data_t *parent_task_data = NULL;
@@ -909,12 +913,20 @@ on_ompt_callback_sync_region(
 
     // create graph node for synchronisation construct
     task_graph_node_type_t sync_type = 
-        kind == ompt_sync_region_barrier ? node_sync_barrier :
+        kind == ompt_sync_region_barrier          ? node_sync_barrier :
         kind == ompt_sync_region_barrier_implicit ? node_sync_barrier_implicit :
+
+        #if defined(__INTEL_COMPILER)
+        kind == ompt_sync_region_barrier_implicit_workshare ? node_sync_barrier_implicit :
+        kind == ompt_sync_region_barrier_implicit_parallel  ? node_sync_barrier_implicit :
+        kind == ompt_sync_region_barrier_teams     ? node_sync_barrier_implicit :
+        #endif
+        
         kind == ompt_sync_region_barrier_explicit ? node_sync_barrier_explicit :
         kind == ompt_sync_region_barrier_implementation ? node_sync_barrier_implementation :
-        kind == ompt_sync_region_taskwait ? node_sync_taskwait :
-        kind == ompt_sync_region_reduction ? node_sync_reduction : node_type_unknown;
+        kind == ompt_sync_region_taskwait          ? node_sync_taskwait :
+        kind == ompt_sync_region_reduction         ? node_sync_reduction :
+            node_type_unknown;
 
     task_graph_node_t *sync_node = task_graph_add_node(
         SET_BIT_SCOPE_END(sync_type),

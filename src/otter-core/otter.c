@@ -14,6 +14,7 @@
 
 #include <otter-common.h>
 #include <otter-core/otter-entry.h>
+#include <otter-core/otter-environment-variables.h>
 #include <otter-core/otter.h>
 #include <otter-datatypes/graph.h>
 #include <otter-task-graph/task-graph.h>
@@ -88,19 +89,18 @@ tool_setup(
     };
 
     opt.hostname = host;
-    opt.graph_output = getenv("OTTER_TASK_GRAPH_OUTPUT");
-    opt.graph_format = getenv("OTTER_TASK_GRAPH_FORMAT");
-    opt.graph_nodeattr = getenv("OTTER_TASK_GRAPH_NODEATTR");
+    opt.graph_output = getenv(ENV_VAR_GRAPH_FILE);
+    opt.graph_format = getenv(ENV_VAR_GRAPH_FMT);
+    opt.graph_nodeattr = getenv(ENV_VAR_NODE_ATTR_FILE);
     opt.append_hostname = 
-        getenv("OTTER_APPEND_HOSTNAME") == NULL ? false : true;
+        getenv(ENV_VAR_APPEND_HOST) == NULL ? false : true;
 
     LOG_INFO("Otter environment variables:");
-    LOG_INFO("%-30s %s", "host", opt.hostname);
-    LOG_INFO("%-30s %s", "OTTER_TASK_GRAPH_OUTPUT", opt.graph_output);
-    LOG_INFO("%-30s %s", "OTTER_TASK_GRAPH_FORMAT", opt.graph_format);
-    LOG_INFO("%-30s %s", "OTTER_TASK_GRAPH_NODEATTR", opt.graph_nodeattr);
-    LOG_INFO("%-30s %s",
-        "OTTER_APPEND_HOSTNAME",opt.append_hostname ? "Yes" : "No");
+    LOG_INFO("%-30s %s","host", opt.hostname);
+    LOG_INFO("%-30s %s",ENV_VAR_GRAPH_FILE, opt.graph_output);
+    LOG_INFO("%-30s %s",ENV_VAR_GRAPH_FMT, opt.graph_format);
+    LOG_INFO("%-30s %s",ENV_VAR_NODE_ATTR_FILE, opt.graph_nodeattr);
+    LOG_INFO("%-30s %s",ENV_VAR_APPEND_HOST,opt.append_hostname?"Yes":"No");
 
     task_graph_init(&opt);
     trace_initialise_archive(&opt);

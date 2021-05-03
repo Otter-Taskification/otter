@@ -596,7 +596,7 @@ task_graph_node_data_repr(
             int sync_type = node_type & ~SCOPE_END_BIT;
             fmt_string = "\n"
                 "      {\n"
-                "        \"sync_type\":     \"%s\"\n"
+                "        \"sync_type\":     \"%s\",\n"
                 "        \"sync_endpoint\": \"%s\"\n"
                 "      }\n";
             snprintf(node_data_repr, NODE_DATA_STR_MAXLEN, fmt_string,

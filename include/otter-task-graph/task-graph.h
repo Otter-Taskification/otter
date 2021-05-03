@@ -10,7 +10,7 @@
 
 #define TASK_GRAPH_BUFFSZ                   512
 #define TASK_GRAPH_DEFAULT_GRAPH_NAME       "OTTER_TASK_GRAPH"
-#define TASK_GRAPH_DEFAULT_GRAPH_ATTR_NAME  "OTTER_TASK_GRAPH_NODE_ATTR.csv"
+#define TASK_GRAPH_DEFAULT_GRAPH_ATTR_NAME  "OTTER_TASK_GRAPH_NODE_ATTR.json"
 #define PID_STR_SZ 32
 
 /* Alias graph types to distinguish graph elements created/owned by task graph

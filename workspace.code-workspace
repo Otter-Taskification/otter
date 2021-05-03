@@ -24,7 +24,8 @@
             "type_traits": "c",
             "utility": "c",
             "fstream": "cpp",
-            "bit": "cpp"
+            "bit": "cpp",
+            "cstdlib": "c"
         }
     }
 }

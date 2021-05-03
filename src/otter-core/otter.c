@@ -871,6 +871,8 @@ on_ompt_callback_sync_region(
         return;
     }
 
+    if (endpoint == ompt_scope_begin) return;
+
     /* At sync-end:
         - if enclosing scope is parallel scope, only the master thread cleans 
             up graph edges
@@ -883,10 +885,14 @@ on_ompt_callback_sync_region(
     stack_peek(thread_data->region_scope_stack,
         (stack_item_t*) &enclosing_scope);
     LOG_ERROR_IF((enclosing_scope==NULL), "failed to get enclosing scope");
+
+    /* if enclosing_scope is NULL, use prior_scope instead - don't expect this
+       to happen normally (suggests scopes are not properly nested as expected)
+    */
+    if (enclosing_scope == NULL) enclosing_scope = thread_data->prior_scope;
     
-    bool finalise_barrier = endpoint == ompt_scope_end && 
-        (enclosing_scope->type != scope_parallel 
-            || thread_data->is_master_thread);
+    bool finalise_barrier = (enclosing_scope->type != scope_parallel 
+                            || thread_data->is_master_thread);
 
     if (!(finalise_barrier)) return;
 

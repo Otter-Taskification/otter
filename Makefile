@@ -78,7 +78,7 @@ $(LIBDTYPE): $(DTYPESRC) $(DTYPEHEAD)
 	@echo COMPILING: $@ debug=$(DEBUG_ODT), DTYPE_DEFS=$(DTYPE_DEFS)
 	$(CC) $(CFLAGS) $(DTYPE_DEFS) $(LDFLAGS) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_ODT) $(DTYPESRC) -shared -fPIC -o $@
 
-run: $(BINS)
+run: $(BINS) cleanfiles
 	@OMP_TOOL_LIBRARIES=`pwd`/$(OTTER) ./$(EXE)
 
 clean:

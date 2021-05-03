@@ -382,6 +382,8 @@ task_graph_node_style(task_graph_node_type_t node_type)
         (node_type & ~SCOPE_END_BIT) == node_sync_barrier_implementation ? "hexagon" :
         (node_type == node_scope_sync_taskgroup_begin) 
             || (node_type == node_scope_sync_taskgroup_end) ? "hexagon" :
+        (node_type == node_scope_single_begin)
+            || (node_type == node_scope_single_end) ? "triangle" :
                                                         "circle";
 
     char *color = 
@@ -401,6 +403,8 @@ task_graph_node_style(task_graph_node_type_t node_type)
         (node_type & ~SCOPE_END_BIT) == node_sync_barrier_implementation ? "green" :
         (node_type == node_scope_sync_taskgroup_begin) 
             || (node_type == node_scope_sync_taskgroup_end) ? "darkgrey" :
+        (node_type == node_scope_single_begin)
+            || (node_type == node_scope_single_end) ? "orange" :
                                                         "white";
 
     snprintf(&node_style_str[0], NODE_STYLE_STR_MAXLEN,

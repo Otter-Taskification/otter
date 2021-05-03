@@ -43,7 +43,7 @@ static region_scope_t *new_scope(scope_t type, void *data);
 static void connect_prior_scope_node(
     region_scope_t      *prior_scope,
     task_graph_node_t   *new_scope_begin_node,
-    task_graph_node_t   *encountering_task_node);
+    task_data_t         *encountering_task);
 
 /* At scope-end, connect all enclosed nodes if not already connected */
 static void connect_enclosed_nodes(
@@ -263,7 +263,7 @@ on_ompt_callback_parallel_begin(
     connect_prior_scope_node(
         thread_data->prior_scope,
         parallel_data->scope->begin_node,
-        task_data->task_node_ref
+        task_data
     );
 
     // LOG_DEBUG_PARALLEL_RGN_TYPE(flags, parallel_data->id);
@@ -509,6 +509,9 @@ on_ompt_callback_implicit_task(
             stack_push(thread_data->region_scope_stack,
                 (stack_item_t) {.ptr = parallel_data->scope});
             thread_data->prior_scope = parallel_data->scope;
+            #if DEBUG_LEVEL >= 4
+            stack_print(thread_data->region_scope_stack);
+            #endif
 
             /* implicit tasks don't get graph nodes, instead they refer back to
                the enclosing parallel region's begin node */
@@ -698,14 +701,16 @@ on_ompt_callback_work(
     LOG_DEBUG_WORK_TYPE(thread_data->id, wstype, count,
         endpoint==ompt_scope_begin?"begin":"end");
 
-    if ( (true)
-        || (wstype == ompt_work_loop)
-        || (wstype == ompt_work_sections)
-        || (wstype == ompt_work_single_executor)
-        || (wstype == ompt_work_taskloop))
+    if ((wstype == ompt_work_loop)
+      ||(wstype == ompt_work_sections)
+      ||(wstype == ompt_work_single_executor)
+      ||(wstype == ompt_work_taskloop))
     {
         if (endpoint == ompt_scope_begin)
         {
+
+            LOG_INFO(" ->>>%d <<<-", wstype);
+
             region_scope_t *scope = new_scope(
                 wstype == ompt_work_loop            ? scope_loop     :
                 wstype == ompt_work_sections        ? scope_sections :
@@ -714,6 +719,8 @@ on_ompt_callback_work(
                     scope_unknown,
                 NULL
             );
+
+            LOG_ERROR_IF((scope->type == scope_unknown), "unknown scope");
 
             /* get the current scope */
             region_scope_t *current_scope = NULL;
@@ -731,11 +738,14 @@ on_ompt_callback_work(
             /* At scope-begin, if the prior scope was a scope-end, link together
             otherwise, link to encountering task  */
             connect_prior_scope_node(thread_data->prior_scope,
-                scope->begin_node, task_data->task_node_ref);
+                scope->begin_node, task_data);
             
             stack_push(thread_data->region_scope_stack,
                 (stack_item_t) {.ptr = scope});
             thread_data->prior_scope = scope;
+            #if DEBUG_LEVEL >= 4
+            stack_print(thread_data->region_scope_stack);
+            #endif
 
         } else {
 
@@ -819,10 +829,17 @@ on_ompt_callback_sync_region(
         {
             region_scope_t *scope = new_scope(scope_sync_taskgroup, NULL);
 
+            #if DEBUG_LEVEL >= 4
+            LOG_DEBUG(" ### Printing thread's scope stack ### ");
+            stack_print(thread_data->region_scope_stack);
+            #endif
+
             /* get the current scope */
             region_scope_t *current_scope = NULL;
             stack_peek(thread_data->region_scope_stack,
                 (stack_item_t*) &current_scope);
+
+            LOG_DEBUG("current scope type: %d", current_scope->type);
 
             /* add begin and end nodes to enclosing scope's stack of nodes */
             pthread_mutex_lock(&current_scope->lock);
@@ -832,14 +849,17 @@ on_ompt_callback_sync_region(
                 (stack_item_t) {.ptr = scope->end_node});
             pthread_mutex_unlock(&current_scope->lock);
 
-            /* connect to prior scope node */
+            /* connect to current scope's node */
             connect_prior_scope_node(thread_data->prior_scope,
-                scope->begin_node, task_data->task_node_ref);
+                scope->begin_node, task_data);
 
             /* record new scope as the current scope */
             stack_push(thread_data->region_scope_stack,
                 (stack_item_t) {.ptr = scope});
             thread_data->prior_scope = scope;
+            #if DEBUG_LEVEL >= 4
+            stack_print(thread_data->region_scope_stack);
+            #endif
 
         } else {
             stack_pop(thread_data->region_scope_stack,
@@ -1030,12 +1050,28 @@ static void
 connect_prior_scope_node(
     region_scope_t      *prior_scope,
     task_graph_node_t   *new_scope_begin_node,
-    task_graph_node_t   *encountering_task_node)
+    task_data_t         *encountering_task)
 {
-    if ((prior_scope != NULL) && (prior_scope->endpoint == ompt_scope_end))
-        task_graph_add_edge(prior_scope->end_node, new_scope_begin_node);
-    else
-        task_graph_add_edge(encountering_task_node, new_scope_begin_node);
+    // if ((prior_scope != NULL) && (prior_scope->endpoint == ompt_scope_end))
+    //     task_graph_add_edge(prior_scope->end_node, new_scope_begin_node);
+    // else
+    //     task_graph_add_edge(encountering_task_node, new_scope_begin_node);
+
+    /* if the encountering task is implicit, connect to the prior scope's last
+        node (check prior_scope->endpoint)
+       otherwise connect to the encountering task's node */
+
+    if (encountering_task->type == ompt_task_implicit)
+    {
+        task_graph_add_edge(
+            prior_scope->endpoint == ompt_scope_begin?
+                prior_scope->begin_node : prior_scope->end_node,
+            new_scope_begin_node);
+    } else {
+        task_graph_add_edge(encountering_task->task_node_ref,
+            new_scope_begin_node);
+    }
+
     return;
 }
 

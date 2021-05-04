@@ -38,10 +38,12 @@ TRACESRC   = $(wildcard src/otter-trace/*.c)
 TRACEHEAD  = $(wildcard include/otter-trace/*.h)        $(COMMON_H)
 DTYPESRC   = $(wildcard src/otter-datatypes/*.c)
 DTYPEHEAD  = $(wildcard include/otter-datatypes/*.h)    $(COMMON_H)
-OMPSRC     = $(wildcard src/otter-demo/*.c)
+OMPSRC     = $(wildcard src/otter-demo/*c)
 OMPEXE     = $(patsubst src/otter-demo/omp-%.c, omp-%, $(OMPSRC))
+OMPSRC_CPP = $(wildcard src/otter-demo/*.cpp)
+OMPEXE_CPP = $(patsubst src/otter-demo/omp-%.cpp, omp-%, $(OMPSRC_CPP))
 
-BINS = $(OTTER) $(LIBGRAPH) $(LIBDTYPE) $(LIBTRACE) $(OMPEXE)
+BINS = $(OTTER) $(LIBGRAPH) $(LIBDTYPE) $(LIBTRACE) $(OMPEXE) $(OMPEXE_CPP)
 
 .PHONY: all clean cleanfiles run
 
@@ -56,6 +58,11 @@ exe:       $(OMPEXE)
 $(OMPEXE): $(OMPSRC)
 	@echo COMPILING: $@
 	$(CC) $(CFLAGS) $(DEBUG) -fopenmp src/otter-demo/$@.c -o $@
+	@echo $@ links to `ldd $@ | grep "[lib|libi|libg]omp"`
+
+$(OMPEXE_CPP): $(OMPSRC_CPP)
+	@echo COMPILING: $@
+	$(CXX) $(CFLAGS) $(DEBUG) -fopenmp src/otter-demo/$@.cpp -o $@
 	@echo $@ links to `ldd $@ | grep "[lib|libi|libg]omp"`
 
 ### Otter as a dynamic tool to be loaded by the runtime

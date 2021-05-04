@@ -76,6 +76,8 @@ struct thread_data_t {
     unique_id_t           id;
     trace_location_def_t *location;
 
+    ompt_thread_t       type;
+
     /* Record the sequence of nested regions that led to the current scope */
     stack_t            *region_scope_stack;
 
@@ -120,8 +122,8 @@ struct task_data_t {
     */
     task_data_t        *workshare_child_task;
 
-    /* track the scope that encloses this task */
-    // region_scope_t   *scope;
+    /* track the scope that encloses this task so that child tasks inherit */
+    region_scope_t   *scope;
 
 };
 

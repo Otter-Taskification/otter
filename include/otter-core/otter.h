@@ -40,7 +40,7 @@
 #define implements_callback_sync_region
 #include <otter-core/ompt-callback-prototypes.h>
 
-/* Used as an array index to keep track of unique id's for different entities */
+/* Used as an array index to keep track of unique ids for different entities */
 typedef enum unique_id_type_t {
     id_timestamp        ,
     id_parallel         ,
@@ -53,79 +53,7 @@ typedef enum unique_id_type_t {
 #define get_unique_task_id()     get_unique_id(id_task)
 #define get_dummy_time()         get_unique_id(id_timestamp)
 
-/* forward declarations */
-typedef struct parallel_data_t parallel_data_t;
-typedef struct thread_data_t thread_data_t;
-typedef struct task_data_t task_data_t;
-typedef struct region_scope_t region_scope_t;
-
-/* Parallel region type */
-struct parallel_data_t {
-    unique_id_t         id;
-    int                 flags;
-    unsigned int        actual_parallelism;
-    task_graph_node_t  *parallel_begin_node_ref;
-    task_graph_node_t  *parallel_end_node_ref;
-    task_data_t        *encountering_task_data;
-    trace_region_def_t *region;
-    region_scope_t     *scope;
-};
-
-/* Thread type */
-struct thread_data_t {
-    unique_id_t           id;
-    trace_location_def_t *location;
-
-    ompt_thread_t       type;
-
-    /* Record the sequence of nested regions that led to the current scope */
-    stack_t            *region_scope_stack;
-
-    /* Scope most recently popped from OR pushed to the region_scope_stack */
-    region_scope_t     *prior_scope;
-
-    /* Record a reference to an initial task's graph node for a subsequent
-       parallel region */
-    task_graph_node_t  *initial_task_graph_node_ref;
-
-    bool                is_master_thread; // of current parallel region
-
-    /* The master thread of a paralllel region collects synchronisation nodes
-       which are connected at scope-end */
-    queue_t            *sync_node_queue;
-};
-
-/* Task type */
-struct task_data_t {
-    unique_id_t         id;
-    task_graph_node_t  *task_node_ref;
-    ompt_task_flag_t    type;
-    ompt_task_flag_t    flags;
-
-    /* only accessed by implicit tasks which are children of an initial task to
-       atomically register as children of the initial task. This is because the
-       implicit-task-begin event happens in the scope of the implicit child
-       task rather than in that of the initial parent task
-     */
-    pthread_mutex_t    *lock;
-
-    unique_id_t         enclosing_parallel_id;
-
-    /* For tasks that encounter a workshare construct, this represents the 
-       pseudo-task of the workshare construct. Any tasks generated during the
-       workshare construct should be considered children of this pseudo-task
-       rather than of the task that encountered the workshare region.
-
-       Only allocated/deallocated in ompt_callback_work.
-
-       Only accessed in task_create.
-    */
-    task_data_t        *workshare_child_task;
-
-    /* track the scope that encloses this task so that child tasks inherit */
-    region_scope_t   *scope;
-
-};
+unique_id_t get_unique_id(unique_id_type_t id_type);
 
 /* Label the various kinds of scopes that a thread can encounter */
 typedef enum {
@@ -158,17 +86,7 @@ typedef enum {
         scope_sync_reduction
     */
 
-} scope_t;
-
-struct region_scope_t {
-    scope_t                 type;
-    ompt_scope_endpoint_t   endpoint;
-    void                   *data;
-    stack_t                *task_graph_nodes;
-    task_graph_node_t      *begin_node;
-    task_graph_node_t      *end_node;
-    pthread_mutex_t         lock;
-};
+} scope_type_t;
 
 /* ancestor level for innermost parallel region */
 #define INNER 0

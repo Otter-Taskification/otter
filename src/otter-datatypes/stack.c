@@ -8,19 +8,17 @@
 typedef struct node_t node_t;
 
 struct node_t {
-    stack_item_t    data;
+    data_item_t    data;
     node_t         *next;
 };
 
 struct stack_t {
     node_t      *head;
-    // node_t      *tail;
     size_t       size;
-    data_destructor_t destroy;
 };
 
 stack_t *
-stack_create(data_destructor_t destructor)
+stack_create(void)
 {
     stack_t *s = malloc(sizeof(*s));
     if (s == NULL)
@@ -31,14 +29,11 @@ stack_create(data_destructor_t destructor)
     LOG_DEBUG("%p", s);
     s->head = NULL;
     s->size = 0;
-    LOG_DEBUG_IF(destructor == NULL,
-        "%p: destructor is free()", s);
-    s->destroy = destructor == NULL ? &free : destructor;
     return s;
 }
 
 bool           
-stack_push(stack_t *s, stack_item_t item)
+stack_push(stack_t *s, data_item_t item)
 {
     if (s == NULL)
     {
@@ -50,7 +45,7 @@ stack_push(stack_t *s, stack_item_t item)
 
     if (node == NULL)
     {
-        LOG_ERROR("stack node creation failed for stack %p", s);
+        LOG_ERROR("failed to push item onto stack %p", s);
         return false;
     }
 
@@ -65,7 +60,7 @@ stack_push(stack_t *s, stack_item_t item)
 }
 
 bool   
-stack_pop(stack_t *s, stack_item_t *dest)
+stack_pop(stack_t *s, data_item_t *dest)
 {
     if (s == NULL)
     {
@@ -88,16 +83,17 @@ stack_pop(stack_t *s, stack_item_t *dest)
         free(node);
     }
     LOG_DEBUG_IF((dest != NULL), "%p[0] -> %p", s, dest->ptr);
-    LOG_WARN_IF(dest == NULL,
-        "stack popped item without returning value (null destination pointer)");
+    LOG_WARN_IF(dest == NULL, "popped item without returning value "
+                              "(no destination pointer)");
 
     return true;
 }
 
 bool
-stack_peek(stack_t *s, stack_item_t *dest)
+stack_peek(stack_t *s, data_item_t *dest)
 {
-    if ((s == NULL) || (dest == NULL) || ((s->head == NULL))) return false;
+    if ((s == NULL) || (dest == NULL) || ((s->head == NULL)))
+        return false;
     *dest = s->head->data;
     return true;
 }
@@ -115,21 +111,17 @@ stack_is_empty(stack_t *s)
 }
 
 void           
-stack_destroy(stack_t *s, bool items)
+stack_destroy(stack_t *s, bool items, data_destructor_t destructor)
 {
     if (s == NULL) return;
-    if (items)
+    LOG_WARN_IF((s->size != 0 && items == false),
+        "destroying stack %p (len=%lu) without destroying items may cause "
+        "memory leak", s, s->size);
+    data_item_t d = {.ptr = NULL};
+    while(stack_pop(s, &d))
     {
-        stack_item_t d = {.value = 0};
-        while(stack_pop(s, &d))
-        {
-            LOG_DEBUG("%p[0/%lu]=%p", s, s->size-1, d.ptr);
-            s->destroy(d.ptr);
-        }
-    } else {
-        LOG_WARN_IF(((s->size != 0)),
-            "destroying stack %p (len=%lu) without destroying items may cause "
-            "memory leak", s, s->size);
+        LOG_DEBUG("%p[0/%lu]=%p", s, s->size-1, d.ptr);
+        if (items) destructor != NULL ? destructor(d.ptr) : free(d.ptr) ;
     }
     LOG_DEBUG("%p", s);
     free(s);

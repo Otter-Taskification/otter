@@ -240,11 +240,9 @@ trace_initialise_archive(otter_opt_t *opt)
             Type);
     #include <otter-trace/trace-attribute-defs.h>
 
-    /* Initialise location & definition queues with destructors for each
-       definition in the queue
-     */
-    trace_location_queue = queue_create(&trace_write_location_definition);
-    trace_region_queue = queue_create(&trace_write_region_definition);
+    /* Initialise location & definition queues */
+    trace_location_queue = queue_create();
+    trace_region_queue = queue_create();
 
     return true;
 }
@@ -271,7 +269,7 @@ trace_finalise_archive()
 
     /* * * * WRITE   LOCATION   DEFINITIONS * * * */
     // trace_location_def_t *loc = NULL;
-    // queue_item_t *item = NULL;
+    // data_item_t *item = NULL;
     // int location_count = 0;
     // int event_count = 0;
     // char location_name[32] = {0};
@@ -338,8 +336,8 @@ trace_finalise_archive()
     /* Destroy location and region queues - destructor takes care of
        writing to archive
      */
-    queue_destroy(trace_location_queue, true);
-    queue_destroy(trace_region_queue, true);
+    queue_destroy(trace_location_queue, true, &trace_write_location_definition);
+    queue_destroy(trace_region_queue, true, &trace_write_region_definition);
 
     /* close OTF2 archive */
     OTF2_Archive_Close(Archive);
@@ -415,7 +413,7 @@ trace_new_location_definition(
 
     /* add location definition to global queue */
     pthread_mutex_lock(&trace_location_queue_lock);
-    queue_push(trace_location_queue, (queue_item_t) {.ptr = new});
+    queue_push(trace_location_queue, (data_item_t) {.ptr = new});
     pthread_mutex_unlock(&trace_location_queue_lock);
 
     return new;
@@ -435,7 +433,7 @@ trace_new_region_definition(
 
     /* add region definition data to global queue */
     pthread_mutex_lock(&trace_region_queue_lock);
-    queue_push(trace_region_queue, (queue_item_t) {.ptr = new});
+    queue_push(trace_region_queue, (data_item_t) {.ptr = new});
     pthread_mutex_unlock(&trace_region_queue_lock);
 
     return new;

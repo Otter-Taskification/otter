@@ -8,7 +8,7 @@
 typedef struct node_t node_t;
 
 struct node_t {
-    queue_item_t    data;
+    data_item_t    data;
     node_t         *next;
 };
 
@@ -16,11 +16,10 @@ struct queue_t {
     node_t      *head;
     node_t      *tail;
     size_t       length;
-    data_destructor_t destroy;
 };
 
 queue_t *
-queue_create(data_destructor_t destructor)
+queue_create(void)
 {
     queue_t *q = malloc(sizeof(*q));
     if (q == NULL)
@@ -31,14 +30,11 @@ queue_create(data_destructor_t destructor)
     LOG_DEBUG("%p", q);
     q->head = q->tail = NULL;
     q->length = 0;
-    LOG_DEBUG_IF(destructor == NULL,
-        "%p: destructor is free()", q);
-    q->destroy = destructor == NULL ? &free : destructor;
     return q;
 }
 
 bool           
-queue_push(queue_t *q, queue_item_t item)
+queue_push(queue_t *q, data_item_t item)
 {
     if (q == NULL)
     {
@@ -73,7 +69,7 @@ queue_push(queue_t *q, queue_item_t item)
 }
 
 bool   
-queue_pop(queue_t *q, queue_item_t *dest)
+queue_pop(queue_t *q, data_item_t *dest)
 {
     if (q == NULL)
     {
@@ -112,19 +108,17 @@ queue_is_empty(queue_t *q)
 }
 
 void           
-queue_destroy(queue_t *q, bool items)
+queue_destroy(queue_t *q, bool items, data_destructor_t destructor)
 {
     if (q == NULL) return;
-
-    LOG_WARN_IF(((q->length != 0) && (items == false)),
+    LOG_WARN_IF((q->length != 0 && items == false),
         "destroying queue %p (len=%lu) without destroying items may cause "
         "memory leak", q, q->length);
-
-    queue_item_t d = {.value = 0};
+    data_item_t d = {.ptr = NULL};
     while(queue_pop(q, &d))
     {
         LOG_DEBUG("%p[0/%lu]=%p", q, q->length-1, d.ptr);
-        if (items) q->destroy(d.ptr);
+        if (items) destructor != NULL ? destructor(d.ptr) : free(d.ptr) ;
     }
     LOG_DEBUG("%p", q);
     free(q);
@@ -173,7 +167,7 @@ queue_append(
 void
 queue_scan(
     queue_t *q,
-    queue_item_t *dest,
+    data_item_t *dest,
     void **next)
 {
     if ((next == NULL) || (dest == NULL))

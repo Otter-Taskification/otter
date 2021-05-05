@@ -13,42 +13,32 @@
 #include <otter-ompt-header.h>
 
 #include <otter-common.h>
+#include <otter-core/otter.h>
+#include <otter-core/otter-structs.h>
 #include <otter-core/otter-entry.h>
 #include <otter-core/otter-environment-variables.h>
-#include <otter-core/otter.h>
 #include <otter-datatypes/graph.h>
 #include <otter-task-graph/task-graph.h>
 #include <otter-trace/trace.h>
 
 /* Static function prototypes */
 static void print_resource_usage(void);
-static unique_id_t get_unique_id(unique_id_type_t id_type);
 
 /* Callback used by task-graph to allow otter to control destruction of graph
    node data */
 static void destroy_graph_node_data(
     void *node_data, graph_node_type_t node_type);
 
-/* Task data constructor */
-static task_data_t *new_task_data(
-    unique_id_t      id,
-    ompt_task_flag_t flags,
-    unique_id_t      parallel
-);
-
-/* Scope constructor */
-static region_scope_t *new_scope(scope_t type, void *data);
-
 /* At scope-begin, if the prior scope was a scope-end, link together
    otherwise, link to encountering task */
 static void connect_prior_scope_node(
-    region_scope_t      *prior_scope,
-    task_graph_node_t   *new_scope_begin_node,
+    scope_t      *prior_scope,
+    task_graph_node_t   *scope_create_begin_node,
     task_data_t         *encountering_task);
 
 /* At scope-end, connect all enclosed nodes if not already connected */
 static void connect_enclosed_nodes(
-    region_scope_t *scope,
+    scope_t *scope,
     task_graph_node_t *tail_node);
 
 /* OMPT entrypoint signatures */
@@ -113,18 +103,34 @@ tool_setup(
     trace_initialise_archive(&opt);
 
     /* set up global scope queue */
-    global_scope_queue = queue_create(NULL);
+    global_scope_queue = queue_create();
 
     return;
 }
 
+/* Call appropriate destructor for the different kinds of data referenced by 
+   task graph nodes */
 static void
 destroy_graph_node_data(
     void               *node_data,
     graph_node_type_t   node_type)
 {
     LOG_DEBUG("(0x%x) %p", node_type, node_data);
-    if (node_type & SCOPE_END_BIT) free(node_data); // prevent double-free
+
+    switch (node_type)
+    {
+        case node_task_initial:
+        case node_task_implicit:
+        case node_task_explicit:
+        case node_task_target:
+            task_destroy((task_data_t*) node_data);
+            break;
+        case node_scope_parallel_begin:
+            parallel_destroy((parallel_data_t*) node_data);
+            break;
+        default:
+            break;
+    }
     return;
 }
 
@@ -172,23 +178,14 @@ on_ompt_callback_thread_begin(
     ompt_thread_t            thread_type,
     ompt_data_t             *thread)
 {   
-    thread_data_t *thread_data = malloc(sizeof(*thread_data));
-    *thread_data = (thread_data_t) {
-        .id                          = get_unique_thread_id(),
-        .location                    = NULL,
-        .type                        = thread_type,
-        .region_scope_stack          = stack_create(NULL),
-        .initial_task_graph_node_ref = NULL,
-        .is_master_thread            = false,
-        .prior_scope                 = NULL,
-        .sync_node_queue             = queue_create(NULL)
-    };
+    thread_data_t *thread_data = new_thread_data(thread_type);
     thread->ptr = thread_data;
 
     thread_data->location = trace_new_location_definition(
         thread_data->id,
         OTF2_LOCATION_TYPE_CPU_THREAD,
         DEFAULT_LOCATION_GRP);
+
     trace_event_thread_begin(thread_data->location);
 
     LOG_DEBUG_THREAD_TYPE(thread_type, thread_data->id);
@@ -212,25 +209,24 @@ static void
 on_ompt_callback_thread_end(
     ompt_data_t             *thread)
 {
-    // if ((thread != NULL) && (thread->ptr != NULL)) 
-    // {
     thread_data_t *thread_data = thread->ptr;
     LOG_DEBUG_THREAD_TYPE(thread_data->type, thread_data->id);
     trace_event_thread_end(thread_data->location);
-    stack_destroy(thread_data->region_scope_stack, false);
-    free (thread_data);
-    // }
-
-    LOG_DEBUG_IF((thread_data->type == ompt_thread_initial), "CLEANUP");
 
     if (thread_data->type == ompt_thread_initial)
     {
+        LOG_DEBUG("final clean-up...");
         // Clean up edges of child nodes of the scopes in the global queue
-        region_scope_t *scope = NULL;
-        task_graph_node_t *node = NULL;
-        while (queue_pop(global_scope_queue, (queue_item_t*) &scope))
+        scope_t *scope = NULL;
+        while (queue_pop(global_scope_queue, (data_item_t*) &scope))
+        {
             connect_enclosed_nodes(scope, scope->end_node);
+            scope_destroy(scope);
+        }
+        queue_destroy(global_scope_queue, false, NULL);
     }
+
+    thread_destroy(thread_data);
 
     return;
 }
@@ -260,21 +256,8 @@ on_ompt_callback_parallel_begin(
     thread_data->is_master_thread = true;
 
     /* assign space for this parallel region */
-    parallel_data_t *parallel_data = malloc(sizeof(*parallel_data));
-    *parallel_data = (parallel_data_t) {
-        .id = get_unique_parallel_id(),
-        .flags = flags,
-        .actual_parallelism = 0,
-        .parallel_begin_node_ref = NULL,
-        .parallel_end_node_ref = NULL,
-        .region = NULL
-    };
+    parallel_data_t *parallel_data = new_parallel_data(flags);
     parallel->ptr = parallel_data;
-
-    /* NOTE: don't push scope onto thread stack UNTIL implicit-task-begin */
-    parallel_data->scope = new_scope(scope_parallel, parallel_data);
-    parallel_data->parallel_begin_node_ref = parallel_data->scope->begin_node;
-    parallel_data->parallel_end_node_ref = parallel_data->scope->end_node;
 
     /* create trace region definition */
     parallel_data->region = trace_new_region_definition(
@@ -294,7 +277,7 @@ on_ompt_callback_parallel_begin(
     /* At scope-begin, add to global queue for eventual clean-up at tool-exit */
     pthread_mutex_lock(&global_scope_queue_lock);
     queue_push(global_scope_queue,
-        (queue_item_t) {.ptr = parallel_data->scope});
+        (data_item_t) {.ptr = parallel_data->scope});
     pthread_mutex_unlock(&global_scope_queue_lock);
 
     // LOG_DEBUG_PARALLEL_RGN_TYPE(flags, parallel_data->id);
@@ -322,7 +305,7 @@ on_ompt_callback_parallel_end(
 {
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
 
-    region_scope_t *scope = NULL;
+    scope_t *scope = NULL;
 
     if ((parallel == NULL) || (parallel->ptr == NULL))
     {
@@ -337,11 +320,11 @@ on_ompt_callback_parallel_end(
         /* process queue of sync nodes to connect enclosed nodes */
         task_graph_node_t *sync_node = NULL;
         while (queue_pop(
-            thread_data->sync_node_queue, (queue_item_t*) &sync_node))
+            thread_data->sync_node_queue, (data_item_t*) &sync_node))
         {
             connect_enclosed_nodes(parallel_data->scope, sync_node);
             stack_push(parallel_data->scope->task_graph_nodes,
-                (stack_item_t) {.ptr = sync_node});
+                (data_item_t) {.ptr = sync_node});
         }
 
         /* make sure enclosed nodes connect to scope-end node */
@@ -419,10 +402,10 @@ on_ompt_callback_task_create(
     #endif
 
     /* get enclosing scope */
-    region_scope_t *scope = NULL;
+    scope_t *scope = NULL;
 
     /* make space for the newly-created task */
-    task_data_t *task_data = new_task_data(get_unique_task_id(), flags, 0L);
+    task_data_t *task_data = new_task_data(get_unique_task_id(), flags);
     task_graph_node_type_t node_type = 
         flags & ompt_task_initial  ? node_task_initial  :
         flags & ompt_task_implicit ? node_task_implicit :
@@ -437,7 +420,7 @@ on_ompt_callback_task_create(
     /* include task's node in the scope's stack */
     // pthread_mutex_lock(&scope->lock);
     // stack_push(scope->task_graph_nodes,
-    //     (stack_item_t) {.ptr = task_data->task_node_ref});
+    //     (data_item_t) {.ptr = task_data->task_node_ref});
     // pthread_mutex_unlock(&scope->lock);
 
     /* get the task data of the parent, if it exists */
@@ -456,7 +439,7 @@ on_ompt_callback_task_create(
         {
             /* Store thread's scope for child tasks to inherit */
             stack_peek(thread_data->region_scope_stack,
-                (stack_item_t*) &task_data->scope);
+                (data_item_t*) &task_data->scope);
 
             /* Connect task's node to enclosing scope's begin node */
             task_graph_add_edge(task_data->scope->begin_node,
@@ -475,7 +458,7 @@ on_ompt_callback_task_create(
         /* Attach self to scope's task nodes for eventual cleanup */
         pthread_mutex_lock(&task_data->scope->lock);
         stack_push(task_data->scope->task_graph_nodes,
-            (stack_item_t) {.ptr = task_data->task_node_ref});
+            (data_item_t) {.ptr = task_data->task_node_ref});
         pthread_mutex_unlock(&task_data->scope->lock);
     }
             
@@ -545,7 +528,7 @@ on_ompt_callback_implicit_task(
 			task_data = (task_data_t*) task->ptr;
 		} else {			
 			/* make space for this initial or implicit task */
-			task_data = new_task_data(get_unique_task_id(), flags, 0L);
+			task_data = new_task_data(get_unique_task_id(), flags);
             task->ptr = task_data;
 		}
 
@@ -563,7 +546,6 @@ on_ompt_callback_implicit_task(
             task_data->task_node_ref = task_graph_add_node(
                 node_task_initial, (task_graph_node_data_t) {.ptr = task_data}
             );
-            thread_data->initial_task_graph_node_ref = task_data->task_node_ref;
 
         } else if (task_data->type == ompt_task_implicit) {
 
@@ -571,7 +553,7 @@ on_ompt_callback_implicit_task(
                stack */
             parallel_data = (parallel_data_t*) parallel->ptr;
             stack_push(thread_data->region_scope_stack,
-                (stack_item_t) {.ptr = parallel_data->scope});
+                (data_item_t) {.ptr = parallel_data->scope});
             thread_data->prior_scope = parallel_data->scope;
             LOG_DEBUG("[t=%lu] %-6s %-16s (scope depth: %lu)",
                 thread_data->id,
@@ -614,7 +596,7 @@ on_ompt_callback_implicit_task(
 
         /* Pop the enclosing scope from the thread's stack */
         stack_pop(thread_data->region_scope_stack,
-            (stack_item_t*) &thread_data->prior_scope);
+            (data_item_t*) &thread_data->prior_scope);
 
         LOG_DEBUG("[t=%lu] %-6s %-16s (scope depth: %lu)",
             thread_data->id,
@@ -795,7 +777,7 @@ on_ompt_callback_work(
         if (endpoint == ompt_scope_begin)
         {
 
-            region_scope_t *scope = new_scope(
+            scope_t *scope = new_scope(
                 wstype == ompt_work_loop            ? scope_loop     :
                 wstype == ompt_work_sections        ? scope_sections :
                 wstype == ompt_work_single_executor ? scope_single   :
@@ -807,22 +789,22 @@ on_ompt_callback_work(
             /* At scope-begin, add to global queue for eventual clean-up at 
                tool-exit */
             pthread_mutex_lock(&global_scope_queue_lock);
-            queue_push(global_scope_queue, (queue_item_t) {.ptr = scope});
+            queue_push(global_scope_queue, (data_item_t) {.ptr = scope});
             pthread_mutex_unlock(&global_scope_queue_lock);
 
             LOG_ERROR_IF((scope->type == scope_unknown), "unknown scope");
 
             /* get the current scope */
-            region_scope_t *current_scope = NULL;
+            scope_t *current_scope = NULL;
             stack_peek(thread_data->region_scope_stack,
-                (stack_item_t*) &current_scope);
+                (data_item_t*) &current_scope);
 
             /* add begin node to enclosing scope's stack of nodes */
             pthread_mutex_lock(&current_scope->lock);
             stack_push(current_scope->task_graph_nodes,
-                (stack_item_t) {.ptr = scope->begin_node});
+                (data_item_t) {.ptr = scope->begin_node});
             stack_push(current_scope->task_graph_nodes,
-                (stack_item_t) {.ptr = scope->end_node});
+                (data_item_t) {.ptr = scope->end_node});
             pthread_mutex_unlock(&current_scope->lock);
 
             /* At scope-begin, if the prior scope was a scope-end, link together
@@ -831,7 +813,7 @@ on_ompt_callback_work(
                 scope->begin_node, task_data);
             
             stack_push(thread_data->region_scope_stack,
-                (stack_item_t) {.ptr = scope});
+                (data_item_t) {.ptr = scope});
             thread_data->prior_scope = scope;
 
             LOG_DEBUG("[t=%lu] %-6s %-16s (scope depth: %lu)",
@@ -846,10 +828,20 @@ on_ompt_callback_work(
 
         } else {
 
-            stack_pop(thread_data->region_scope_stack,
-                (stack_item_t*) &thread_data->prior_scope);
-
             thread_data->prior_scope->endpoint = ompt_scope_end;
+            
+            /* process queue of sync nodes to connect enclosed nodes */
+            task_graph_node_t *sync_node = NULL;
+            while (queue_pop(
+                thread_data->sync_node_queue, (data_item_t*) &sync_node))
+            {
+                connect_enclosed_nodes(thread_data->prior_scope, sync_node);
+                stack_push(thread_data->prior_scope->task_graph_nodes,
+                    (data_item_t) {.ptr = sync_node});
+            }
+
+            stack_pop(thread_data->region_scope_stack,
+                (data_item_t*) &thread_data->prior_scope);
 
             /* make sure enclosed nodes connect to scope-end node */
             // connect_enclosed_nodes(thread_data->prior_scope,
@@ -913,29 +905,29 @@ on_ompt_callback_sync_region(
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
     task_data_t *task_data = (task_data_t*) task->ptr;
 
-    // LOG_DEBUG("[t=%lu] %-6s %s",
-    //     thread_data->id,
-    //     endpoint == ompt_scope_begin ? "begin" : "end",
-    //     kind == ompt_sync_region_barrier ? "barrier" :
-    //     kind == ompt_sync_region_barrier_implicit ? "barrier_implicit" :
-    //     kind == ompt_sync_region_barrier_explicit ? "barrier_explicit" :
-    //     kind == ompt_sync_region_barrier_implementation ? "barrier_implementation" :
-    //     kind == ompt_sync_region_taskwait ? "taskwait" :
-    //     kind == ompt_sync_region_taskgroup ? "taskgroup" :
-    //     kind == ompt_sync_region_reduction ? "reduction" : "unknown"
-    // );
+    LOG_DEBUG("[t=%lu] %-6s %s",
+        thread_data->id,
+        endpoint == ompt_scope_begin ? "begin" : "end",
+        kind == ompt_sync_region_barrier ? "barrier" :
+        kind == ompt_sync_region_barrier_implicit ? "barrier_implicit" :
+        kind == ompt_sync_region_barrier_explicit ? "barrier_explicit" :
+        kind == ompt_sync_region_barrier_implementation ? "barrier_implementation" :
+        kind == ompt_sync_region_taskwait ? "taskwait" :
+        kind == ompt_sync_region_taskgroup ? "taskgroup" :
+        kind == ompt_sync_region_reduction ? "reduction" : "unknown"
+    );
 
     /* taskgroups get a nesting scope object like workshare regions */
     if (kind == ompt_sync_region_taskgroup)
     {
         if (endpoint == ompt_scope_begin)
         {
-            region_scope_t *scope = new_scope(scope_sync_taskgroup, NULL);
+            scope_t *scope = new_scope(scope_sync_taskgroup, NULL);
 
             /* At scope-begin, add to global queue for eventual clean-up at 
                tool-exit */
             pthread_mutex_lock(&global_scope_queue_lock);
-            queue_push(global_scope_queue, (queue_item_t) {.ptr = scope});
+            queue_push(global_scope_queue, (data_item_t) {.ptr = scope});
             pthread_mutex_unlock(&global_scope_queue_lock);
 
             #if DEBUG_LEVEL >= 4
@@ -944,18 +936,18 @@ on_ompt_callback_sync_region(
             #endif
 
             /* get the current scope */
-            region_scope_t *current_scope = NULL;
+            scope_t *current_scope = NULL;
             stack_peek(thread_data->region_scope_stack,
-                (stack_item_t*) &current_scope);
+                (data_item_t*) &current_scope);
 
             LOG_DEBUG("current scope type: %d", current_scope->type);
 
             /* add begin and end nodes to enclosing scope's stack of nodes */
             pthread_mutex_lock(&current_scope->lock);
             stack_push(current_scope->task_graph_nodes,
-                (stack_item_t) {.ptr = scope->begin_node});
+                (data_item_t) {.ptr = scope->begin_node});
             stack_push(current_scope->task_graph_nodes,
-                (stack_item_t) {.ptr = scope->end_node});
+                (data_item_t) {.ptr = scope->end_node});
             pthread_mutex_unlock(&current_scope->lock);
 
             /* connect to current scope's node */
@@ -964,7 +956,7 @@ on_ompt_callback_sync_region(
 
             /* record new scope as the current scope */
             stack_push(thread_data->region_scope_stack,
-                (stack_item_t) {.ptr = scope});
+                (data_item_t) {.ptr = scope});
             thread_data->prior_scope = scope;
 
             LOG_DEBUG("[t=%lu] %-6s %-16s (scope depth: %lu)",
@@ -979,7 +971,7 @@ on_ompt_callback_sync_region(
 
         } else {
             stack_pop(thread_data->region_scope_stack,
-                (stack_item_t*) &thread_data->prior_scope);
+                (data_item_t*) &thread_data->prior_scope);
             thread_data->prior_scope->endpoint = ompt_scope_end;
             // connect_enclosed_nodes(thread_data->prior_scope,
             //     thread_data->prior_scope->end_node);
@@ -987,7 +979,9 @@ on_ompt_callback_sync_region(
         return;
     }
 
-    if (endpoint == ompt_scope_begin) return;
+    bool finalise_barrier = thread_data->is_master_thread;
+
+    if (endpoint == ompt_scope_begin || !finalise_barrier) return;
 
     /* At sync-end:
         - if enclosing scope is parallel scope, master thread collects
@@ -997,9 +991,9 @@ on_ompt_callback_sync_region(
     */
 
     /* get enclosing scope */
-    region_scope_t *enclosing_scope = NULL;
+    scope_t *enclosing_scope = NULL;
     stack_peek(thread_data->region_scope_stack,
-        (stack_item_t*) &enclosing_scope);
+        (data_item_t*) &enclosing_scope);
     LOG_ERROR_IF((enclosing_scope==NULL), "failed to get enclosing scope");
 
     /* if enclosing_scope is NULL, use prior_scope instead - don't expect this
@@ -1007,10 +1001,9 @@ on_ompt_callback_sync_region(
     */
     if (enclosing_scope == NULL) enclosing_scope = thread_data->prior_scope;
     
-    bool finalise_barrier = (enclosing_scope->type != scope_parallel 
-                            || thread_data->is_master_thread);
-
-    if (!(finalise_barrier)) return;
+    // bool finalise_barrier = (enclosing_scope->type != scope_parallel 
+    //                         || thread_data->is_master_thread);
+    // if (!(finalise_barrier)) return;
 
     // create graph node for synchronisation construct
     task_graph_node_type_t sync_type = 
@@ -1029,20 +1022,20 @@ on_ompt_callback_sync_region(
         kind == ompt_sync_region_reduction         ? node_sync_reduction :
             node_type_unknown;
 
-    task_graph_node_t *sync_node = task_graph_add_node(
-        SET_BIT_SCOPE_END(sync_type),
-        (task_graph_node_data_t) {.ptr = NULL}
-    );
+    LOG_DEBUG("[t=%lu] creating sync node", thread_data->id);
+
+    task_graph_node_t *sync_node = task_graph_add_node(sync_type,
+        (task_graph_node_data_t) {.ptr = NULL});
 
     /* Connect nodes enclosed by the present scope to the sync node */
     // connect_enclosed_nodes(enclosing_scope, sync_node);
 
     /* Add self to enclosing scope's node stack */
     // stack_push(enclosing_scope->task_graph_nodes,
-    //     (stack_item_t) {.ptr = sync_node});
+    //     (data_item_t) {.ptr = sync_node});
 
     /* Add sync node to queue for master thread to process at scope-end */
-    queue_push(thread_data->sync_node_queue, (queue_item_t) {.ptr = sync_node});
+    queue_push(thread_data->sync_node_queue, (data_item_t) {.ptr = sync_node});
     
     return;
 }
@@ -1124,71 +1117,18 @@ on_ompt_callback_reduction(
     return;
 }
 
-static task_data_t *
-new_task_data(
-    unique_id_t      id,
-    ompt_task_flag_t flags,
-    unique_id_t      parallel)
-{
-    task_data_t *new = malloc(sizeof(*new));
-    *new = (task_data_t) {
-        .id         = id,
-        .type       = flags & OMPT_TASK_TYPE_BITS,
-        .flags      = flags,
-        .lock       = NULL,
-        .enclosing_parallel_id = parallel,
-        .workshare_child_task = NULL
-        // .scope = NULL
-    };
-    return new;
-}
-
-static region_scope_t *
-new_scope(
-    scope_t  type,
-    void    *data)
-{
-    region_scope_t *scope = malloc(sizeof(*scope));
-    *scope = (region_scope_t) {
-        .type = type,
-        .endpoint = ompt_scope_begin,
-        .data = data,
-        .task_graph_nodes = stack_create(NULL),
-        .begin_node = task_graph_add_node(
-            type == scope_parallel       ? node_scope_parallel_begin       :
-            type == scope_sections       ? node_scope_sections_begin       :
-            type == scope_single         ? node_scope_single_begin         :
-            type == scope_loop           ? node_scope_loop_begin           :
-            type == scope_taskloop       ? node_scope_taskloop_begin       :
-            type == scope_sync_taskgroup ? node_scope_sync_taskgroup_begin :
-                node_type_unknown,
-            (task_graph_node_data_t) {.ptr = data}),
-        .end_node = task_graph_add_node(
-            type == scope_parallel       ? node_scope_parallel_end         :
-            type == scope_sections       ? node_scope_sections_end         :
-            type == scope_single         ? node_scope_single_end           :
-            type == scope_loop           ? node_scope_loop_end             :
-            type == scope_taskloop       ? node_scope_taskloop_end         :
-            type == scope_sync_taskgroup ? node_scope_sync_taskgroup_end   :
-                node_type_unknown,
-            (task_graph_node_data_t) {.ptr = data}),
-        .lock = PTHREAD_MUTEX_INITIALIZER
-    };
-    return scope;
-}
-
 /* At scope-begin, if the prior scope was a scope-end, link together
    otherwise, link to encountering task */
 static void
 connect_prior_scope_node(
-    region_scope_t      *prior_scope,
-    task_graph_node_t   *new_scope_begin_node,
+    scope_t      *prior_scope,
+    task_graph_node_t   *scope_create_begin_node,
     task_data_t         *encountering_task)
 {
     // if ((prior_scope != NULL) && (prior_scope->endpoint == ompt_scope_end))
-    //     task_graph_add_edge(prior_scope->end_node, new_scope_begin_node);
+    //     task_graph_add_edge(prior_scope->end_node, scope_create_begin_node);
     // else
-    //     task_graph_add_edge(encountering_task_node, new_scope_begin_node);
+    //     task_graph_add_edge(encountering_task_node, scope_create_begin_node);
 
     /* if the encountering task is implicit, connect to the prior scope's last
         node (check prior_scope->endpoint)
@@ -1199,16 +1139,16 @@ connect_prior_scope_node(
         task_graph_add_edge(
             prior_scope == NULL ?
                 encountering_task->task_node_ref : prior_scope->end_node,
-            new_scope_begin_node);
+            scope_create_begin_node);
     } else if (encountering_task->type == ompt_task_implicit)
     {
         task_graph_add_edge(
             prior_scope->endpoint == ompt_scope_begin ?
                 prior_scope->begin_node : prior_scope->end_node,
-            new_scope_begin_node);
+            scope_create_begin_node);
     } else {
         task_graph_add_edge(encountering_task->task_node_ref,
-            new_scope_begin_node);
+            scope_create_begin_node);
     }
 
     return;
@@ -1216,22 +1156,21 @@ connect_prior_scope_node(
 
 /* At scope-end, connect all enclosed nodes if not already connected */
 static void
-connect_enclosed_nodes(region_scope_t *scope, task_graph_node_t *tail_node)
+connect_enclosed_nodes(scope_t *scope, task_graph_node_t *tail_node)
 {
     task_graph_node_t *node = NULL;
     if (stack_size(scope->task_graph_nodes) == 0)
         task_graph_add_edge(scope->begin_node, tail_node);
     else {
-        while (stack_pop(scope->task_graph_nodes, (stack_item_t*) &node))
+        while (stack_pop(scope->task_graph_nodes, (data_item_t*) &node))
             if (!graph_node_has_children(node))
                 task_graph_add_edge(node, tail_node);
     }
     return;
 }
 
-static unique_id_t
-get_unique_id(
-    unique_id_type_t id_type)
+unique_id_t
+get_unique_id(unique_id_type_t id_type)
 {
     /* start counting tasks from 1 so that the initial task is always #1, and
        the root node of the task graph will have ID 0 not attached to any real

@@ -48,7 +48,11 @@ void graph_destroy(graph_t *g, graph_free_node_data_t free_node_data);
 
 /* scan the nodes of a graph without changing the graph */
 void graph_scan_nodes(
-    graph_t *g, uint64_t *id, graph_node_type_t *type, graph_node_data_t *data, void **next);
+    graph_t            *g,
+    uint64_t           *id,
+    graph_node_type_t  *type,
+    graph_node_data_t  *data,
+    void              **next);
 
 /* scan the edges of a graph without changing the graph */
 void graph_scan_edges(
@@ -60,6 +64,21 @@ void graph_scan_edges(
     graph_node_type_t  *dest_type, 
     graph_node_data_t  *dest_data,   
     void **next);
+
+bool graph_pop_node(
+    graph_t *g,
+    uint64_t *id,
+    graph_node_type_t *type,
+    graph_node_data_t *data);
+
+bool graph_pop_edge(
+    graph_t            *g,
+    uint64_t           *src_id,
+    graph_node_type_t  *src_type, 
+    graph_node_data_t  *src_data, 
+    uint64_t           *dest_id,
+    graph_node_type_t  *dest_type, 
+    graph_node_data_t  *dest_data);
 
 void graph_get_num_nodes_edges(graph_t *g, size_t *nodes, size_t *edges);
 

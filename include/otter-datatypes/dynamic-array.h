@@ -1,5 +1,5 @@
-#if !defined(DYNAMIC_ARRAY_H)
-#define DYNAMIC_ARRAY_H
+#if !defined(OTTER_DYNAMIC_ARRAY_H)
+#define OTTER_DYNAMIC_ARRAY_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -24,4 +24,4 @@ void               array_destroy(array_t *arr);
 void               array_print(array_t *arr);
 #endif
 
-#endif // DYNAMIC_ARRAY_H
+#endif // OTTER_DYNAMIC_ARRAY_H

@@ -1,5 +1,7 @@
-#if !defined(DEBUG_MACROS_H)
-#define DEBUG_MACROS_H
+#if !defined(OTTER_MACROS_DEBUG_H)
+#define OTTER_MACROS_DEBUG_H
+
+#include <stdio.h>
 
 /* credit: https://stackoverflow.com/a/3782064 */
 #define DO_EXPAND(VAL)  VAL ## 1
@@ -14,8 +16,6 @@
 #if !defined(DEBUG_LEVEL)
 #define DEBUG_LEVEL 0
 #endif
-
-#include <stdio.h>
 
 /* detect whether __VA_OPT__ supported 
    credit: https://stackoverflow.com/a/48045656
@@ -73,4 +73,4 @@
 #define LOG_DEBUG_IF(...)
 #endif  
 
-#endif // DEBUG_MACROS_H
+#endif // OTTER_MACROS_DEBUG_H

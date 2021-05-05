@@ -10,10 +10,10 @@
 #include <otf2/OTF2_Pthread_Locks.h>
 
 #include <macros/debug.h>
-#include <otter-core/ompt-common.h>
+#include <otter-common.h>
 #include <otter-trace/trace.h>
 
-#include <otter-dtypes/queue.h>
+#include <otter-datatypes/queue.h>
 
 typedef enum trace_ref_type_t {
     trace_region,

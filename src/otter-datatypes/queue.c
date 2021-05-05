@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include <otter-dtypes/queue.h>
 #include <macros/debug.h>
+#include <otter-datatypes/queue.h>
 
 typedef struct node_t node_t;
 
@@ -115,21 +115,83 @@ void
 queue_destroy(queue_t *q, bool items)
 {
     if (q == NULL) return;
-    if (items)
+
+    LOG_WARN_IF(((q->length != 0) && (items == false)),
+        "destroying queue %p (len=%lu) without destroying items may cause "
+        "memory leak", q, q->length);
+
+    queue_item_t d = {.value = 0};
+    while(queue_pop(q, &d))
     {
-        queue_item_t d = {.value = 0};
-        while(queue_pop(q, &d))
-        {
-            LOG_DEBUG("%p[0/%lu]=%p", q, q->length-1, d.ptr);
-            q->destroy(d.ptr);
-        }
-    } else {
-        LOG_WARN_IF(((q->length != 0)),
-            "destroying queue %p (len=%lu) without destroying items may cause "
-            "memory leak", q, q->length);
+        LOG_DEBUG("%p[0/%lu]=%p", q, q->length-1, d.ptr);
+        if (items) q->destroy(d.ptr);
     }
     LOG_DEBUG("%p", q);
     free(q);
+    return;
+}
+
+/* transfer items from r to q */
+bool
+queue_append(
+    queue_t *q,
+    queue_t *r)
+{
+    if ((q == NULL) || (r == NULL)) return false;
+
+    if (r->length == 0) return true;
+
+    #if DEBUG_LEVEL >= 4
+    queue_print(q);
+    queue_print(r);
+    #endif
+
+    if (q->length == 0)
+        q->head   = r->head;
+    else
+        q->tail->next = r->head;
+    
+    q->tail   = r->tail;
+    q->length = q->length + r->length;
+    r->head   = r->tail = NULL;
+    r->length = 0;
+
+    #if DEBUG_LEVEL >= 4
+    queue_print(q);
+    queue_print(r);
+    #endif
+
+    return true;
+}
+
+/* scan through the items in a queue without modifying the queue
+   write the current queue item to dest
+   save the address of the next item in the queue to [next]
+   if [next] == NULL, start with queue->head
+   (NOTE: up to the caller to track how many items to scan, otherwise will loop)
+*/
+void
+queue_scan(
+    queue_t *q,
+    queue_item_t *dest,
+    void **next)
+{
+    if ((next == NULL) || (dest == NULL))
+    {
+        LOG_ERROR("null pointer");
+        return;
+    }
+
+    node_t *next_node = (node_t*) *next;
+
+    if (next_node == NULL)
+    {
+        *dest = q->head->data;
+        *next = (void*) q->head->next;
+    } else {
+        *dest = next_node->data;
+        *next = (void*) next_node->next;
+    }
     return;
 }
 

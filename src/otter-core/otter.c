@@ -1008,6 +1008,7 @@ on_ompt_callback_sync_region(
         return;
     }
 
+    /* Only the master thread of a team creates a synchronisation barrier */
     bool finalise_barrier = thread_data->is_master_thread;
 
     if (endpoint == ompt_scope_begin || !finalise_barrier) return;

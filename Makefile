@@ -47,7 +47,7 @@ BINS = $(OTTER) $(LIBGRAPH) $(LIBDTYPE) $(LIBTRACE) $(OMPEXE) $(OMPEXE_CPP)
 
 .PHONY: all clean cleanfiles run
 
-all:       $(BINS) cleanfiles
+all:       $(BINS) notes cleanfiles
 otter:     $(OTTER)
 datatypes: $(LIBDTYPE) 
 taskgraph: $(LIBGRAPH)
@@ -88,8 +88,13 @@ $(LIBDTYPE): $(DTYPESRC) $(DTYPEHEAD)
 run: $(BINS) cleanfiles
 	@OMP_TOOL_LIBRARIES=`pwd`/$(OTTER) ./$(EXE)
 
+notes: docs/notes.tex
+	cd docs && pdflatex notes.tex && pandoc -s notes.tex -o notes.md
+
 clean:
 	@-rm -f lib/* obj/* $(BINS) $(OMPEXE)
 
 cleanfiles:
-	@-rm -rf *.gv* *.svg *.pdf *.png *.txt *.csv* *.json* default-archive-path/
+	@-rm -rf *.gv* *.svg *.pdf *.png *.txt *.csv* *.log *.json* \
+	default-archive-path/ \
+	docs/*.pdf docs/*.aux docs/*.gz docs/*.log

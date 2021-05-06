@@ -1,5 +1,4 @@
 ./omp-*
-.*
 *.csv
 *.txt
 *.pdf

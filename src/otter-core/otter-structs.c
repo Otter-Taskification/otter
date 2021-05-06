@@ -42,6 +42,8 @@ new_thread_data(ompt_thread_t type)
         .is_master_thread   = false,
         .is_single          = false,
         .prior_scope        = NULL,
+        .actual_parallelism = 0,
+        .index              = 0,
         .sync_node_queue    = queue_create()
     };
     return thread_data;

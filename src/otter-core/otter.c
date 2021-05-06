@@ -550,6 +550,9 @@ on_ompt_callback_implicit_task(
 
         } else if (task_data->type == ompt_task_implicit) {
 
+            thread_data->actual_parallelism = actual_parallelism;
+            thread_data->index = index;
+
             /* get enclosing parallel scope and push to the thread's scope
                stack */
             parallel_data = (parallel_data_t*) parallel->ptr;
@@ -594,6 +597,9 @@ on_ompt_callback_implicit_task(
 
 
     } else { /* ompt_scope_end */
+
+        if (flags & ompt_task_implicit)
+            thread_data->actual_parallelism = thread_data->index = 0;
 
         /* Pop the enclosing scope from the thread's stack */
         stack_pop(thread_data->region_scope_stack,
@@ -912,6 +918,19 @@ on_ompt_callback_sync_region(
 {
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
     task_data_t *task_data = (task_data_t*) task->ptr;
+
+    /* Static variables used for synchronisation between threads */
+    /* Main thread:
+        - wait for all threads to arrive w/ pthread_cond_wait()
+        - post synchronisation node
+        - broadcast to waiting threads
+       Other threads:
+        - check-in on arrival
+        - last thread to check-in signals this cond to Main
+        - enter pthread_cond_wait() to wait for Main to post sync node
+        - on wake-up, register edges from child tasks of current task to taskwait
+    */
+    /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
     LOG_DEBUG("[t=%lu] %-6s %s (task=%lu, type=%d)",
         thread_data->id,

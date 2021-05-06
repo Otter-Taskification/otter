@@ -34,6 +34,8 @@ struct thread_data_t {
     scope_t              *prior_scope;        // most recently pushed/popped from stack
     bool                  is_master_thread;   // of parallel region
     bool                  is_single;          // in single region
+    unsigned int          actual_parallelism; // in current parallel region
+    unsigned int          index;              // in current parallel region
     queue_t              *sync_node_queue;    // master thread collects sync nodes
 };
 

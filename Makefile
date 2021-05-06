@@ -47,7 +47,7 @@ BINS = $(OTTER) $(LIBGRAPH) $(LIBDTYPE) $(LIBTRACE) $(OMPEXE) $(OMPEXE_CPP)
 
 .PHONY: all clean cleanfiles run
 
-all:       $(BINS) notes cleanfiles
+all:       $(BINS) cleanfiles
 otter:     $(OTTER)
 datatypes: $(LIBDTYPE) 
 taskgraph: $(LIBGRAPH)

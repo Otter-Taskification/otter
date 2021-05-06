@@ -767,8 +767,8 @@ on_ompt_callback_work(
     if (wstype == ompt_work_single_executor && endpoint == ompt_scope_begin)
         thread_data->is_single = true;
 
-    // LOG_DEBUG_WORK_TYPE(thread_data->id, wstype, count,
-    //     endpoint==ompt_scope_begin?"begin":"end");
+    LOG_DEBUG_WORK_TYPE(thread_data->id, wstype, count,
+        endpoint==ompt_scope_begin?"begin":"end");
 
     char *wstype_str= 
         wstype == ompt_work_loop            ? "loop"       : 
@@ -826,11 +826,11 @@ on_ompt_callback_work(
                 (data_item_t) {.ptr = scope});
             thread_data->prior_scope = scope;
 
-            LOG_DEBUG("[t=%lu] %-6s %-16s (scope depth: %lu)",
-                thread_data->id,
-                (endpoint == ompt_scope_begin ? "begin" : "end"),
-                wstype_str,
-                stack_size(thread_data->region_scope_stack));
+            // LOG_DEBUG("[t=%lu] %-6s %-16s (scope depth: %lu)",
+            //     thread_data->id,
+            //     (endpoint == ompt_scope_begin ? "begin" : "end"),
+            //     wstype_str,
+            //     stack_size(thread_data->region_scope_stack));
 
             #if DEBUG_LEVEL >= 4
             stack_print(thread_data->region_scope_stack);
@@ -857,11 +857,11 @@ on_ompt_callback_work(
             // connect_enclosed_nodes(thread_data->prior_scope,
             //     thread_data->prior_scope->end_node);
 
-            LOG_DEBUG("[t=%lu] %-6s %-16s (scope depth: %lu)",
-                thread_data->id,
-                (endpoint == ompt_scope_begin ? "begin" : "end"),
-                wstype_str,
-                stack_size(thread_data->region_scope_stack));
+            // LOG_DEBUG("[t=%lu] %-6s %-16s (scope depth: %lu)",
+            //     thread_data->id,
+            //     (endpoint == ompt_scope_begin ? "begin" : "end"),
+            //     wstype_str,
+            //     stack_size(thread_data->region_scope_stack));
         }
         #if DEBUG_LEVEL >= 4
         stack_print(thread_data->region_scope_stack);

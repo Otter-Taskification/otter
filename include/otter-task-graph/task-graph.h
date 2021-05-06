@@ -21,9 +21,8 @@ typedef graph_node_t         task_graph_node_t;
 typedef graph_node_data_t    task_graph_node_data_t;
 
 /* Represents the types of nodes the task graph can contain. Closely aligned to
-   the scope_t enum in otter.h */
-#define SCOPE_END_BIT 0x1000
-#define SET_BIT_SCOPE_END(f) (f | SCOPE_END_BIT)
+   the scope_type_t enum in otter.h */
+#define SCOPE_END 0x80000000
 typedef enum {
 
     node_type_unknown,
@@ -40,27 +39,25 @@ typedef enum {
     node_scope_single_begin,
     node_scope_loop_begin,
     node_scope_taskloop_begin,
-    node_scope_sync_taskgroup_begin,             // 10      
+    node_scope_sync_taskgroup_begin,        // 10
 
-    /* Standalone (i.e. never nested) synchronisation directives
-       restart numbering from before flag
-    */
+    /* Standalone (i.e. never nested) synchronisation directives */
     node_sync_barrier,
     node_sync_barrier_implicit,
     node_sync_barrier_explicit,
-    node_sync_barrier_implementation,       // 15
-    node_sync_taskwait,              
+    node_sync_barrier_implementation,
+    node_sync_taskwait,                     // 15
     node_sync_reduction,
 
     /* Matching endpoints - switch on a flag for these so that a node's metadata
-       is only freed when the context-end node is popped from the graph's node
-       stack */
-    node_scope_parallel_end = SET_BIT_SCOPE_END(node_scope_parallel_begin),
-    node_scope_sections_end,
-    node_scope_single_end,
-    node_scope_loop_end,
-    node_scope_taskloop_end,
-    node_scope_sync_taskgroup_end,
+       is only freed when one of the scope's nodes is popped from the graph's
+       node stack */
+    node_scope_parallel_end       = node_scope_parallel_begin       | SCOPE_END,
+    node_scope_sections_end       = node_scope_sections_begin       | SCOPE_END,
+    node_scope_single_end         = node_scope_single_begin         | SCOPE_END,
+    node_scope_loop_end           = node_scope_loop_begin           | SCOPE_END,
+    node_scope_taskloop_end       = node_scope_taskloop_begin       | SCOPE_END,
+    node_scope_sync_taskgroup_end = node_scope_sync_taskgroup_begin | SCOPE_END,
 
     /* etc... */
 } task_graph_node_type_t;

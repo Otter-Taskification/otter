@@ -54,17 +54,15 @@ do {                                                                           \
 } while (0);
 
 /* print task type in on_ompt_callback_task_create */
-#define LOG_DEBUG_TASK_TYPE(parent, child, flags)                              \
-do {                                                                           \
-    LOG_DEBUG_IF(flags & ompt_task_initial,                                    \
-        "%lu -> %lu %s", parent, child, "initial");                            \
-    LOG_DEBUG_IF(flags & ompt_task_implicit,                                   \
-        "%lu -> %lu %s", parent, child, "implicit");                           \
-    LOG_DEBUG_IF(flags & ompt_task_explicit,                                   \
-        "%lu -> %lu %s", parent, child, "explicit");                           \
-    LOG_DEBUG_IF(flags & ompt_task_target,                                     \
-        "%lu -> %lu %s", parent, child, "target");                             \
-} while (0); 
+#define LOG_DEBUG_TASK_TYPE(tid, parent, child, flags)                         \
+    LOG_DEBUG(                                                                 \
+        "[t=%lu] %lu -> %lu %s",                                               \
+        tid, parent, child,                                                    \
+        flags & ompt_task_initial  ? "initial"  :                              \
+        flags & ompt_task_implicit ? "implicit" :                              \
+        flags & ompt_task_explicit ? "explicit" :                              \
+        flags & ompt_task_target   ? "target"   : "????"                       \
+    )
 
 #define LOG_DEBUG_IMPLICIT_TASK(flags, endpoint, id)                           \
 do {                                                                           \

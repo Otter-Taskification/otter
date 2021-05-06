@@ -32,7 +32,8 @@ struct thread_data_t {
     ompt_thread_t         type;
     stack_t              *region_scope_stack; // sequence of nested scopes
     scope_t              *prior_scope;        // most recently pushed/popped from stack
-    bool                  is_master_thread;
+    bool                  is_master_thread;   // of parallel region
+    bool                  is_single;          // in single region
     queue_t              *sync_node_queue;    // master thread collects sync nodes
 };
 

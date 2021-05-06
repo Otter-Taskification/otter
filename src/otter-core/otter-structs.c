@@ -11,11 +11,11 @@ new_parallel_data(int flags)
 {
     parallel_data_t *parallel_data = malloc(sizeof(*parallel_data));
     *parallel_data = (parallel_data_t) {
-        .id                      = get_unique_parallel_id(),
-        .flags                   = flags,
-        .actual_parallelism      = 0,
-        .region                  = NULL,
-        .scope                   = NULL
+        .id                 = get_unique_parallel_id(),
+        .flags              = flags,
+        .actual_parallelism = 0,
+        .region             = NULL,
+        .scope              = NULL
     };
 
     /* NOTE: don't push scope onto thread's stack UNTIL implicit-task-begin */
@@ -35,13 +35,14 @@ new_thread_data(ompt_thread_t type)
 {
     thread_data_t *thread_data = malloc(sizeof(*thread_data));
     *thread_data = (thread_data_t) {
-        .id                          = get_unique_thread_id(),
-        .location                    = NULL,
-        .type                        = type,
-        .region_scope_stack          = stack_create(),
-        .is_master_thread            = false,
-        .prior_scope                 = NULL,
-        .sync_node_queue             = queue_create()
+        .id                 = get_unique_thread_id(),
+        .location           = NULL,
+        .type               = type,
+        .region_scope_stack = stack_create(),
+        .is_master_thread   = false,
+        .is_single          = false,
+        .prior_scope        = NULL,
+        .sync_node_queue    = queue_create()
     };
     return thread_data;
 }
@@ -62,9 +63,9 @@ new_task_data(
 {
     task_data_t *new = malloc(sizeof(*new));
     *new = (task_data_t) {
-        .id         = id,
-        .type       = flags & OMPT_TASK_TYPE_BITS,
-        .flags      = flags
+        .id    = id,
+        .type  = flags & OMPT_TASK_TYPE_BITS,
+        .flags = flags
     };
     return new;
 }

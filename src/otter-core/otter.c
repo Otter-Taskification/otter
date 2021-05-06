@@ -430,7 +430,8 @@ on_ompt_callback_task_create(
     {
         parent_task_data = (task_data_t*) encountering_task->ptr;
 
-        LOG_DEBUG_TASK_TYPE(parent_task_data->id, task_data->id, flags);
+        LOG_DEBUG_TASK_TYPE(
+            thread_data->id, parent_task_data->id, task_data->id, flags);
 
         /* If the encountering task is implicit, take the thread's enclosing
            scope.
@@ -757,6 +758,9 @@ on_ompt_callback_work(
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
     task_data_t *task_data = (task_data_t*) task->ptr;
 
+    if (wstype == ompt_work_single_executor && endpoint == ompt_scope_begin)
+        thread_data->is_single = true;
+
     // LOG_DEBUG_WORK_TYPE(thread_data->id, wstype, count,
     //     endpoint==ompt_scope_begin?"begin":"end");
 
@@ -857,6 +861,10 @@ on_ompt_callback_work(
         stack_print(thread_data->region_scope_stack);
         #endif
     }
+
+    if (wstype == ompt_work_single_executor && endpoint == ompt_scope_end)
+        thread_data->is_single = false;
+
     return;
 }
 
@@ -905,7 +913,7 @@ on_ompt_callback_sync_region(
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
     task_data_t *task_data = (task_data_t*) task->ptr;
 
-    LOG_DEBUG("[t=%lu] %-6s %s",
+    LOG_DEBUG("[t=%lu] %-6s %s (task=%lu, type=%d)",
         thread_data->id,
         endpoint == ompt_scope_begin ? "begin" : "end",
         kind == ompt_sync_region_barrier ? "barrier" :
@@ -914,7 +922,9 @@ on_ompt_callback_sync_region(
         kind == ompt_sync_region_barrier_implementation ? "barrier_implementation" :
         kind == ompt_sync_region_taskwait ? "taskwait" :
         kind == ompt_sync_region_taskgroup ? "taskgroup" :
-        kind == ompt_sync_region_reduction ? "reduction" : "unknown"
+        kind == ompt_sync_region_reduction ? "reduction" : "unknown",
+        task_data->id,
+        task_data->type
     );
 
     /* taskgroups get a nesting scope object like workshare regions */

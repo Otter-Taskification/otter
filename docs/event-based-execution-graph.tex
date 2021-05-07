@@ -1,0 +1,64 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[hscale=0.83,vscale=0.92]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage[font=footnotesize,labelfont=bf]{caption}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\graphicspath{{./analysis/}}
+
+\newcommand{\ord}{\textsuperscript{th} }
+\newcommand{\code}[1]{\texttt{#1} }
+
+\title{OTTER's Event-Based Execution Graph}
+\begin{document}
+
+\author{Adam Tuft}
+\maketitle
+
+\section{Events}
+
+\begin{itemize}
+\item An event records the information required to describe a node in the execution graph.
+\item Events are created in the order that they are encountered by a thread.
+\item OTTER events are isomorphic to a subset of OMP execution model events.
+\item Each thread maintains a queue of events it encounters.
+\item A new event is created for each \emph{scope-begin}, \emph{scope-end} and \emph{synchronisation-end} event.
+\item OMP constructs associated with structured blocks, that generate \emph{scope-begin} and \emph{scope-end} events represented by OTTER events:
+\begin{itemize}
+\item Parallel regions
+\item Single regions
+\item Sections regions
+\item Loops
+\item Taskloops
+\item Taskgroups
+\end{itemize}
+\item Standalone OMP synchronisation constructs generating \emph{synchronisation-end} events that are represented by OTTER events:
+\begin{itemize}
+\item Barriers (explicit, implicit \& implementation)
+\item Taskwait constructs
+\end{itemize}
+\item At a task synchronisation event (e.g. a \code{taskwait}), the event receives references to all relevant task-create events (from the encountering task) generated since the most recent task synchronisation event in that thread (but \textbf{must not} receive task-create events that occur \textbf{after} the synchronisation event).
+\end{itemize}
+
+\section{Tasks}
+
+\begin{itemize}
+\item \emph{task-create} events are generated for each explicit generated task.
+\item A \emph{task-create} event references the data for the created task.
+\item A task records the \emph{task-create} events for which it is the encountering task.
+\item When an implicit task receives a \emph{task-create} event, that event is also added to the encountering thread's event queue.
+\item A task \textbf{does not} record the execution event which immediately precedes its \emph{task-create} event
+\item A task inherits its parent event from its parent task at the point it is created.
+\item When it generates a task, an implicit task supplies the most recent event recorded by its thread to the generated task as its parent event.
+\item Each task records the child tasks it must hand off to the next task synchronisation construct it encounters
+\item At a task synchronisation event (e.g. taskwait, taskgroup), the \textbf{encountering} task hands off to the event a collection of tasks that are synchronised by the task synchronisation construct.
+\end{itemize}
+
+\end{document}

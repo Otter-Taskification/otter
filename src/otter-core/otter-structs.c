@@ -3,7 +3,6 @@
 #include <otter-ompt-header.h>
 #include <otter-core/otter.h>
 #include <otter-core/otter-structs.h>
-#include <otter-task-graph/task-graph.h>
 #include <otter-trace/trace.h>
 
 parallel_data_t *

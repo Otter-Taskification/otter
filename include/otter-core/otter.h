@@ -16,7 +16,6 @@
 #include <otter-common.h>
 #include <otter-core/otter-entry.h>
 #include <otter-datatypes/stack.h>
-#include <otter-task-graph/task-graph.h>
 #include <otter-trace/trace.h>
 
 /* A naming convention was chosen for the callbacks so that each callback is 

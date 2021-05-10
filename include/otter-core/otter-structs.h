@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <otter-ompt-header.h>
 #include <otter-core/otter.h>
+#include <otter-trace/trace.h>
 
 /* forward declarations */
 typedef struct parallel_data_t parallel_data_t;

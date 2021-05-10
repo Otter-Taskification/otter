@@ -21,20 +21,25 @@ typedef struct trace_location_def_t trace_location_def_t;
 bool trace_initialise_archive(otter_opt_t *opt);
 bool trace_finalise_archive();
 
-/* new definitions */
+/* Location definition */
 trace_location_def_t *trace_new_location_definition(
-    uint64_t id, OTF2_LocationType loc_type, OTF2_LocationGroupRef loc_grp);
-trace_region_def_t *trace_new_region_definition(
-    uint64_t id, OTF2_RegionRole rgn_role);
+    uint64_t id, ompt_thread_t thread_type, 
+    OTF2_LocationType loc_type, OTF2_LocationGroupRef loc_grp);
 
-/* write event */
-void trace_event_thread_begin(trace_location_def_t *self);
-void trace_event_thread_end(trace_location_def_t *self);
-void trace_event_enter(trace_location_def_t *self, trace_region_def_t *region);
-void trace_event_leave(trace_location_def_t *self, trace_region_def_t *region);
-// void trace_event_thread_fork(trace_location_def_t *self, uint64_t requested);
-// void trace_event_thread_create(trace_location_def_t *self, uint64_t child_id);
-// void trace_event_thread_join(trace_location_def_t *self);
+/* Parallel region is written to global def writer */
+trace_region_def_t *trace_new_parallel_region(unique_id_t id, unique_id_t master, int flags, unsigned int requested_parallelism);
+void trace_destroy_parallel_region(trace_region_def_t *rgn);
+
+/* Other region defs are written to local def writers (via self->def_writer) */
+trace_region_def_t *trace_new_workshare_region(trace_location_def_t *self, ompt_work_t wstype, uint64_t count);
+trace_region_def_t *trace_new_sync_region(trace_location_def_t *self, ompt_sync_region_t stype, unique_id_t encountering_task_id);
+
+/* write events */
+void trace_event_thread(trace_location_def_t *self, ompt_scope_endpoint_t endpoint);
+void trace_event(trace_location_def_t *self, trace_region_def_t *region, ompt_scope_endpoint_t endpoint);
+// void trace_event_parallel(trace_location_def_t *self, trace_region_def_t *region, ompt_scope_endpoint_t endpoint);
+// void trace_event_workshare(trace_location_def_t *self, trace_region_def_t *region, ompt_scope_endpoint_t endpoint);
+// void trace_event_synchronise(trace_location_def_t *self, trace_region_def_t *region, ompt_scope_endpoint_t endpoint);
 // void trace_event_task_create( trace_location_def_t *self,
 //     uint32_t creating_thread, ompt_task_flag_t flags);
 // void trace_event_task_switch(trace_location_def_t *self);

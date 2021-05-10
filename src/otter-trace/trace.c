@@ -220,13 +220,6 @@ static OTF2_StringRef attr_label_ref[n_attr_label_defined] = {0};
 static OTF2_Archive *Archive = NULL;
 static OTF2_GlobalDefWriter *Defs = NULL;
 
-/* Global data structures used to record definitions which are written out at
-   program exit. Accessed w/ mtx */
-static queue_t *trace_location_queue = NULL;
-static pthread_mutex_t trace_location_queue_lock = PTHREAD_MUTEX_INITIALIZER;
-static queue_t *trace_region_queue = NULL;
-static pthread_mutex_t trace_region_queue_lock = PTHREAD_MUTEX_INITIALIZER;
-
 /* Pre- and post-flush callbacks required by OTF2 */
 static OTF2_FlushType
 pre_flush(
@@ -372,10 +365,6 @@ trace_initialise_archive(otter_opt_t *opt)
             attr_name_ref[attr_##Name][1],                                     \
             Type);
     #include <otter-trace/trace-attribute-defs.h>
-
-    /* Initialise location & definition queues */
-    trace_location_queue = queue_create();
-    trace_region_queue = queue_create();
 
     return true;
 }

@@ -375,7 +375,7 @@ on_ompt_callback_work(
         if (endpoint == ompt_scope_begin)
         {
             trace_event(thread_data->location, trace_new_workshare_region(
-                thread_data->location, wstype, count), endpoint);
+                wstype, count), endpoint);
         } else {
             trace_event(thread_data->location, NULL, endpoint);
         }
@@ -412,7 +412,7 @@ on_ompt_callback_sync_region(
     if (endpoint == ompt_scope_begin)
     {
         trace_event(thread_data->location, trace_new_sync_region(
-            thread_data->location, kind, task_data->id), endpoint);
+            kind, task_data->id), endpoint);
     } else {
         trace_event(thread_data->location, NULL, endpoint);
     }

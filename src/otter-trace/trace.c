@@ -42,6 +42,28 @@
     type == ompt_work_taskloop         ? OTF2_REGION_ROLE_LOOP      :          \
         OTF2_REGION_ROLE_UNKNOWN)
 
+/* Intel compiler defines additional types of sync regions compared to LLVM */
+#if defined(__INTEL_COMPILER)
+#define SYNC_TYPE_TO_STR_REF(type)                                             \
+   (type == ompt_sync_region_barrier                                           \
+        ? attr_label_ref[attr_region_type_barrier]                  :          \
+    type == ompt_sync_region_barrier_implicit                                  \
+        ? attr_label_ref[attr_region_type_barrier_implicit]         :          \
+    type == ompt_sync_region_barrier_explicit                                  \
+        ? attr_label_ref[attr_region_type_barrier_explicit]         :          \
+    type == ompt_sync_region_barrier_implementation                            \
+        ? attr_label_ref[attr_region_type_barrier_implementation]   :          \
+    type == ompt_sync_region_taskwait                                          \
+        ? attr_label_ref[attr_region_type_taskwait]                 :          \
+    type == ompt_sync_region_taskgroup                                         \
+        ? attr_label_ref[attr_region_type_taskgroup]                :          \
+    type == ompt_sync_region_barrier_implicit_workshare                        \
+        ? attr_label_ref[attr_region_type_barrier_implicit]         :          \
+    type == ompt_sync_region_barrier_implicit_parallel                         \
+        ? attr_label_ref[attr_region_type_barrier_implicit]         :          \
+    type == ompt_sync_region_barrier_teams                                     \
+        ? attr_label_ref[attr_region_type_barrier_implicit]         : 0 )
+#else
 #define SYNC_TYPE_TO_STR_REF(type)                                             \
    (type == ompt_sync_region_barrier                                           \
         ? attr_label_ref[attr_region_type_barrier]                  :          \
@@ -55,7 +77,29 @@
         ? attr_label_ref[attr_region_type_taskwait]                 :          \
     type == ompt_sync_region_taskgroup                                         \
         ? attr_label_ref[attr_region_type_taskgroup] : 0)
+#endif
 
+#if defined(__INTEL_COMPILER)
+#define SYNC_TYPE_TO_OTF2_REGION_ROLE(type)                                    \
+   (type == ompt_sync_region_barrier                                           \
+        ? OTF2_REGION_ROLE_BARRIER :                                           \
+    type == ompt_sync_region_barrier_implicit                                  \
+        ? OTF2_REGION_ROLE_IMPLICIT_BARRIER :                                  \
+    type == ompt_sync_region_barrier_explicit                                  \
+        ? OTF2_REGION_ROLE_BARRIER :                                           \
+    type == ompt_sync_region_barrier_implementation                            \
+        ? OTF2_REGION_ROLE_BARRIER :                                           \
+    type == ompt_sync_region_taskwait                                          \
+        ? OTF2_REGION_ROLE_TASK_WAIT :                                         \
+    type == ompt_sync_region_taskgroup                                         \
+        ? OTF2_REGION_ROLE_TASK_WAIT :                                         \
+    type == ompt_sync_region_barrier_implicit_workshare                        \
+        ? OTF2_REGION_ROLE_IMPLICIT_BARRIER :                                  \
+    type == ompt_sync_region_barrier_implicit_parallel                         \
+        ? OTF2_REGION_ROLE_IMPLICIT_BARRIER :                                  \
+    type == ompt_sync_region_barrier_teams                                     \
+        ? OTF2_REGION_ROLE_IMPLICIT_BARRIER :  OTF2_REGION_ROLE_UNKNOWN)
+#else
 #define SYNC_TYPE_TO_OTF2_REGION_ROLE(type)                                    \
    (type == ompt_sync_region_barrier                                           \
         ? OTF2_REGION_ROLE_BARRIER :                                           \
@@ -69,12 +113,16 @@
         ? OTF2_REGION_ROLE_TASK_WAIT :                                         \
     type == ompt_sync_region_taskgroup                                         \
         ? OTF2_REGION_ROLE_TASK_WAIT : OTF2_REGION_ROLE_UNKNOWN)
+#endif
 
-typedef struct trace_parallel_region_attr_t trace_parallel_region_attr_t;
-typedef struct trace_region_attr_empty_t    trace_region_attr_empty_t;
-typedef struct trace_wshare_region_attr_t   trace_wshare_region_attr_t;
-typedef struct trace_sync_region_attr_t     trace_sync_region_attr_t;
+/* Different kinds of regions supported */
+typedef enum {
+    trace_region_parallel,
+    trace_region_workshare,
+    trace_region_synchronise
+} trace_region_type_t;
 
+/* Different kinds of unique IDs */
 typedef enum trace_ref_type_t {
     trace_region,
     trace_string,
@@ -83,54 +131,25 @@ typedef enum trace_ref_type_t {
     NUM_REF_TYPES // <- MUST BE LAST ENUM ITEM
 } trace_ref_type_t;
 
-/* different kinds of regions supported */
-typedef enum {
-    trace_region_parallel,
-    trace_region_workshare,
-    trace_region_synchronise
-} trace_region_type_t;
-
 #define get_unique_rgn_ref() ((uint32_t) get_unique_ref(trace_region))
 #define get_unique_str_ref() ((uint32_t) get_unique_ref(trace_string))
 #define get_unique_loc_ref() (get_unique_ref(trace_location))
 #define get_other_ref()      (get_unique_ref(trace_other))
 
-static uint64_t get_unique_ref(trace_ref_type_t ref_type);
-
-static uint64_t get_timestamp(void);
-
-/* process a single location or region definition */
-static void trace_write_location_definition(trace_location_def_t *loc);
-static void trace_write_region_definition(trace_region_def_t *rgn);
-static void trace_write_parallel_rgn_def(trace_region_def_t *rgn);
-
-/* Enum values are used as an index to lookup string refs for a given attribute
-   name & label
- */
-typedef enum {
-#define INCLUDE_ATTRIBUTE(Type, Name, Desc) attr_##Name,
-#include <otter-trace/trace-attribute-defs.h>
-    n_attr_defined
-} attr_name_enum_t;
-
-typedef enum {
-#define INCLUDE_LABEL(Name, Label) attr_##Name##_##Label,
-#include <otter-trace/trace-attribute-defs.h>
-    n_attr_label_defined
-} attr_label_enum_t;
-
-/* Global lookup tables mapping enum value to string ref */
-static OTF2_StringRef attr_name_ref[n_attr_defined][2] = {0};
-static OTF2_StringRef attr_label_ref[n_attr_label_defined] = {0};
+/* Forward definitions */
+typedef struct trace_parallel_region_attr_t trace_parallel_region_attr_t;
+typedef struct trace_region_attr_empty_t    trace_region_attr_empty_t;
+typedef struct trace_wshare_region_attr_t   trace_wshare_region_attr_t;
+typedef struct trace_sync_region_attr_t     trace_sync_region_attr_t;
 
 /* Attributes of a parallel region */
 struct trace_parallel_region_attr_t {
-    unique_id_t         id;
-    unique_id_t         master_thread;
-    bool                is_league;
-    unsigned int        requested_parallelism;
-    unsigned int        ref_count;
-    pthread_mutex_t     lock_rgn;
+    unique_id_t     id;
+    unique_id_t     master_thread;
+    bool            is_league;
+    unsigned int    requested_parallelism;
+    unsigned int    ref_count;
+    pthread_mutex_t lock_rgn;
 };
 
 /* Attributes of a workshare region */
@@ -163,17 +182,40 @@ struct trace_region_def_t {
 struct trace_location_def_t {
     unique_id_t             id;
     ompt_thread_t           thread_type;
+    uint64_t                events;
+    stack_t                *rgn_stack;
     OTF2_EvtWriter         *evt_writer;
     OTF2_DefWriter         *def_writer;
-    uint64_t                events;
     OTF2_LocationRef        ref;
     OTF2_LocationType       type;
     OTF2_LocationGroupRef   location_group;
-    stack_t                *rgn_stack;
     OTF2_AttributeList     *attributes;
-    OTF2_IdMap             *rgn_map;
 };
 
+static uint64_t get_unique_ref(trace_ref_type_t ref_type);
+
+static uint64_t get_timestamp(void);
+
+/* process a single location definition */
+static void trace_write_location_definition(trace_location_def_t *loc);
+
+/* Enum values are used as an index to lookup string refs for a given attribute
+   name & label */
+typedef enum {
+#define INCLUDE_ATTRIBUTE(Type, Name, Desc) attr_##Name,
+#include <otter-trace/trace-attribute-defs.h>
+    n_attr_defined
+} attr_name_enum_t;
+
+typedef enum {
+#define INCLUDE_LABEL(Name, Label) attr_##Name##_##Label,
+#include <otter-trace/trace-attribute-defs.h>
+    n_attr_label_defined
+} attr_label_enum_t;
+
+/* Global lookup tables mapping enum value to string ref */
+static OTF2_StringRef attr_name_ref[n_attr_defined][2] = {0};
+static OTF2_StringRef attr_label_ref[n_attr_label_defined] = {0};
 /* References to global archive & def writer */
 static OTF2_Archive *Archive = NULL;
 static OTF2_GlobalDefWriter *Defs = NULL;
@@ -381,8 +423,7 @@ trace_new_location_definition(
         .type           = loc_type,
         .location_group = loc_grp,
         .rgn_stack      = stack_create(),
-        .attributes     = OTF2_AttributeList_New(),
-        .rgn_map        = OTF2_IdMap_Create(OTF2_ID_MAP_SPARSE, 1000)
+        .attributes     = OTF2_AttributeList_New()
     };
 
     new->evt_writer = OTF2_Archive_GetEvtWriter(Archive, new->ref);
@@ -417,8 +458,7 @@ trace_new_parallel_region(
         }
     };
 
-    /* Parallel regions definitions should be written in the global defs
-       writer */
+    /* Write a new region definition for each parallel region encountered */
     char region_name[DEFAULT_NAME_BUF_SZ+1] = {0};
     snprintf(region_name, DEFAULT_NAME_BUF_SZ, "Parallel Region %lu",
         new->attr.parallel.id);
@@ -448,7 +488,6 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
 
 trace_region_def_t *
 trace_new_workshare_region(
-    trace_location_def_t *self, 
     ompt_work_t           wstype, 
     uint64_t              count)
 {
@@ -463,6 +502,8 @@ trace_new_workshare_region(
             .count      = count
         }
     };
+
+    /* Each workshare region encountered by a thread gets a unique definition */
     OTF2_GlobalDefWriter_WriteRegion(Defs,
         new->ref,
         WORK_TYPE_TO_STR_REF(new->attr.wshare.type),
@@ -471,13 +512,11 @@ trace_new_workshare_region(
         OTF2_PARADIGM_OPENMP,
         OTF2_REGION_FLAG_NONE,
         0, 0, 0); /* source file, begin line no., end line no. */
-    OTF2_IdMap_AddIdPair(self->rgn_map, new->ref, new->ref);
     return new;
 }
 
 trace_region_def_t *
 trace_new_sync_region(
-    trace_location_def_t *self, 
     ompt_sync_region_t    stype, 
     unique_id_t           encountering_task_id)
 {
@@ -492,6 +531,8 @@ trace_new_sync_region(
             .encountering_task_id = encountering_task_id
         }
     };
+
+    /* Each sync region encountered by a thread gets a unique definition */
     OTF2_GlobalDefWriter_WriteRegion(Defs,
         new->ref,
         SYNC_TYPE_TO_STR_REF(new->attr.sync.type),
@@ -500,7 +541,6 @@ trace_new_sync_region(
         OTF2_PARADIGM_OPENMP,
         OTF2_REGION_FLAG_NONE,
         0, 0, 0); /* source file, begin line no., end line no. */
-    OTF2_IdMap_AddIdPair(self->rgn_map, new->ref, new->ref);
     return new;
 }
 
@@ -524,7 +564,6 @@ trace_write_location_definition(trace_location_def_t *loc)
         loc->type,
         loc->events,
         loc->location_group);
-    OTF2_IdMap_Free(loc->rgn_map);
     free(loc);
     return;
 }
@@ -565,6 +604,8 @@ void trace_event(
     stack_print(self->rgn_stack);
     #endif
 
+    /* For the region-end event, assume the region was previously pushed onto
+       the location's region stack and is now at the top */
     if (endpoint == ompt_scope_end) 
         stack_pop(self->rgn_stack, (data_item_t*) &region);
 
@@ -572,6 +613,8 @@ void trace_event(
     switch (region->type)
     {
         case trace_region_parallel:
+    /* Parallel regions must be accessed atomically as they are shared between
+       threads */
     LOG_DEBUG("acquiring mutex");
     pthread_mutex_lock(&region->attr.parallel.lock_rgn);
     LOG_DEBUG("acquired mutex");
@@ -582,26 +625,28 @@ void trace_event(
     OTF2_AttributeList_AddStringRef(region->attributes, attr_is_league,
         region->attr.parallel.is_league ? 
             attr_label_ref[attr_flag_true] : attr_label_ref[attr_flag_false]);
-    break;
+        break;
 
         case trace_region_workshare:
     OTF2_AttributeList_AddStringRef(region->attributes, attr_workshare_type,
         WORK_TYPE_TO_STR_REF(region->attr.wshare.type));
     OTF2_AttributeList_AddUint64(region->attributes, attr_workshare_count,
         region->attr.wshare.count);
-    break;
+        break;
 
         case trace_region_synchronise:
     OTF2_AttributeList_AddStringRef(region->attributes, attr_sync_type,
         SYNC_TYPE_TO_STR_REF(region->attr.sync.type));
     OTF2_AttributeList_AddUint64(region->attributes,
         attr_sync_encountering_task_id, region->attr.sync.encountering_task_id);
-    break;
+        break;
 
         default:
             LOG_ERROR("Unknown region type %d", region->type);
     }
     
+    /* Record the event. For parallel regions, update the ref count to reflect
+       the number of locations currently in the region */
     if (endpoint == ompt_scope_begin)
     {
         OTF2_EvtWriter_Enter(self->evt_writer, region->attributes, 
@@ -622,16 +667,14 @@ void trace_event(
             region->attr.parallel.ref_count--;
             LOG_DEBUG("ref count is %u - releasing mutex",
                 region->attr.parallel.ref_count);
-            pthread_mutex_unlock(&region->attr.parallel.lock_rgn);
             if (region->attr.parallel.ref_count == 0)
             {
+                pthread_mutex_unlock(&region->attr.parallel.lock_rgn);
                 trace_destroy_parallel_region(region);
+            } else {
+                pthread_mutex_unlock(&region->attr.parallel.lock_rgn);                
             }
-        }
-        
-        /* If this is a parallel region, the master thread destroys it manually */
-        if (region->type != trace_region_parallel)
-        {
+        } else {
             OTF2_AttributeList_Delete(region->attributes);
             free(region);
         }

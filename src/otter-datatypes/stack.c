@@ -143,12 +143,10 @@ stack_print(stack_t *s)
     fprintf(stderr, "\n"
                     "%12s %p\n"
                     "%12s %p\n"
-                    "%12s %lu\n"
-                    "%12s %p\n\n",
+                    "%12s %lu\n",
                     "stack",        s,
                     "head node",    s->head,
-                    "size",         s->size,
-                    "destructor",   s->destroy);
+                    "size",         s->size);
 
     const char *sep = " | ";
     fprintf(stderr, "%12s%s%-12s%s%-8s\n", "position", sep, "node", sep, "item");

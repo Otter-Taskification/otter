@@ -205,13 +205,11 @@ queue_print(queue_t *q)
                     "%12s %p\n"
                     "%12s %p\n"
                     "%12s %p\n"
-                    "%12s %lu\n"
-                    "%12s %p\n\n",
+                    "%12s %lu\n",
                     "QUEUE",        q,
                     "head node",    q->head,
                     "tail node",    q->tail,
-                    "length",       q->length,
-                    "destructor",   q->destroy);
+                    "length",       q->length);
 
     const char *sep = " | ";
     fprintf(stderr, "%12s%s%-12s%s%-8s\n", "position", sep, "node", sep, "item");

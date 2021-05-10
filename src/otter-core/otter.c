@@ -17,8 +17,6 @@
 #include <otter-core/otter-structs.h>
 #include <otter-core/otter-entry.h>
 #include <otter-core/otter-environment-variables.h>
-#include <otter-datatypes/graph.h>
-#include <otter-task-graph/task-graph.h>
 #include <otter-trace/trace.h>
 
 /* Static function prototypes */
@@ -369,9 +367,6 @@ on_ompt_callback_work(
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
     task_data_t *task_data = (task_data_t*) task->ptr;
 
-    if (wstype == ompt_work_single_executor && endpoint == ompt_scope_begin)
-        thread_data->is_single = true;
-
     LOG_DEBUG_WORK_TYPE(thread_data->id, wstype, count,
         endpoint==ompt_scope_begin?"begin":"end");
 
@@ -385,9 +380,6 @@ on_ompt_callback_work(
             trace_event(thread_data->location, NULL, endpoint);
         }
     }
-
-    if (wstype == ompt_work_single_executor && endpoint == ompt_scope_end)
-        thread_data->is_single = false;
 
     return;
 }

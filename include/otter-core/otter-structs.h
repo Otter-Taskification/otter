@@ -18,8 +18,6 @@ parallel_data_t *new_parallel_data(int flags);
 void parallel_destroy(parallel_data_t *thread_data);
 struct parallel_data_t {
     unique_id_t         id;
-    int                 flags;
-    unsigned int        actual_parallelism;
     trace_region_def_t *region;
 };
 
@@ -31,9 +29,6 @@ struct thread_data_t {
     trace_location_def_t *location;
     ompt_thread_t         type;
     bool                  is_master_thread;   // of parallel region
-    bool                  is_single;          // in single region
-    unsigned int          actual_parallelism; // in current parallel region
-    unsigned int          index;              // in current parallel region
 };
 
 /* Task */
@@ -43,7 +38,7 @@ struct task_data_t {
     unique_id_t         id;
     ompt_task_flag_t    type;
     ompt_task_flag_t    flags;
-
+    trace_region_def_t *region;
 };
 
 #endif // OTTER_STRUCTS_H

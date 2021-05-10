@@ -523,14 +523,9 @@ task_graph_node_data_repr(
             fmt_string = "\n"
                 "      {\n"
                 "        \"otter_id\":             %lu,\n"
-                "        \"actual_parallelism\":   %d,\n"
-                "        \"is_league\":            %s \n"
                 "      }\n";
             snprintf(node_data_repr, NODE_DATA_STR_MAXLEN, fmt_string,
-                parallel_data->id,
-                parallel_data->actual_parallelism,
-                parallel_data->flags & ompt_parallel_league ? 
-                    "true" : "false"
+                parallel_data->id
             );
             break;
         }

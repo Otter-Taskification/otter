@@ -11,12 +11,9 @@ new_parallel_data(int flags)
 {
     parallel_data_t *parallel_data = malloc(sizeof(*parallel_data));
     *parallel_data = (parallel_data_t) {
-        .id                 = get_unique_parallel_id(),
-        .flags              = flags,
-        .actual_parallelism = 0,
-        .region             = NULL
+        .id     = get_unique_parallel_id(),
+        .region = NULL
     };
-
     return parallel_data;
 }
 
@@ -34,10 +31,7 @@ new_thread_data(ompt_thread_t type)
         .id                 = get_unique_thread_id(),
         .location           = NULL,
         .type               = type,
-        .is_master_thread   = false,
-        .is_single          = false,
-        .actual_parallelism = 0,
-        .index              = 0
+        .is_master_thread   = false
     };
     return thread_data;
 }
@@ -55,9 +49,10 @@ new_task_data(
 {
     task_data_t *new = malloc(sizeof(*new));
     *new = (task_data_t) {
-        .id    = id,
-        .type  = flags & OMPT_TASK_TYPE_BITS,
-        .flags = flags
+        .id     = id,
+        .type   = flags & OMPT_TASK_TYPE_BITS,
+        .flags  = flags,
+        .region = NULL
     };
     return new;
 }

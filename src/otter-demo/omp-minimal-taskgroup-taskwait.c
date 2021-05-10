@@ -10,7 +10,7 @@ int main(void)
     int j=0;
     #pragma omp parallel num_threads(THREADS)
     {
-        #pragma omp single
+        #pragma omp single nowait
         {
             #pragma omp taskgroup
             {

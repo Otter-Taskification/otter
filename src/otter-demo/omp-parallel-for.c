@@ -1,7 +1,7 @@
 #include <omp.h>
 #include <stdio.h>
 
-#define THREADS 1
+#define THREADS 8
 #define LEN 2
 
 int main(void)

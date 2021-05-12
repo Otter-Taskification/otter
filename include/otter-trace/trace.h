@@ -29,6 +29,7 @@ trace_region_def_t *trace_new_parallel_region(unique_id_t id, unique_id_t master
 trace_region_def_t *trace_new_workshare_region(trace_location_def_t *self, ompt_work_t wstype, uint64_t count);
 trace_region_def_t *trace_new_sync_region(trace_location_def_t *self, ompt_sync_region_t stype, unique_id_t encountering_task_id);
 
+void trace_destroy_location(trace_location_def_t *loc);
 void trace_destroy_parallel_region(trace_region_def_t *rgn);
 
 /* write events */

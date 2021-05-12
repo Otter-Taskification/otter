@@ -509,6 +509,19 @@ trace_new_sync_region(
     return new;
 }
 
+void 
+trace_destroy_location(trace_location_def_t *loc)
+{
+    if (loc == NULL) return;
+    LOG_DEBUG("destroying location %lu (Otter id %lu)", loc->ref, loc->id);
+    LOG_DEBUG("%lu %lu", stack_size(loc->rgn_stack), queue_length(loc->rgn_defs));
+    stack_destroy(loc->rgn_stack, false, NULL);
+    queue_destroy(loc->rgn_defs, false, NULL);
+    OTF2_AttributeList_Delete(loc->attributes);
+    free(loc);
+    return;
+}
+
 static void
 trace_write_location_definition(trace_location_def_t *loc)
 {
@@ -529,7 +542,7 @@ trace_write_location_definition(trace_location_def_t *loc)
         loc->type,
         loc->events,
         loc->location_group);
-    free(loc);
+    trace_destroy_location(loc);
     return;
 }
 

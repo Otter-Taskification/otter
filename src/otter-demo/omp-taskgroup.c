@@ -2,17 +2,18 @@
 #include <unistd.h>
 #include <stdio.h>
 
-#define THREADS 2
-#define LEN 3
+#define THREADS 4
+#define LEN 25
 
 int main(void)
 {
     int j=0;
     #pragma omp parallel num_threads(THREADS)
-    #pragma omp taskloop
+    #pragma omp taskgroup
     for (j=0; j<LEN; j++)
     {
-        usleep(30);
+        #pragma omp task
+        {usleep(10);}
     }
 
     return 0;

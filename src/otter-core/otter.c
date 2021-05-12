@@ -148,6 +148,8 @@ on_ompt_callback_thread_end(
 
     /* Record thread-end event */
     trace_event_thread(thread_data->location, ompt_scope_end);
+
+    /* Destroy thread data (also destroys thread_data->location) */
     thread_destroy(thread_data);
 
     return;

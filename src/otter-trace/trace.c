@@ -151,7 +151,6 @@ struct trace_parallel_region_attr_t {
     unsigned int    ref_count;
     pthread_mutex_t lock_rgn;
     queue_t        *rgn_defs;
-    queue_t        *loc_defs;
 };
 
 /* Attributes of a workshare region */
@@ -187,7 +186,7 @@ struct trace_location_def_t {
     uint64_t                events;
     stack_t                *rgn_stack;
     queue_t                *rgn_defs;
-    bool                    is_registered;
+    // bool                    is_registered;
     OTF2_LocationRef        ref;
     OTF2_LocationType       type;
     OTF2_LocationGroupRef   location_group;
@@ -225,9 +224,14 @@ typedef enum {
 /* Global lookup tables mapping enum value to string ref */
 static OTF2_StringRef attr_name_ref[n_attr_defined][2] = {0};
 static OTF2_StringRef attr_label_ref[n_attr_label_defined] = {0};
+
 /* References to global archive & def writer */
 static OTF2_Archive *Archive = NULL;
 static OTF2_GlobalDefWriter *Defs = NULL;
+
+/* Mutexes for thread-safe access to Archive and Defs */
+static pthread_mutex_t lock_global_def_writer = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t lock_global_archive    = PTHREAD_MUTEX_INITIALIZER;
 
 /* Pre- and post-flush callbacks required by OTF2 */
 static OTF2_FlushType
@@ -422,8 +426,8 @@ trace_new_location_definition(
         .location_group = loc_grp,
         .rgn_stack      = stack_create(),
         .rgn_defs       = queue_create(),
-        .attributes     = OTF2_AttributeList_New(),
-        .is_registered = false
+        .attributes     = OTF2_AttributeList_New()
+        // .is_registered = false
     };
 
     new->evt_writer = OTF2_Archive_GetEvtWriter(Archive, new->ref);
@@ -455,8 +459,7 @@ trace_new_parallel_region(
             .requested_parallelism = requested_parallelism,
             .ref_count     = 0,
             .lock_rgn      = PTHREAD_MUTEX_INITIALIZER,
-            .rgn_defs      = queue_create(),
-            .loc_defs      = queue_create()
+            .rgn_defs      = queue_create()
         }
     };
     return new;
@@ -479,6 +482,13 @@ trace_new_workshare_region(
             .count      = count
         }
     };
+
+    LOG_DEBUG("location %lu created region %u (workshare) at %p",
+        loc->ref, new->ref, new);
+
+    /* Add region definition to location's region definition queue */
+    queue_push(loc->rgn_defs, (data_item_t) {.ptr = new});
+
     return new;
 }
 
@@ -513,6 +523,7 @@ void
 trace_destroy_location(trace_location_def_t *loc)
 {
     if (loc == NULL) return;
+    trace_write_location_definition(loc);
     LOG_DEBUG("destroying location %lu (Otter id %lu)", loc->ref, loc->id);
     LOG_DEBUG("%lu %lu", stack_size(loc->rgn_stack), queue_length(loc->rgn_defs));
     stack_destroy(loc->rgn_stack, false, NULL);
@@ -520,6 +531,36 @@ trace_destroy_location(trace_location_def_t *loc)
     OTF2_AttributeList_Delete(loc->attributes);
     free(loc);
     return;
+}
+
+void
+trace_destroy_parallel_region(trace_region_def_t *rgn)
+{
+    if (rgn->type != trace_region_parallel)
+    {
+        LOG_ERROR("invalid region type %d", rgn->type);
+        abort();
+    }
+    LOG_DEBUG("destroying parallel region %u (Otter id %lu)",
+        rgn->ref, rgn->attr.parallel.id);
+    OTF2_AttributeList_Delete(rgn->attributes);
+    queue_destroy(rgn->attr.parallel.rgn_defs, false, NULL);
+    free(rgn);
+    return;
+}
+
+void 
+trace_destroy_workshare_region(trace_region_def_t *rgn)
+{
+    LOG_ERROR("Not implemented!");
+    abort();
+}
+
+void
+trace_destroy_sync_region(trace_region_def_t *rgn)
+{
+    LOG_ERROR("Not implemented!");
+    abort();
 }
 
 static void
@@ -530,9 +571,13 @@ trace_write_location_definition(trace_location_def_t *loc)
         LOG_ERROR("null pointer");
         return;
     }
+    LOG_DEBUG("writing definition: location %lu (Otter id %lu)",
+        loc->ref, loc->id);
     char location_name[DEFAULT_NAME_BUF_SZ + 1] = {0};
     OTF2_StringRef location_name_ref = get_unique_str_ref();
     snprintf(location_name, DEFAULT_NAME_BUF_SZ, "Thread %lu", loc->id);
+    LOG_DEBUG("thread %lu acquiring lock_global_def_writer", loc->id);
+    pthread_mutex_lock(&lock_global_def_writer);
     OTF2_GlobalDefWriter_WriteString(Defs,
         location_name_ref,
         location_name);
@@ -542,7 +587,8 @@ trace_write_location_definition(trace_location_def_t *loc)
         loc->type,
         loc->events,
         loc->location_group);
-    trace_destroy_location(loc);
+    pthread_mutex_unlock(&lock_global_def_writer);
+    LOG_DEBUG("thread %lu releasing lock_global_def_writer", loc->id);
     return;
 }
 
@@ -633,10 +679,6 @@ trace_event_thread(trace_location_def_t *self, ompt_scope_endpoint_t endpoint)
 
     self->events++;
 
-    /* Locations now register their definitions with a region, to be written
-       to the global definitions at region-end */
-    // if (endpoint == ompt_scope_end) trace_write_location_definition(self);
-
     return;
 }
 
@@ -699,67 +741,62 @@ void trace_event(
     {
         OTF2_EvtWriter_Enter(self->evt_writer, region->attributes, 
             get_timestamp(), region->ref);
+        stack_push(self->rgn_stack, (data_item_t) {.ptr = region});
         if (region->type == trace_region_parallel)
-        {    
-            /* If location not registered, register with this parallel region
-               so that the location definition is written to the OTF trace at
-               the end of this region */
-            if (!self->is_registered)
-            {
-                LOG_DEBUG("(%3d) registering location %lu with parallel region %u",
-                    __LINE__, self->id, region->ref);
-                queue_push(region->attr.parallel.loc_defs,
-                    (data_item_t) {.ptr = self});
-                self->is_registered = true;
-            }
+        {
             region->attr.parallel.ref_count++;
             LOG_DEBUG("(%3d) ref count of parallel region %u is %u - releasing mutex",
                 __LINE__, region->ref, region->attr.parallel.ref_count);
             pthread_mutex_unlock(&region->attr.parallel.lock_rgn);
         }
-        stack_push(self->rgn_stack, (data_item_t) {.ptr = region});
     } else {
         OTF2_EvtWriter_Leave(self->evt_writer, region->attributes,
             get_timestamp(), region->ref);
         if (region->type == trace_region_parallel)
         {
             /* Give the location's region definitions to the parallel region */
-            LOG_DEBUG("(%3d) thread %lu appending queue of region definitions (%lu) "
-                      "to parallel region %lu", 
-                __LINE__, self->id, queue_length(self->rgn_defs),
-                region->attr.parallel.id);
+            LOG_DEBUG("(%3d) thread %lu appending queue of %lu region "
+                      "definitions to parallel region %lu", 
+                      __LINE__, self->id, queue_length(self->rgn_defs),
+                      region->attr.parallel.id);
+            LOG_DEBUG("%lu %lu",
+                queue_length(region->attr.parallel.rgn_defs),
+                queue_length(self->rgn_defs));
             if (!queue_append(region->attr.parallel.rgn_defs, self->rgn_defs))
                 LOG_ERROR("error appending items to queue");
+            LOG_DEBUG("%lu %lu",
+                queue_length(region->attr.parallel.rgn_defs),
+                queue_length(self->rgn_defs));
             region->attr.parallel.ref_count--;
             LOG_DEBUG("(%3d) ref count of parallel region %u is %u",
-                __LINE__,
-                region->ref,
-                region->attr.parallel.ref_count);
+                __LINE__, region->ref, region->attr.parallel.ref_count);
             if (region->attr.parallel.ref_count == 0)
             {
                 LOG_DEBUG("(%3d) thread %lu destroying parallel "
                           "region %u", __LINE__, self->id, region->ref);
-                /* write region's location & region definitions to global def writer */
+                
+                /* Write parallel region's definition */
                 trace_write_region_definition(region);
-                trace_location_def_t *loc = NULL;
-                while (queue_pop(region->attr.parallel.loc_defs, (data_item_t*) &loc))
-                {
-                    trace_write_location_definition(loc);
-                }
+
+                /* write region's region definitions */
                 trace_region_def_t *r = NULL;
-                while (queue_pop(region->attr.parallel.rgn_defs, (data_item_t*) &r))
+                while (queue_pop(region->attr.parallel.rgn_defs,
+                    (data_item_t*) &r))
                 {
                     trace_write_region_definition(r);
                 }
-                /* destroy parallel region once all locations are done with it */
+
+                /* destroy parallel region once all locations are done with it
+                   and all definitions written */
                 pthread_mutex_unlock(&region->attr.parallel.lock_rgn);
-                OTF2_AttributeList_Delete(region->attributes);
-                free(region);
+                trace_destroy_parallel_region(region);
             } else {
-                LOG_DEBUG("(%3d) thread %lu releasing mutex", __LINE__, self->id);
+                LOG_DEBUG("(%3d) thread %lu releasing mutex",
+                    __LINE__, self->id);
                 pthread_mutex_unlock(&region->attr.parallel.lock_rgn);                
             }
-        } 
+        }
+        /* Destroy other region types here */
     }
     self->events++;
     return;

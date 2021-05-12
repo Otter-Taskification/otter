@@ -38,6 +38,7 @@ new_thread_data(ompt_thread_t type)
 void 
 thread_destroy(thread_data_t *thread_data)
 {
+    trace_destroy_location(thread_data->location);
     free(thread_data);
 }
 

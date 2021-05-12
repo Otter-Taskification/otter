@@ -31,6 +31,8 @@ trace_region_def_t *trace_new_sync_region(trace_location_def_t *self, ompt_sync_
 
 void trace_destroy_location(trace_location_def_t *loc);
 void trace_destroy_parallel_region(trace_region_def_t *rgn);
+void trace_destroy_workshare_region(trace_region_def_t *rgn);
+void trace_destroy_sync_region(trace_region_def_t *rgn);
 
 /* write events */
 void trace_event_thread(trace_location_def_t *self, ompt_scope_endpoint_t endpoint);

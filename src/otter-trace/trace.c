@@ -541,8 +541,38 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
         LOG_ERROR("invalid region type %d", rgn->type);
         abort();
     }
-    LOG_DEBUG("destroying parallel region %u (Otter id %lu)",
-        rgn->ref, rgn->attr.parallel.id);
+
+    LOG_DEBUG("(%3d) destroying parallel region %u (Otter id %lu)",
+        __LINE__, rgn->ref, rgn->attr.parallel.id);
+    
+    /* Write parallel region's definition */
+    trace_write_region_definition(rgn);
+
+    /* write region's nested region definitions */
+    trace_region_def_t *r = NULL;
+    while (queue_pop(rgn->attr.parallel.rgn_defs, (data_item_t*) &r))
+    {
+        trace_write_region_definition(r);
+
+        /* destroy each region once its definition is written */
+        switch (r->type)
+        {
+        case trace_region_workshare:
+            trace_destroy_workshare_region(r);
+            break;
+        
+        case trace_region_synchronise:
+            trace_destroy_sync_region(r);
+            break;
+        
+        default:
+            LOG_ERROR("unknown region type %d", r->type);
+            abort();
+        }
+    }
+
+    /* destroy parallel region once all locations are done with it
+       and all definitions written */
     OTF2_AttributeList_Delete(rgn->attributes);
     queue_destroy(rgn->attr.parallel.rgn_defs, false, NULL);
     free(rgn);
@@ -552,15 +582,19 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
 void 
 trace_destroy_workshare_region(trace_region_def_t *rgn)
 {
-    LOG_ERROR("Not implemented!");
-    abort();
+    LOG_DEBUG("(%3d) destroying workshare region %u (wstype %d)",
+        __LINE__, rgn->ref, rgn->attr.wshare.type);
+    OTF2_AttributeList_Delete(rgn->attributes);
+    free(rgn);
 }
 
 void
 trace_destroy_sync_region(trace_region_def_t *rgn)
 {
-    LOG_ERROR("Not implemented!");
-    abort();
+    LOG_DEBUG("(%3d) destroying sync region %u (sync type %d)",
+        __LINE__, rgn->ref, rgn->attr.sync.type);
+    OTF2_AttributeList_Delete(rgn->attributes);
+    free(rgn);
 }
 
 static void
@@ -651,11 +685,6 @@ trace_write_region_definition(trace_region_def_t *rgn)
         {
             LOG_ERROR("unexpected region type %d", rgn->type);
         }
-    }
-    if (rgn->type != trace_region_parallel)
-    {
-        OTF2_AttributeList_Delete(rgn->attributes);
-        free(rgn);
     }
     return;
 }
@@ -772,22 +801,6 @@ void trace_event(
                 __LINE__, region->ref, region->attr.parallel.ref_count);
             if (region->attr.parallel.ref_count == 0)
             {
-                LOG_DEBUG("(%3d) thread %lu destroying parallel "
-                          "region %u", __LINE__, self->id, region->ref);
-                
-                /* Write parallel region's definition */
-                trace_write_region_definition(region);
-
-                /* write region's region definitions */
-                trace_region_def_t *r = NULL;
-                while (queue_pop(region->attr.parallel.rgn_defs,
-                    (data_item_t*) &r))
-                {
-                    trace_write_region_definition(r);
-                }
-
-                /* destroy parallel region once all locations are done with it
-                   and all definitions written */
                 pthread_mutex_unlock(&region->attr.parallel.lock_rgn);
                 trace_destroy_parallel_region(region);
             } else {

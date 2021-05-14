@@ -14,7 +14,7 @@ typedef struct task_data_t task_data_t;
 typedef struct scope_t scope_t;
 
 /* Parallel */
-parallel_data_t *new_parallel_data(int flags);
+parallel_data_t *new_parallel_data(unique_id_t thread_id, unsigned int requested_parallelism, int flags);
 void parallel_destroy(parallel_data_t *thread_data);
 struct parallel_data_t {
     unique_id_t         id;
@@ -32,7 +32,7 @@ struct thread_data_t {
 };
 
 /* Task */
-task_data_t *new_task_data(unique_id_t id, ompt_task_flag_t flags);
+task_data_t *new_task_data(trace_location_def_t *loc,trace_region_def_t *parent_task_region, unique_id_t task_id, ompt_task_flag_t flags, int has_dependences);
 void task_destroy(task_data_t *task_data);
 struct task_data_t {
     unique_id_t         id;

@@ -6,13 +6,19 @@
 #include <otter-trace/trace.h>
 
 parallel_data_t *
-new_parallel_data(int flags)
+new_parallel_data(
+    unique_id_t  thread_id,
+    unsigned int requested_parallelism,
+    int          flags)
 {
     parallel_data_t *parallel_data = malloc(sizeof(*parallel_data));
     *parallel_data = (parallel_data_t) {
         .id     = get_unique_parallel_id(),
         .region = NULL
     };
+
+    parallel_data->region = trace_new_parallel_region(
+        parallel_data->id, thread_id, flags, requested_parallelism);
     return parallel_data;
 }
 
@@ -32,6 +38,14 @@ new_thread_data(ompt_thread_t type)
         .type               = type,
         .is_master_thread   = false
     };
+
+    /* Create a location definition for this thread */
+    thread_data->location = trace_new_location_definition(
+        thread_data->id,
+        type,
+        OTF2_LOCATION_TYPE_CPU_THREAD,
+        DEFAULT_LOCATION_GRP);
+
     return thread_data;
 }
 
@@ -44,16 +58,26 @@ thread_destroy(thread_data_t *thread_data)
 
 task_data_t *
 new_task_data(
-    unique_id_t      id,
-    ompt_task_flag_t flags)
+    trace_location_def_t *loc,
+    trace_region_def_t   *parent_task_region,
+    unique_id_t           task_id,
+    ompt_task_flag_t      flags,
+    int                   has_dependences)
 {
     task_data_t *new = malloc(sizeof(*new));
     *new = (task_data_t) {
-        .id     = id,
+        .id     = task_id,
         .type   = flags & OMPT_TASK_TYPE_BITS,
         .flags  = flags,
         .region = NULL
     };
+    new->region = trace_new_task_region(
+        loc, 
+        parent_task_region, 
+        new->id,
+        flags, 
+        has_dependences
+    );
     return new;
 }
 

@@ -115,11 +115,18 @@
         ? OTF2_REGION_ROLE_TASK_WAIT : OTF2_REGION_ROLE_UNKNOWN)
 #endif
 
+#define TASK_TYPE_TO_STR_REF(type)                                             \
+    (type == ompt_task_initial ? attr_label_ref[attr_task_type_initial] :      \
+     type == ompt_task_implicit ? attr_label_ref[attr_task_type_implicit] :    \
+     type == ompt_task_explicit ? attr_label_ref[attr_task_type_explicit] :    \
+     type == ompt_task_target ? attr_label_ref[attr_task_type_target] : 0 )    \
+
 /* Different kinds of regions supported */
 typedef enum {
     trace_region_parallel,
     trace_region_workshare,
-    trace_region_synchronise
+    trace_region_synchronise,
+    trace_region_task
 } trace_region_type_t;
 
 /* Different kinds of unique IDs */
@@ -141,6 +148,7 @@ typedef struct trace_parallel_region_attr_t trace_parallel_region_attr_t;
 typedef struct trace_region_attr_empty_t    trace_region_attr_empty_t;
 typedef struct trace_wshare_region_attr_t   trace_wshare_region_attr_t;
 typedef struct trace_sync_region_attr_t     trace_sync_region_attr_t;
+typedef struct trace_task_region_attr_t     trace_task_region_attr_t;
 
 /* Attributes of a parallel region */
 struct trace_parallel_region_attr_t {
@@ -165,6 +173,16 @@ struct trace_sync_region_attr_t {
     unique_id_t         encountering_task_id;
 };
 
+/* Attributes of a task region */
+struct trace_task_region_attr_t {
+    unique_id_t         id;
+    ompt_task_flag_t    type;
+    ompt_task_flag_t    flags;
+    int                 has_dependences;
+    unique_id_t         parent_id;
+    ompt_task_flag_t    parent_type;
+};
+
 /* Store values needed to register region definition (tasks, parallel regions, 
    workshare constructs etc.) with OTF2 */
 struct trace_region_def_t {
@@ -173,9 +191,10 @@ struct trace_region_def_t {
     OTF2_AttributeList  *attributes;
     trace_region_type_t  type;
     union {
-        trace_parallel_region_attr_t parallel;
-        trace_wshare_region_attr_t   wshare;
-        trace_sync_region_attr_t     sync;
+        trace_parallel_region_attr_t    parallel;
+        trace_wshare_region_attr_t      wshare;
+        trace_sync_region_attr_t        sync;
+        trace_task_region_attr_t        task;
     } attr;
 };
 
@@ -186,7 +205,6 @@ struct trace_location_def_t {
     uint64_t                events;
     stack_t                *rgn_stack;
     queue_t                *rgn_defs;
-    // bool                    is_registered;
     OTF2_LocationRef        ref;
     OTF2_LocationType       type;
     OTF2_LocationGroupRef   location_group;
@@ -201,10 +219,8 @@ static uint32_t get_unique_uint32_ref(trace_ref_type_t ref_type);
 
 static uint64_t get_timestamp(void);
 
-/* write a location definition to the global def writer */
+/* write definitions to the global def writer */
 static void trace_write_location_definition(trace_location_def_t *loc);
-
-/* write a region definition to the global def writer */
 static void trace_write_region_definition(trace_region_def_t *rgn);
 
 /* Enum values are used as an index to lookup string refs for a given attribute
@@ -519,6 +535,46 @@ trace_new_sync_region(
     return new;
 }
 
+trace_region_def_t *
+trace_new_task_region(
+    trace_location_def_t  *loc, 
+    trace_region_def_t    *parent_task_region, 
+    unique_id_t            id,
+    ompt_task_flag_t       flags,
+    int                    has_dependences)
+{
+    /* Create a region representing a task. Add to the location's region
+       definition queue. */
+
+    LOG_INFO_IF((parent_task_region == NULL), "parent task region is null");
+
+    trace_region_def_t *new = malloc(sizeof(*new));
+    *new = (trace_region_def_t) {
+        .ref = get_unique_rgn_ref(),
+        .role = OTF2_REGION_ROLE_TASK,
+        .attributes = OTF2_AttributeList_New(),
+        .type = trace_region_task,
+        .attr.task = {
+            .id              = id,
+            .type            = flags & 0xF,
+            .flags           = flags,
+            .has_dependences = has_dependences,
+            .parent_id   = parent_task_region != NULL ? 
+                parent_task_region->attr.task.id   : 0,
+            .parent_type = parent_task_region != NULL ? 
+                parent_task_region->attr.task.type : 0
+        }
+    }
+
+    LOG_DEBUG("location %lu created task region %u (sync) at %p",
+        loc->ref, new->ref, new);
+
+    /* Add region definition to location's region definition queue */
+    queue_push(loc->rgn_defs, (data_item_t) {.ptr = new});
+
+    return new;
+}
+
 void 
 trace_destroy_location(trace_location_def_t *loc)
 {
@@ -564,6 +620,10 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
         case trace_region_synchronise:
             trace_destroy_sync_region(r);
             break;
+
+        case trace_region_task:
+            trace_destroy_task_region(r);
+            break;
         
         default:
             LOG_ERROR("unknown region type %d", r->type);
@@ -593,6 +653,15 @@ trace_destroy_sync_region(trace_region_def_t *rgn)
 {
     LOG_DEBUG("(%3d) destroying sync region %u (sync type %d)",
         __LINE__, rgn->ref, rgn->attr.sync.type);
+    OTF2_AttributeList_Delete(rgn->attributes);
+    free(rgn);
+}
+
+void
+trace_destroy_task_region(trace_region_def_t *rgn)
+{
+    LOG_DEBUG("(%3d) destroying task region %u (Otter id %lu)",
+        __LINE__, rgn->ref, rgn->attr.task.id);   
     OTF2_AttributeList_Delete(rgn->attributes);
     free(rgn);
 }
@@ -681,6 +750,27 @@ trace_write_region_definition(trace_region_def_t *rgn)
                 0, 0, 0); /* source file, begin line no., end line no. */
             break;
         }
+        case trace_region_task:
+        {
+            char task_name[DEFAULT_NAME_BUF_SZ+1] = {0};
+            snprintf(task_name, DEFAULT_NAME_BUF_SZ, "%s task %lu",
+                rgn->attr.task.type == ompt_task_initial ? "initial" :
+                    rgn->attr.task.type == ompt_task_implicit ? "implicit" :
+                    rgn->attr.task.type == ompt_task_explicit ? "explicit" :
+                    rgn->attr.task.type == ompt_task_target   ? "target" : "??",
+                rgn->attr.task.id);
+            OTF2_StringRef task_name_ref = get_unique_str_ref();
+            OTF2_GlobalDefWriter_WriteString(Defs, task_name_ref, task_name);
+            OTF2_GlobalDefWriter_WriteRegion(Defs,
+                rgn->ref,
+                task_name_ref,
+                0, 0,   /* canonical name, description */
+                rgn->role,
+                OTF2_PARADIGM_OPENMP,
+                OTF2_REGION_FLAG_NONE,
+                0, 0, 0); /* source file, begin line no., end line no. */
+            break;
+        }
         default:
         {
             LOG_ERROR("unexpected region type %d", rgn->type);
@@ -711,13 +801,14 @@ trace_event_thread(trace_location_def_t *self, ompt_scope_endpoint_t endpoint)
     return;
 }
 
-void trace_event(
+void
+trace_event(
     trace_location_def_t  *self,
     trace_region_def_t    *region, 
-    ompt_scope_endpoint_t  endpoint)
+    trace_event_type_t     event_type)
 {
-    LOG_ERROR_IF((endpoint == ompt_scope_begin && region == NULL),
-        "Region must be given for region-begin event");
+    LOG_ERROR_IF((event_type == ompt_scope_begin && region == NULL),
+        "Region must be given for region-enter event");
 
     #if DEBUG_LEVEL >= 4
     stack_print(self->rgn_stack);
@@ -725,10 +816,10 @@ void trace_event(
 
     /* For the region-end event, assume the region was previously pushed onto
        the location's region stack and is now at the top */
-    if (endpoint == ompt_scope_end) 
+    if (event_type == ompt_scope_end) 
         stack_pop(self->rgn_stack, (data_item_t*) &region);
 
-    /* Add region's attributes to the enter/leave event */
+    /* Add region's attributes to the event */
     switch (region->type)
     {
         case trace_region_parallel:
@@ -737,6 +828,10 @@ void trace_event(
     LOG_DEBUG("(%3d) thread %lu acquiring mutex", __LINE__, self->id);
     pthread_mutex_lock(&region->attr.parallel.lock_rgn);
     LOG_DEBUG("(%3d) thread %lu acquired mutex", __LINE__, self->id);
+    OTF2_AttributeList_AddStringRef(region->attributes, attr_event_type,
+        event_type == ompt_scope_begin ? 
+            attr_label_ref[attr_event_type_parallel_begin] : 
+            attr_label_ref[attr_event_type_parallel_end]);
     OTF2_AttributeList_AddUint64(region->attributes, attr_unique_id,
         region->attr.parallel.id);
     OTF2_AttributeList_AddUint32(region->attributes, attr_requested_parallelism,
@@ -747,6 +842,10 @@ void trace_event(
         break;
 
         case trace_region_workshare:
+    OTF2_AttributeList_AddStringRef(region->attributes, attr_event_type,
+        event_type == ompt_scope_begin ? 
+            attr_label_ref[attr_event_type_workshare_begin] : 
+            attr_label_ref[attr_event_type_workshare_end]);
     OTF2_AttributeList_AddStringRef(region->attributes, attr_workshare_type,
         WORK_TYPE_TO_STR_REF(region->attr.wshare.type));
     OTF2_AttributeList_AddUint64(region->attributes, attr_workshare_count,
@@ -754,10 +853,43 @@ void trace_event(
         break;
 
         case trace_region_synchronise:
+    OTF2_AttributeList_AddStringRef(region->attributes, attr_event_type,
+        event_type == ompt_scope_begin ? 
+            attr_label_ref[attr_event_type_sync_begin] : 
+            attr_label_ref[attr_event_type_sync_end]);
     OTF2_AttributeList_AddStringRef(region->attributes, attr_sync_type,
         SYNC_TYPE_TO_STR_REF(region->attr.sync.type));
     OTF2_AttributeList_AddUint64(region->attributes,
-        attr_sync_encountering_task_id, region->attr.sync.encountering_task_id);
+        attr_encountering_task_id, region->attr.sync.encountering_task_id);
+        break;
+
+        case trace_region_task:
+    OTF2_AttributeList_AddStringRef(region->attributes, attr_event_type,
+        event_type == trace_event_type_task_create ? 
+            attr_label_ref[attr_event_type_task_create] : 0
+        );
+    OTF2_AttributeList_AddUint64(region->attributes, attr_unique_id,
+        region->attr.task.id);
+    OTF2_AttributeList_AddStringRef(region->attributes, attr_task_type,
+        TASK_TYPE_TO_STR_REF(region->attr.task.type));
+    OTF2_AttributeList_AddUint32(region->attributes, attr_task_flags,
+        region->attr.task.flags);
+    OTF2_AttributeList_AddUint64(region->attributes, attr_parent_task_id,
+        region->attr.task.parent_id);
+    OTF2_AttributeList_AddStringRef(region->attributes, attr_parent_task_type,
+        TASK_TYPE_TO_STR_REF(region->attr.task.parent_type));
+    OTF2_AttributeList_AddUint8(region->attributes, attr_task_has_dependences,
+        region->attr.task.has_dependences);
+    OTF2_AttributeList_AddUint8(region->attributes, attr_task_is_undeferred,
+        region->attr.task.flags & ompt_task_undeferred);
+    OTF2_AttributeList_AddUint8(region->attributes, attr_task_is_untied,
+        region->attr.task.flags & ompt_task_untied);
+    OTF2_AttributeList_AddUint8(region->attributes, attr_task_is_final,
+        region->attr.task.flags & ompt_task_final);
+    OTF2_AttributeList_AddUint8(region->attributes, attr_task_is_mergeable,
+        region->attr.task.flags & ompt_task_mergeable);
+    OTF2_AttributeList_AddUint8(region->attributes, attr_task_is_merged,
+        region->attr.task.flags & ompt_task_merged);
         break;
 
         default:
@@ -766,7 +898,7 @@ void trace_event(
     
     /* Record the event. For parallel regions, update the ref count to reflect
        the number of locations currently in the region */
-    if (endpoint == ompt_scope_begin)
+    if (event_type == ompt_scope_begin)
     {
         OTF2_EvtWriter_Enter(self->evt_writer, region->attributes, 
             get_timestamp(), region->ref);
@@ -778,7 +910,7 @@ void trace_event(
                 __LINE__, region->ref, region->attr.parallel.ref_count);
             pthread_mutex_unlock(&region->attr.parallel.lock_rgn);
         }
-    } else {
+    } else if (event_type == ompt_scope_end) {
         OTF2_EvtWriter_Leave(self->evt_writer, region->attributes,
             get_timestamp(), region->ref);
         if (region->type == trace_region_parallel)
@@ -806,14 +938,35 @@ void trace_event(
             } else {
                 LOG_DEBUG("(%3d) thread %lu releasing mutex",
                     __LINE__, self->id);
-                pthread_mutex_unlock(&region->attr.parallel.lock_rgn);                
+                pthread_mutex_unlock(&region->attr.parallel.lock_rgn);
             }
         }
-        /* Destroy other region types here */
+    } else if (event_type == trace_event_type_task_create) {
+        OTF2_EvtWriter_ThreadTaskCreate(
+            self->evt_writer,
+            region->attributes,
+            get_timestamp(),
+            OTF2_UNDEFINED_COMM,
+            OTF2_UNDEFINED_UINT32, 0); /* creating thread, generation number */
+    } else {
+        LOG_ERROR("unknown event type %d", event_type);
+        abort();
     }
     self->events++;
     return;
 }
+
+// void
+// trace_event_task_create(
+//     trace_location_def_t *self, 
+//     trace_region_def_t   *created_task, 
+//     ompt_task_flag_t      flags)
+// {
+//     /* Populate attributes of created task */
+
+
+//     return;
+// }
 
 static uint64_t 
 get_timestamp(void)

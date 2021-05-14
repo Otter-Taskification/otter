@@ -35,19 +35,59 @@ INCLUDE_LABEL(flag,  N )
 INCLUDE_LABEL(flag,  true  )
 INCLUDE_LABEL(flag,  false )
 
+/* Unique ID attributes */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, unique_id, "unique ID of a task, parallel region or thread")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, encountering_task_id, "unique ID of the task that encountered this region")
+
+/* Attributes relating to parallel regions */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT32, requested_parallelism, "requested parallelism of parallel region")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, is_league, "is this parallel region a league of teams?")
+
+/* Attributes relating to workshare regions (sections, single, loop, taskloop) */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, workshare_type, "type of workshare region")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, workshare_count, "number of iterations associated with workshare region")
+
+/* Attributes relating to sync regions (barrier, taskgroup, taskwait) */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, sync_type, "type of synchronisation region")
+// INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, sync_encountering_task_id, "the task a thread was executing when it encountered the sync region")
+
+/* Attributes relating to task regions */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, parent_task_id, "unique ID of the parent task of this task")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT32, task_flags, "flags set for this task")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_has_dependences, "whether this task has dependences")
+
+/* Attributes defined for all events */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, event_type, "type of event as defined by Otter")
+INCLUDE_LABEL(event_type,  parallel_begin )
+INCLUDE_LABEL(event_type,  parallel_end   )
+INCLUDE_LABEL(event_type,  workshare_begin)
+INCLUDE_LABEL(event_type,  workshare_end  )
+INCLUDE_LABEL(event_type,  sync_begin     )
+INCLUDE_LABEL(event_type,  sync_end       )
+INCLUDE_LABEL(event_type,  task_create    )
+INCLUDE_LABEL(event_type,  task_schedule  )
+
 /* task type */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_type, "task classification")
-INCLUDE_LABEL(task_type,  initial  ) // initial
-INCLUDE_LABEL(task_type,  implicit ) // implicit
-INCLUDE_LABEL(task_type,  explicit ) // explicit
-INCLUDE_LABEL(task_type,  target   ) // target
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, parent_task_type, "task classification of the parent task of this task")
+INCLUDE_LABEL(task_type,  initial  )
+INCLUDE_LABEL(task_type,  implicit )
+INCLUDE_LABEL(task_type,  explicit )
+INCLUDE_LABEL(task_type,  target   )
+
+/* task flags */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_is_undeferred, "task is undeferred")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_is_untied,     "task is untied")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_is_final,      "task is final")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_is_mergeable,  "task is mergeable")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_is_merged,     "task is merged")
 
 /* thread type */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, thread_type, "thread type")
 INCLUDE_LABEL(thread_type,  initial)
 INCLUDE_LABEL(thread_type,  worker )
 
-/* region type - parallel, workshare, sync */
+/* region type - parallel, workshare, sync, task */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, region_type, "region type")
 INCLUDE_LABEL(region_type, parallel)
 INCLUDE_LABEL(region_type, sections)
@@ -63,13 +103,7 @@ INCLUDE_LABEL(region_type, barrier_explicit)
 INCLUDE_LABEL(region_type, barrier_implementation)
 INCLUDE_LABEL(region_type, taskwait)
 INCLUDE_LABEL(region_type, taskgroup)
-
-/* task flags */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_undeferred, "task is undeferred")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_untied,     "task is untied")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_final,      "task is final")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_mergeable,  "task is mergeable")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_merged,     "task is merged")
+INCLUDE_LABEL(region_type, task)
 
 /* prior task status at task-schedule event */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, prior_task_status,  "status of the task that arrived at a task scheduling point")
@@ -80,21 +114,6 @@ INCLUDE_LABEL(prior_task_status,  detach        )
 INCLUDE_LABEL(prior_task_status,  early_fulfil  )
 INCLUDE_LABEL(prior_task_status,  late_fulfil   )
 INCLUDE_LABEL(prior_task_status,  switch        )
-
-/* Unique ID attribute */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, unique_id, "unique ID of a region, thread or task")
-
-/* Attributes relating to parallel regions */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT32, requested_parallelism, "requested parallelism of parallel region")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, is_league, "is this parallel region a league of teams?")
-
-/* Attributes relating to workshare regions (sections, single, loop, taskloop) */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, workshare_type, "type of workshare region")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, workshare_count, "number of iterations associated with workshare region")
-
-/* Attributes relating to sync regions (barrier, taskgroup, taskwait) */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, sync_type, "type of synchronisation region")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, sync_encountering_task_id, "the task a thread was executing when it encountered the sync region")
 
 #undef INCLUDE_LABEL
 #undef INCLUDE_ATTRIBUTE

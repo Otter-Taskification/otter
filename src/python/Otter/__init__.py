@@ -80,6 +80,10 @@ class ExecutionGraph:
             next_events = {location: event.popleft() for location, event in self.trace.events.items()}
             next_types  = {type(e) for e in next_events.values()}
 
+            # Append popped events before scanning ahead
+            for loc, event in next_events.items():
+                self.events_padded[loc].append(event)
+
             if len(next_types) == 1:
 
                 # Get the event type encountered
@@ -92,14 +96,10 @@ class ExecutionGraph:
                 # Handle thread-begin
                 if next_type == otf2.events.ThreadBegin:
                     print("thread-begin")
-                    for loc, event in next_events.items():
-                        self.events_padded[loc].append(event)
 
                 # Handle thread-end
                 elif next_type == otf2.events.ThreadEnd:
                     print("THREAD END")
-                    for loc, event in next_events.items():
-                        self.events_padded[loc].append(event)
 
                 # Handle region-begin
                 elif next_type == otf2.events.Enter:
@@ -119,13 +119,9 @@ class ExecutionGraph:
 
                     if region_role == RegionRole.PARALLEL:
                         print("parallel-begin")
-                        for loc, event in next_events.items():
-                            self.events_padded[loc].append(event)
 
                     elif region_role == RegionRole.SECTIONS:
                         print("sections-begin")
-                        for loc, event in next_events.items():
-                            self.events_padded[loc].append(event)
 
                     elif region_role == RegionRole.SINGLE:
                         print("single-begin")
@@ -160,48 +156,40 @@ class ExecutionGraph:
 
                     elif region_role == RegionRole.LOOP:
                         print("[task]loop-begin")
-                        for loc, event in next_events.items():
-                            self.events_padded[loc].append(event)
 
                     elif region_role == RegionRole.LOOP:
                         print("workshare-begin")
-                        for loc, event in next_events.items():
-                            self.events_padded[loc].append(event)
 
                     elif region_role in [RegionRole.BARRIER, RegionRole.IMPLICIT_BARRIER]:
                         print("barrier-begin")
-                        for loc, event in next_events.items():
-                            self.events_padded[loc].append(event)
 
                     elif region_role == RegionRole.TASK_WAIT:
                         print("taskwait-begin")
-                        for loc, event in next_events.items():
-                            self.events_padded[loc].append(event)
 
                     else:
                         raise TypeError(f"Unexpected region role encountered: {region_role}")
 
-                    # print(region_roles)
-                    # for e in next_events:
-                    #     print(e.attributes)
-
                 # Handle region-end
                 elif next_type == otf2.events.Leave:
                     print("LEAVE")
-                    for loc, event in next_events.items():
-                        print(event.attributes)
 
                 else:
                     raise TypeError(f"Unexpected event type encountered: {next_type}")
-            else:
-                print(f"Multiple events: {next_types}")
-            # print(*[e.attributes for e in next_events])
 
-            print("*** PADDED EVENTS ***")
-            for key, value in self.events_padded.items():
-                print(key)
-                for index, val in enumerate(value):
-                    print(index, val)
+            else:
+                raise TypeError(f"Multiple events: {next_types}")
+
+        print("*** PADDED EVENTS ***")
+        for loc, events in self.events_padded.items():
+            print(loc.name)
+            for index, event in enumerate(events):
+                if event is not None:
+                    if hasattr(event, 'region'):
+                        print(f"  Event {index} ({type(event)}: {event.region.name})")
+                    else:
+                        print(f"  Event {index} ({type(event)}: {event.attributes})")
+                    for att, value in event.attributes.items():
+                        print(f"    {att.name}: {value}")
 
         return
 

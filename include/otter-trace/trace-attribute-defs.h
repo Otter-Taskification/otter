@@ -66,6 +66,8 @@ INCLUDE_LABEL(event_type,  sync_begin     )
 INCLUDE_LABEL(event_type,  sync_end       )
 INCLUDE_LABEL(event_type,  task_create    )
 INCLUDE_LABEL(event_type,  task_schedule  )
+INCLUDE_LABEL(event_type,  task_enter     )
+INCLUDE_LABEL(event_type,  task_leave     )
 
 /* task type */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_type, "task classification")

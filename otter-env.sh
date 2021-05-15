@@ -8,7 +8,7 @@ unset OTTER_APPEND_HOSTNAME
 # export OTTER_APPEND_HOSTNAME=
 
 # OTF2 trace directory
-export OTTER_OTF2_TRACE_PATH="/home/adam/git/otter/scratch/trace"
+export OTTER_OTF2_TRACE_PATH="scratch/trace"
 
 # OTF2 trace name
 export OTTER_OTF2_TRACE_NAME="Otter-OTF2-Archive"

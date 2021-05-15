@@ -2,33 +2,24 @@
 # Otter run-time environment variables
 
 # in case it was previously set
-unset OTTER_APPEND_HOSTNAME
-
-# Graph output file name
-export OTTER_TASK_GRAPH_OUTPUT="task-tree-graph-${HOSTNAME}"
-
-# Graph output file format: dot/adj/edge
-export OTTER_TASK_GRAPH_FORMAT=dot
+unset OTTER_APPEND_HOSTNAMEy
 
 # If defined, append hostname to all output files
 # export OTTER_APPEND_HOSTNAME=
 
-# Task metadata output
-export OTTER_TASK_GRAPH_NODEATTR=OTTER-graph-nodes.json
+# OTF2 trace directory
+export OTTER_OTF2_TRACE_PATH="/home/adam/git/otter/scratch/trace"
 
-# Run commands
-# OMP_TOOL_LIBRARIES=lib/libotter.so ./omp-demo
-# dot -Tsvg -o tasks.svg $OTTER_TASK_GRAPH_OUTPUT.gv
+# OTF2 trace name
+export OTTER_OTF2_TRACE_NAME="Otter-OTF2-Archive"
 
-printf "OTTER environment variables:\n"
-printf "%-25s %s\n" "OTTER_TASK_GRAPH_OUTPUT" "$OTTER_TASK_GRAPH_OUTPUT"
-printf "%-25s %s\n" "OTTER_TASK_GRAPH_FORMAT" "$OTTER_TASK_GRAPH_FORMAT"
+printf "%-25s %s\n" "OTTER_OTF2_TRACE:" $OTTER_OTF2_TRACE
 
 if [ -z "${OTTER_APPEND_HOSTNAME+x}" ];
 then
-	printf "%-25s %s\n" "OTTER_APPEND_HOSTNAME" "No"
+	printf "%-25s %s\n" "OTTER_APPEND_HOSTNAME:" "No"
 else
-	printf "%-25s %s\n" "OTTER_APPEND_HOSTNAME" "Yes"
+	printf "%-25s %s\n" "OTTER_APPEND_HOSTNAME:" "Yes"
 fi
 
-printf "%-25s %s\n" "OTTER_TASK_GRAPH_NODEATTR" "$OTTER_TASK_GRAPH_NODEATTR"
+

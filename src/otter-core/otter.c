@@ -50,28 +50,28 @@ tool_setup(
     static char host[HOST_NAME_MAX+1] = {0};
     gethostname(host, HOST_NAME_MAX);
 
-    /* detect environment variables for graph output file */
+    /* detect environment variables */
     static otter_opt_t opt = {
         .hostname         = NULL,
-        .graph_output     = NULL,
-        .graph_format     = NULL,
-        .graph_nodeattr   = NULL,
+        .tracename        = NULL,
+        .tracepath        = NULL,
         .append_hostname  = false
     };
 
     opt.hostname = host;
-    opt.graph_output = getenv(ENV_VAR_GRAPH_FILE);
-    opt.graph_format = getenv(ENV_VAR_GRAPH_FMT);
-    opt.graph_nodeattr = getenv(ENV_VAR_NODE_ATTR_FILE);
-    opt.append_hostname = 
-        getenv(ENV_VAR_APPEND_HOST) == NULL ? false : true;
+    opt.tracename = getenv(ENV_VAR_TRACE_OUTPUT);
+    opt.tracepath = getenv(ENV_VAR_TRACE_PATH);
+    opt.append_hostname = getenv(ENV_VAR_APPEND_HOST) == NULL ? false : true;
+
+    /* Apply defaults if variables not provided */
+    if(opt.tracename == NULL) opt.tracename = DEFAULT_OTF2_TRACE_OUTPUT;
+    if(opt.tracepath == NULL) opt.tracepath = DEFAULT_OTF2_TRACE_PATH;
 
     LOG_INFO("Otter environment variables:");
-    LOG_INFO("%-30s %s","host", opt.hostname);
-    LOG_INFO("%-30s %s",ENV_VAR_GRAPH_FILE, opt.graph_output);
-    LOG_INFO("%-30s %s",ENV_VAR_GRAPH_FMT, opt.graph_format);
-    LOG_INFO("%-30s %s",ENV_VAR_NODE_ATTR_FILE, opt.graph_nodeattr);
-    LOG_INFO("%-30s %s",ENV_VAR_APPEND_HOST,opt.append_hostname?"Yes":"No");
+    LOG_INFO("%-30s %s", "host", opt.hostname);
+    LOG_INFO("%-30s %s", ENV_VAR_TRACE_PATH,   opt.tracepath);
+    LOG_INFO("%-30s %s", ENV_VAR_TRACE_OUTPUT, opt.tracename);
+    LOG_INFO("%-30s %s", ENV_VAR_APPEND_HOST,  opt.append_hostname?"Yes":"No");
 
     trace_initialise_archive(&opt);
 

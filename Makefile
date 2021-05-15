@@ -6,8 +6,8 @@ INCLUDE    = -Iinclude -I/opt/otf2/include -I/ddn/data/$(USER)/local/include
 NOWARN     = -Wno-unused-function -Wno-unused-variable 
 CFLAGS     = -Wall -Werror $(NOWARN) $(INCLUDE)
 LDFLAGS    = -Llib/ -L/opt/otf2/lib -L/ddn/data/$(USER)/local/lib -Wl,-rpath=`pwd -P`/lib/,-rpath=/ddn/data/$(USER)/local/lib
-OTTER_DEFS = -DOTTER_DEFAULT_TASK_CHILDREN=$(OTTER_DEFAULT_TASK_CHILDREN)
-DTYPE_DEFS = -DDA_LEN=$(ODT_DEFAULT_ARRAY_LENGTH) -DDA_INC=$(ODT_DEFAULT_ARRAY_INCREMENT)
+OTTER_DEFS =
+DTYPE_DEFS = -DDA_LEN=$(OTTER_DEFAULT_ARRAY_LENGTH) -DDA_INC=$(OTTER_DEFAULT_ARRAY_INCREMENT)
 TRACE_DEFS =
 DEBUG      = -g
 
@@ -70,8 +70,8 @@ $(LIBTRACE): $(TRACESRC) $(TRACEHEAD) $(LIBDTYPE)
 
 ### Datatypes lib
 $(LIBDTYPE): $(DTYPESRC) $(DTYPEHEAD)
-	@echo COMPILING: $@ debug=$(DEBUG_ODT), DTYPE_DEFS=$(DTYPE_DEFS)
-	$(CC) $(CFLAGS) $(DTYPE_DEFS) $(LDFLAGS) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_ODT) $(DTYPESRC) -shared -fPIC -o $@
+	@echo COMPILING: $@ debug=$(DEBUG_DATATYPES), DTYPE_DEFS=$(DTYPE_DEFS)
+	$(CC) $(CFLAGS) $(DTYPE_DEFS) $(LDFLAGS) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_DATATYPES) $(DTYPESRC) -shared -fPIC -o $@
 
 run: $(BINS) cleanfiles
 	@OMP_TOOL_LIBRARIES=`pwd`/$(OTTER) ./$(EXE)

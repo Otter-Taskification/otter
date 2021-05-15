@@ -5,6 +5,8 @@
 #include <time.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include <otf2/otf2.h>
 #include <otf2/OTF2_Pthread_Locks.h>
@@ -68,13 +70,43 @@ post_flush(
 bool
 trace_initialise_archive(otter_opt_t *opt)
 {
+    /* Determine filename & path from options */
+    char archive_path[DEFAULT_NAME_BUF_SZ+1] = {0};
+    char archive_name[DEFAULT_NAME_BUF_SZ+1] = {0};
+    char *p = &archive_name[0];
+
+    /* Copy filename */
+    strncpy(p, opt->tracename, DEFAULT_NAME_BUF_SZ - strlen(archive_name));
+    p = &archive_name[0] + strlen(archive_name);
+
+    /* Copy hostname */
+    if (opt->append_hostname)
+    {
+        strncpy(p, ".", DEFAULT_NAME_BUF_SZ - strlen(archive_name));
+        p = &archive_name[0] + strlen(archive_name);
+        strncpy(p, opt->hostname, DEFAULT_NAME_BUF_SZ - strlen(archive_name));
+        p = &archive_name[0] + strlen(archive_name);
+    }
+
+    /* Copy PID */
+    strncpy(p, ".", DEFAULT_NAME_BUF_SZ - strlen(archive_name));
+    p = &archive_name[0] + strlen(archive_name);
+    snprintf(p, DEFAULT_NAME_BUF_SZ - strlen(archive_name), "%u", getpid());
+    p = &archive_name[0] + strlen(archive_name);
+
+    /* Copy path + filename */
+    snprintf(archive_path, DEFAULT_NAME_BUF_SZ, "%s/%s",
+        opt->tracepath, archive_name);
+
+    LOG_INFO("%-30s %s/%s", "Trace output path", opt->tracepath, archive_name);
+
     /* open OTF2 archive */
     Archive = OTF2_Archive_Open(
-        "default-archive-path",
-        "default-archive-name",
+        archive_path,               /* archive path */
+        archive_name,               /* archive name */
         OTF2_FILEMODE_WRITE,
-        1024 * 1024,                     /* event chunk size */
-        4 * 1024 * 1024,                 /* def chunk size */
+        OTF2_CHUNK_SIZE_EVENTS_DEFAULT,     
+        OTF2_CHUNK_SIZE_DEFINITIONS_DEFAULT,
         OTF2_SUBSTRATE_POSIX,
         OTF2_COMPRESSION_NONE);
 

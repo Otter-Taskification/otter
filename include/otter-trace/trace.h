@@ -10,7 +10,7 @@
 
 #define DEFAULT_LOCATION_GRP 0 // OTF2_UNDEFINED_LOCATION_GROUP
 #define DEFAULT_SYSTEM_TREE  0
-#define DEFAULT_NAME_BUF_SZ  64
+#define DEFAULT_NAME_BUF_SZ  256
 
 #define get_unique_rgn_ref() (get_unique_uint32_ref(trace_region))
 #define get_unique_str_ref() (get_unique_uint32_ref(trace_string))

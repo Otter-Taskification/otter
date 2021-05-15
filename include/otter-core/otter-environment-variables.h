@@ -3,9 +3,12 @@
 
 /* Define the environment variables OTTER looks for durng setup */
 
-#define ENV_VAR_GRAPH_FILE      "OTTER_TASK_GRAPH_OUTPUT"
-#define ENV_VAR_GRAPH_FMT       "OTTER_TASK_GRAPH_FORMAT"
-#define ENV_VAR_NODE_ATTR_FILE  "OTTER_TASK_GRAPH_NODEATTR"
 #define ENV_VAR_APPEND_HOST     "OTTER_APPEND_HOSTNAME"
+#define ENV_VAR_TRACE_OUTPUT    "OTTER_OTF2_TRACE_NAME"
+#define ENV_VAR_TRACE_PATH      "OTTER_OTF2_TRACE_PATH"
+
+/* Default values */
+#define DEFAULT_OTF2_TRACE_OUTPUT "otter_trace"
+#define DEFAULT_OTF2_TRACE_PATH   "trace"
 
 #endif // OTTER_ENV_H

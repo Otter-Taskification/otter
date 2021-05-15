@@ -43,10 +43,17 @@ void trace_destroy_sync_region(trace_region_def_t *rgn);
 void trace_destroy_task_region(trace_region_def_t *rgn);
 
 /* write events */
-void trace_event_thread(trace_location_def_t *self, ompt_scope_endpoint_t endpoint);
-void trace_event(trace_location_def_t *self, trace_region_def_t *region, trace_event_type_t event_type);
-void trace_event_task_create(trace_location_def_t *self, trace_region_def_t *created_task, ompt_task_flag_t flags);
+void trace_event_thread_begin(trace_location_def_t *self);
+void trace_event_thread_end(trace_location_def_t *self);
+void trace_event_enter(trace_location_def_t *self, trace_region_def_t *region);
+void trace_event_leave(trace_location_def_t *self);
+void trace_event_task_create(trace_location_def_t *self, trace_region_def_t *created_task);
+void trace_event_task_schedule(trace_location_def_t *self, trace_region_def_t *prior_task, ompt_task_status_t prior_status);
+// void trace_event(trace_location_def_t *self, trace_region_def_t *region, trace_event_type_t event_type);
 // void trace_event_task_switch(trace_location_def_t *self);
 // void trace_event_task_complete(trace_location_def_t *self);
+
+
+
 
 #endif // OTTER_TRACE_H

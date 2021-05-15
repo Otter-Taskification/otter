@@ -37,7 +37,7 @@ tool_setup(
     include_callback(callbacks, ompt_callback_thread_begin);
     include_callback(callbacks, ompt_callback_thread_end);
     include_callback(callbacks, ompt_callback_task_create);
-    // include_callback(callbacks, ompt_callback_task_schedule);
+    include_callback(callbacks, ompt_callback_task_schedule);
     include_callback(callbacks, ompt_callback_implicit_task);
     include_callback(callbacks, ompt_callback_work);
     include_callback(callbacks, ompt_callback_sync_region);
@@ -119,7 +119,7 @@ on_ompt_callback_thread_begin(
     LOG_DEBUG_THREAD_TYPE(thread_type, thread_data->id);
 
     /* Record thread-begin event */
-    trace_event_thread(thread_data->location, ompt_scope_begin);
+    trace_event_thread_begin(thread_data->location);
 
     return;
 }
@@ -140,7 +140,7 @@ on_ompt_callback_thread_end(
         "final clean-up...");
 
     /* Record thread-end event */
-    trace_event_thread(thread_data->location, ompt_scope_end);
+    trace_event_thread_end(thread_data->location);
 
     /* Destroy thread data (also destroys thread_data->location) */
     thread_destroy(thread_data);
@@ -170,8 +170,7 @@ on_ompt_callback_parallel_begin(
     parallel->ptr = parallel_data;
 
     /* record enter region event */
-    trace_event(thread_data->location,
-        parallel_data->region, trace_event_type_enter);
+    trace_event_enter(thread_data->location, parallel_data->region);
 
     return;
 }
@@ -191,7 +190,7 @@ on_ompt_callback_parallel_end(
     } else {
         LOG_DEBUG("[t=%lu] %-6s %s", thread_data->id, "end", "parallel");
         parallel_data_t *parallel_data = parallel->ptr;
-        trace_event(thread_data->location, NULL, trace_event_type_leave);
+        trace_event_leave(thread_data->location);
         /* reset flag */
         thread_data->is_master_thread = false;
     }
@@ -273,8 +272,7 @@ on_ompt_callback_task_create(
         get_unique_task_id(), flags, has_dependences);
 
     /* record the task-create event */
-    trace_event(thread_data->location,
-        task_data->region, trace_event_type_task_create);
+    trace_event_task_create(thread_data->location, task_data->region);
 
     new_task->ptr = task_data;
 
@@ -292,13 +290,38 @@ on_ompt_callback_task_schedule(
 {
     LOG_DEBUG_PRIOR_TASK_STATUS(prior_task_status);
 
+    thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
+
+    if (prior_task_status == ompt_task_early_fulfill 
+        || prior_task_status == ompt_task_late_fulfill)
+    {
+        LOG_INFO("ignored task-fulfill event");
+        return;
+    }
+
     task_data_t *prior_task_data = NULL, *next_task_data = NULL;
 
-    #if DEBUG_LEVEL >= 3
+    /* next_task is NULL for a task-fulfill event */
+
     prior_task_data = (task_data_t*) prior_task->ptr;
-    next_task_data = (task_data_t*) next_task->ptr;
-    LOG_DEBUG("%lu, %lu", prior_task_data->id, next_task_data->id);
-    #endif
+    next_task_data  = (task_data_t*) next_task->ptr;
+
+    if (prior_task_data->type == ompt_task_explicit 
+        || prior_task_data->type == ompt_task_target)
+    {
+        trace_event_task_schedule(thread_data->location,
+            prior_task_data->region, prior_task_status);
+        trace_event_leave(thread_data->location);
+    }
+
+    if (next_task_data->type == ompt_task_explicit 
+        || next_task_data->type == ompt_task_target)
+    {
+        /* reset status on task-entry */
+        trace_event_task_schedule(thread_data->location,
+            prior_task_data->region, 0); /* no status */
+        trace_event_enter(thread_data->location, next_task_data->region);
+    }
     
     return;
 }
@@ -333,8 +356,7 @@ on_ompt_callback_implicit_task(
 
         /* Worker threads record parallel-begin during implicit-task-begin */
         if (!thread_data->is_master_thread)
-            trace_event(thread_data->location, parallel_data->region,
-                trace_event_type_enter);
+            trace_event_enter(thread_data->location, parallel_data->region);
 
     } else {
 
@@ -343,7 +365,7 @@ on_ompt_callback_implicit_task(
         /* Worker threads record parallel-end during implicit-task-end
             callback */
         if (!thread_data->is_master_thread)
-            trace_event(thread_data->location, NULL, trace_event_type_leave);
+            trace_event_leave(thread_data->location);
     }
     return;
 }
@@ -379,10 +401,11 @@ on_ompt_callback_work(
     {
         if (endpoint == ompt_scope_begin)
         {
-            trace_event(thread_data->location, trace_new_workshare_region(
-                thread_data->location, wstype, count), trace_event_type_enter);
+            trace_region_def_t *wshare_rgn = trace_new_workshare_region(
+                thread_data->location, wstype, count);
+            trace_event_enter(thread_data->location, wshare_rgn);
         } else {
-            trace_event(thread_data->location, NULL, trace_event_type_leave);
+            trace_event_leave(thread_data->location);
         }
     }
 
@@ -416,10 +439,11 @@ on_ompt_callback_sync_region(
 
     if (endpoint == ompt_scope_begin)
     {
-        trace_event(thread_data->location, trace_new_sync_region(
-            thread_data->location, kind, task_data->id), trace_event_type_enter);
+        trace_region_def_t *sync_rgn = trace_new_sync_region(
+            thread_data->location, kind, task_data->id);
+        trace_event_enter(thread_data->location, sync_rgn);
     } else {
-        trace_event(thread_data->location, NULL, trace_event_type_leave);
+        trace_event_leave(thread_data->location);
     }
     return;
 }

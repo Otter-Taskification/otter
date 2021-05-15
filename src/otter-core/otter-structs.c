@@ -4,6 +4,7 @@
 #include <otter-core/otter.h>
 #include <otter-core/otter-structs.h>
 #include <otter-trace/trace.h>
+#include <otter-trace/trace-structs.h>
 
 parallel_data_t *
 new_parallel_data(

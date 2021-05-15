@@ -12,35 +12,46 @@
 #define DEFAULT_SYSTEM_TREE  0
 #define DEFAULT_NAME_BUF_SZ  64
 
+#define get_unique_rgn_ref() (get_unique_uint32_ref(trace_region))
+#define get_unique_str_ref() (get_unique_uint32_ref(trace_string))
+#define get_unique_loc_ref() (get_unique_uint64_ref(trace_location))
+#define get_other_ref()      (get_unique_uint64_ref(trace_other))
+
+/* Different kinds of unique IDs */
+typedef enum trace_ref_type_t {
+    trace_region,
+    trace_string,
+    trace_location,
+    trace_other,
+    NUM_REF_TYPES // <- MUST BE LAST ENUM ITEM
+} trace_ref_type_t;
+
 /* event endpoint */
 typedef enum {
-    trace_event_type_enter = ompt_scope_begin,
-    trace_event_type_leave = ompt_scope_end,
+    trace_event_type_enter,
+    trace_event_type_leave,
     trace_event_type_task_create
 } trace_event_type_t;
 
-/* opaque types */
+/* Different kinds of regions supported */
+typedef enum {
+    trace_region_parallel,
+    trace_region_workshare,
+    trace_region_synchronise,
+    trace_region_task
+} trace_region_type_t;
+
+/* Defined in trace-structs.h */
 typedef struct trace_region_def_t trace_region_def_t;
 typedef struct trace_location_def_t trace_location_def_t;
 
+/* unique OTF2 refs accessed via macro wrappers */
+uint64_t get_unique_uint64_ref(trace_ref_type_t ref_type);
+uint32_t get_unique_uint32_ref(trace_ref_type_t ref_type);
+
 /* interface function prototypes */
 bool trace_initialise_archive(otter_opt_t *opt);
-bool trace_finalise_archive();
-
-/* Location definition */
-trace_location_def_t *trace_new_location_definition(uint64_t id, ompt_thread_t thread_type, OTF2_LocationType loc_type, OTF2_LocationGroupRef loc_grp);
-
-/* Region definitions */
-trace_region_def_t *trace_new_parallel_region(unique_id_t id, unique_id_t master, int flags, unsigned int requested_parallelism);
-trace_region_def_t *trace_new_workshare_region(trace_location_def_t *loc, ompt_work_t wstype, uint64_t count);
-trace_region_def_t *trace_new_sync_region(trace_location_def_t *loc, ompt_sync_region_t stype, unique_id_t encountering_task_id);
-trace_region_def_t *trace_new_task_region(trace_location_def_t *loc, trace_region_def_t *parent_task_region, unique_id_t task_id, ompt_task_flag_t flags, int has_dependences);
-
-void trace_destroy_location(trace_location_def_t *loc);
-void trace_destroy_parallel_region(trace_region_def_t *rgn);
-void trace_destroy_workshare_region(trace_region_def_t *rgn);
-void trace_destroy_sync_region(trace_region_def_t *rgn);
-void trace_destroy_task_region(trace_region_def_t *rgn);
+bool trace_finalise_archive(void);
 
 /* write events */
 void trace_event_thread_begin(trace_location_def_t *self);
@@ -49,11 +60,11 @@ void trace_event_enter(trace_location_def_t *self, trace_region_def_t *region);
 void trace_event_leave(trace_location_def_t *self);
 void trace_event_task_create(trace_location_def_t *self, trace_region_def_t *created_task);
 void trace_event_task_schedule(trace_location_def_t *self, trace_region_def_t *prior_task, ompt_task_status_t prior_status);
-// void trace_event(trace_location_def_t *self, trace_region_def_t *region, trace_event_type_t event_type);
 // void trace_event_task_switch(trace_location_def_t *self);
 // void trace_event_task_complete(trace_location_def_t *self);
 
-
-
+/* write definitions to the global def writer */
+void trace_write_location_definition(trace_location_def_t *loc);
+void trace_write_region_definition(trace_region_def_t *rgn);
 
 #endif // OTTER_TRACE_H

@@ -18,6 +18,7 @@
 #include <otter-core/otter-entry.h>
 #include <otter-core/otter-environment-variables.h>
 #include <otter-trace/trace.h>
+#include <otter-trace/trace-structs.h>
 
 /* Static function prototypes */
 static void print_resource_usage(void);

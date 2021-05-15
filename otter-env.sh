@@ -2,7 +2,7 @@
 # Otter run-time environment variables
 
 # in case it was previously set
-unset OTTER_APPEND_HOSTNAMEy
+unset OTTER_APPEND_HOSTNAME
 
 # If defined, append hostname to all output files
 # export OTTER_APPEND_HOSTNAME=

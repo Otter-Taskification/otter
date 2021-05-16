@@ -57,6 +57,8 @@ INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_has_dependences, "whether this task has 
 
 /* Attributes defined for all events */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, event_type, "type of event as defined by Otter")
+INCLUDE_LABEL(event_type,  thread_begin   )
+INCLUDE_LABEL(event_type,  thread_end     )
 INCLUDE_LABEL(event_type,  parallel_begin )
 INCLUDE_LABEL(event_type,  parallel_end   )
 INCLUDE_LABEL(event_type,  workshare_begin)

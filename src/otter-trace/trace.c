@@ -446,6 +446,11 @@ void
 trace_event_thread_begin(trace_location_def_t *self)
 {
     trace_add_thread_attributes(self);
+    OTF2_AttributeList_AddStringRef(
+        self->attributes,
+        attr_event_type,
+        attr_label_ref[attr_event_type_thread_begin]
+    );
     OTF2_EvtWriter_ThreadBegin(
         self->evt_writer,
         self->attributes,
@@ -461,6 +466,11 @@ void
 trace_event_thread_end(trace_location_def_t *self)
 {
     trace_add_thread_attributes(self);
+    OTF2_AttributeList_AddStringRef(
+        self->attributes,
+        attr_event_type,
+        attr_label_ref[attr_event_type_thread_end]
+    );
     OTF2_EvtWriter_ThreadEnd(
         self->evt_writer,    
         self->attributes, 

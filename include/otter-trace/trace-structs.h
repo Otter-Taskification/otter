@@ -25,6 +25,7 @@ struct trace_parallel_region_attr_t {
     bool            is_league;
     unsigned int    requested_parallelism;
     unsigned int    ref_count;
+    unsigned int    enter_count;
     pthread_mutex_t lock_rgn;
     queue_t        *rgn_defs;
 };

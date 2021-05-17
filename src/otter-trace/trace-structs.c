@@ -77,6 +77,7 @@ trace_new_parallel_region(
             .is_league     = flags & ompt_parallel_league ? true : false,
             .requested_parallelism = requested_parallelism,
             .ref_count     = 0,
+            .enter_count   = 0,
             .lock_rgn      = PTHREAD_MUTEX_INITIALIZER,
             .rgn_defs      = queue_create()
         }
@@ -192,7 +193,7 @@ trace_destroy_location(trace_location_def_t *loc)
     LOG_DEBUG("%lu %lu", stack_size(loc->rgn_stack), queue_length(loc->rgn_defs));
     stack_destroy(loc->rgn_stack, false, NULL);
     queue_destroy(loc->rgn_defs, false, NULL);
-    OTF2_AttributeList_Delete(loc->attributes);
+    // OTF2_AttributeList_Delete(loc->attributes);
     free(loc);
     return;
 }
@@ -247,7 +248,7 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
 
     /* destroy parallel region once all locations are done with it
        and all definitions written */
-    OTF2_AttributeList_Delete(rgn->attributes);
+    // OTF2_AttributeList_Delete(rgn->attributes);
     queue_destroy(rgn->attr.parallel.rgn_defs, false, NULL);
     free(rgn);
     return;
@@ -256,26 +257,32 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
 void 
 trace_destroy_workshare_region(trace_region_def_t *rgn)
 {
+    LOG_DEBUG("(%3d) destroying workshare attribute list %p",
+        __LINE__, rgn->attributes);
+    OTF2_AttributeList_Delete(rgn->attributes);
     LOG_DEBUG("(%3d) destroying workshare region %u (wstype %d)",
         __LINE__, rgn->ref, rgn->attr.wshare.type);
-    OTF2_AttributeList_Delete(rgn->attributes);
     free(rgn);
 }
 
 void
 trace_destroy_sync_region(trace_region_def_t *rgn)
 {
+    LOG_DEBUG("(%3d) destroying sync attribute list %p",
+        __LINE__, rgn->attributes);
+    OTF2_AttributeList_Delete(rgn->attributes);
     LOG_DEBUG("(%3d) destroying sync region %u (sync type %d)",
         __LINE__, rgn->ref, rgn->attr.sync.type);
-    OTF2_AttributeList_Delete(rgn->attributes);
     free(rgn);
 }
 
 void
 trace_destroy_task_region(trace_region_def_t *rgn)
 {
-    LOG_DEBUG("(%3d) destroying task region %u (Otter id %lu)",
-        __LINE__, rgn->ref, rgn->attr.task.id);   
+    LOG_DEBUG("(%3d) destroying task attribute list %p",
+        __LINE__, rgn->attributes);
     OTF2_AttributeList_Delete(rgn->attributes);
+    LOG_DEBUG("(%3d) destroying task region %u (Otter id %lu)",
+        __LINE__, rgn->ref, rgn->attr.task.id);
     free(rgn);
 }

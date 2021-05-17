@@ -568,7 +568,8 @@ trace_event_enter(
     if (region->type == trace_region_parallel)
     {
         region->attr.parallel.ref_count++;
-        LOG_DEBUG("(%3d) ref count of parallel region %u is %u - releasing "
+        region->attr.parallel.enter_count++;
+        LOG_INFO("(%3d) ref count of parallel region %u is %u - releasing "
             "mutex",  __LINE__, region->ref, region->attr.parallel.ref_count);
         pthread_mutex_unlock(&region->attr.parallel.lock_rgn);
     }
@@ -660,8 +661,11 @@ trace_event_leave(trace_location_def_t *self)
         if (!queue_append(region->attr.parallel.rgn_defs, self->rgn_defs))
             LOG_ERROR("error appending items to queue");
         region->attr.parallel.ref_count--;
-        LOG_DEBUG("(%3d) ref count of parallel region %u is %u",
-            __LINE__, region->ref, region->attr.parallel.ref_count);
+        LOG_INFO("(%3d) ref count of parallel region %u is %u (enter count: %u)",
+            __LINE__, region->ref,
+            region->attr.parallel.ref_count,
+            region->attr.parallel.enter_count
+        );
 
         /* Check the ref count atomically __before__ unlocking */
         if (region->attr.parallel.ref_count == 0)

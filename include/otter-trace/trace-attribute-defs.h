@@ -70,6 +70,11 @@ INCLUDE_LABEL(event_type,  task_schedule  )
 INCLUDE_LABEL(event_type,  task_enter     )
 INCLUDE_LABEL(event_type,  task_leave     )
 
+/* Region begin or end event? */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, endpoint, "is this a region-enter or region-leave event")
+INCLUDE_LABEL(endpoint, enter)
+INCLUDE_LABEL(endpoint, leave)
+
 /* task type */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_type, "task classification")
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, parent_task_type, "task classification of the parent task of this task")
@@ -93,10 +98,12 @@ INCLUDE_LABEL(thread_type,  worker )
 /* region type - parallel, workshare, sync, task */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, region_type, "region type")
 INCLUDE_LABEL(region_type, parallel)
+INCLUDE_LABEL(region_type, workshare)
+INCLUDE_LABEL(region_type, sync)
+INCLUDE_LABEL(region_type, task)
 INCLUDE_LABEL(region_type, sections)
 INCLUDE_LABEL(region_type, single_executor)
 INCLUDE_LABEL(region_type, single_other)
-INCLUDE_LABEL(region_type, workshare)
 INCLUDE_LABEL(region_type, distribute)
 INCLUDE_LABEL(region_type, loop)
 INCLUDE_LABEL(region_type, taskloop)
@@ -106,7 +113,6 @@ INCLUDE_LABEL(region_type, barrier_explicit)
 INCLUDE_LABEL(region_type, barrier_implementation)
 INCLUDE_LABEL(region_type, taskwait)
 INCLUDE_LABEL(region_type, taskgroup)
-INCLUDE_LABEL(region_type, task)
 
 /* prior task status at task-schedule event */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, prior_task_status,  "status of the task that arrived at a task scheduling point")

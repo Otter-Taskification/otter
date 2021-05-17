@@ -451,6 +451,11 @@ trace_event_thread_begin(trace_location_def_t *self)
         attr_event_type,
         attr_label_ref[attr_event_type_thread_begin]
     );
+    OTF2_AttributeList_AddStringRef(
+        self->attributes,
+        attr_endpoint,
+        attr_label_ref[attr_endpoint_enter]
+    );
     OTF2_EvtWriter_ThreadBegin(
         self->evt_writer,
         self->attributes,
@@ -470,6 +475,11 @@ trace_event_thread_end(trace_location_def_t *self)
         self->attributes,
         attr_event_type,
         attr_label_ref[attr_event_type_thread_end]
+    );
+    OTF2_AttributeList_AddStringRef(
+        self->attributes,
+        attr_endpoint,
+        attr_label_ref[attr_endpoint_leave]
     );
     OTF2_EvtWriter_ThreadEnd(
         self->evt_writer,    
@@ -512,6 +522,21 @@ trace_event_enter(
             attr_label_ref[attr_event_type_sync_begin] :
         attr_label_ref[attr_event_type_task_enter]
     );
+
+    /* Add the region type */
+    OTF2_AttributeList_AddStringRef(region->attributes, attr_region_type,
+        region->type == trace_region_parallel ?
+            attr_label_ref[attr_region_type_parallel] :
+        region->type == trace_region_workshare ?
+            attr_label_ref[attr_region_type_workshare] :
+        region->type == trace_region_synchronise ?
+            attr_label_ref[attr_region_type_sync] :
+        attr_label_ref[attr_region_type_task]
+    );
+
+    /* Add the endpoint */
+    OTF2_AttributeList_AddStringRef(region->attributes, attr_endpoint,
+        attr_label_ref[attr_endpoint_enter]);
 
     /* Add region's attributes to the event */
     switch (region->type)
@@ -584,6 +609,21 @@ trace_event_leave(trace_location_def_t *self)
             attr_label_ref[attr_event_type_sync_end] :
         attr_label_ref[attr_event_type_task_leave]
     );
+
+    /* Add the region type */
+    OTF2_AttributeList_AddStringRef(region->attributes, attr_region_type,
+        region->type == trace_region_parallel ?
+            attr_label_ref[attr_region_type_parallel] :
+        region->type == trace_region_workshare ?
+            attr_label_ref[attr_region_type_workshare] :
+        region->type == trace_region_synchronise ?
+            attr_label_ref[attr_region_type_sync] :
+        attr_label_ref[attr_region_type_task]
+    );
+
+    /* Add the endpoint */
+    OTF2_AttributeList_AddStringRef(region->attributes, attr_endpoint,
+        attr_label_ref[attr_endpoint_leave]);
 
     /* Add region's attributes to the event */
     switch (region->type)

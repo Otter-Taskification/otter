@@ -255,24 +255,29 @@ trace_write_location_definition(trace_location_def_t *loc)
         LOG_ERROR("null pointer");
         return;
     }
-    LOG_DEBUG("writing definition: location %lu (Otter id %lu)",
-        loc->ref, loc->id);
+
     char location_name[DEFAULT_NAME_BUF_SZ + 1] = {0};
     OTF2_StringRef location_name_ref = get_unique_str_ref();
     snprintf(location_name, DEFAULT_NAME_BUF_SZ, "Thread %lu", loc->id);
-    LOG_DEBUG("thread %lu acquiring lock_global_def_writer", loc->id);
+
+    LOG_DEBUG("[t=%lu] locking global def writer", loc->id);
     pthread_mutex_lock(&lock_global_def_writer);
+
     OTF2_GlobalDefWriter_WriteString(Defs,
         location_name_ref,
         location_name);
+
+    LOG_DEBUG("[t=%lu] writing location definition", loc->id);
     OTF2_GlobalDefWriter_WriteLocation(Defs,
         loc->ref,
         location_name_ref,
         loc->type,
         loc->events,
         loc->location_group);
+
+    LOG_DEBUG("[t=%lu] unlocking global def writer", loc->id);
     pthread_mutex_unlock(&lock_global_def_writer);
-    LOG_DEBUG("thread %lu releasing lock_global_def_writer", loc->id);
+
     return;
 }
 
@@ -284,8 +289,10 @@ trace_write_region_definition(trace_region_def_t *rgn)
         LOG_ERROR("null pointer");
         return;
     }
-    LOG_DEBUG("writing definition for region %u (type=%d, role=%u) %p",
+
+    LOG_DEBUG("writing region definition %3u (type=%3d, role=%3u) %p",
         rgn->ref, rgn->type, rgn->role, rgn);
+
     switch (rgn->type)
     {
         case trace_region_parallel:
@@ -499,17 +506,27 @@ trace_event_enter(
 {
     LOG_ERROR_IF((region == NULL), "null region pointer");
 
+    LOG_DEBUG("[t=%lu] enter region %p", self->id, region);
+
     #if DEBUG_LEVEL >= 4
     stack_print(self->rgn_stack);
     #endif
 
     if (region->type == trace_region_parallel)
     {
+        /* Set up new region definitions queue for the new parallel region */
+        stack_push(self->rgn_defs_stack, (data_item_t) {.ptr = self->rgn_defs});
+        LOG_DEBUG("[t=%lu] pushed region definitions queue %p",
+            self->id, self->rgn_defs);
+        self->rgn_defs = queue_create();
+
         /* Parallel regions must be accessed atomically as they are shared 
            between threads */
-        LOG_DEBUG("(%3d) thread %lu acquiring mutex", __LINE__, self->id);
+        LOG_DEBUG("[t=%lu] acquiring mutex %p",
+            self->id, &region->attr.parallel.lock_rgn);
         pthread_mutex_lock(&region->attr.parallel.lock_rgn);
-        LOG_DEBUG("(%3d) thread %lu acquired mutex", __LINE__, self->id);
+        LOG_DEBUG("[t=%lu] acquired mutex %p",
+            self->id, &region->attr.parallel.lock_rgn);
     }
 
     /* Add the event type attribute */
@@ -569,8 +586,10 @@ trace_event_enter(
     {
         region->attr.parallel.ref_count++;
         region->attr.parallel.enter_count++;
-        LOG_INFO("(%3d) ref count of parallel region %u is %u - releasing "
-            "mutex",  __LINE__, region->ref, region->attr.parallel.ref_count);
+        LOG_INFO("[t=%lu] releasing mutex %p (ref count of parallel region %lu"
+            " is %u)",
+            self->id, &region->attr.parallel.lock_rgn,
+            region->attr.parallel.id, region->attr.parallel.ref_count);
         pthread_mutex_unlock(&region->attr.parallel.lock_rgn);
     }
 
@@ -597,16 +616,17 @@ trace_event_leave(trace_location_def_t *self)
     trace_region_def_t *region = NULL;
     stack_pop(self->rgn_stack, (data_item_t*) &region);
 
-    LOG_DEBUG("[t=%lu] popped region %u (addr=%p type=%u role=%u)", self->id,
-        region->ref, region, region->type, region->role);
+    LOG_DEBUG("[t=%lu] leave region %p", self->id, region);
 
     if (region->type == trace_region_parallel)
     {
         /* Parallel regions must be accessed atomically as they are shared 
            between threads */
-        LOG_DEBUG("(%3d) thread %lu acquiring mutex", __LINE__, self->id);
+        LOG_DEBUG("[t=%lu] acquiring mutex %p",
+            self->id, &region->attr.parallel.lock_rgn);
         pthread_mutex_lock(&region->attr.parallel.lock_rgn);
-        LOG_DEBUG("(%3d) thread %lu acquired mutex", __LINE__, self->id);
+        LOG_DEBUG("[t=%lu] acquired mutex %p",
+            self->id, &region->attr.parallel.lock_rgn);
     }
 
     /* Add the event type attribute */
@@ -663,26 +683,37 @@ trace_event_leave(trace_location_def_t *self)
     if (region->type == trace_region_parallel)
     {
         /* Give the location's region definitions to the parallel region */
-        LOG_DEBUG("(%3d) thread %lu appending queue of %lu region "
-            "definitions to parallel region %lu", 
-            __LINE__, self->id, queue_length(self->rgn_defs),
-            region->attr.parallel.id);
+        LOG_DEBUG("[t=%lu] appending %lu region definitions to "
+            "parallel region queue %p", self->id, queue_length(self->rgn_defs),
+            region->attr.parallel.rgn_defs);
+
         if (!queue_append(region->attr.parallel.rgn_defs, self->rgn_defs))
             LOG_ERROR("error appending items to queue");
+
+        /* Destroy region definitions queue */
+        LOG_DEBUG("[t=%lu] destroying region definitions queue %p",
+            self->id, self->rgn_defs);
+        queue_destroy(self->rgn_defs, false, NULL);
+        self->rgn_defs = NULL;
+
+        /* Pop queue of enclosing parallel region (if there is one) */
+        stack_pop(self->rgn_defs_stack, (data_item_t*) &self->rgn_defs);
+        LOG_DEBUG("[t=%lu] popped region definitions queue %p",
+            self->id, self->rgn_defs);
+
         region->attr.parallel.ref_count--;
-        LOG_INFO("(%3d) ref count of parallel region %u is %u (enter count: %u)",
-            __LINE__, region->ref,
-            region->attr.parallel.ref_count,
-            region->attr.parallel.enter_count
-        );
+
+        LOG_INFO("[t=%lu] releasing mutex %p (ref count of parallel region %lu"
+            " is %u)",
+            self->id, &region->attr.parallel.lock_rgn,
+            region->attr.parallel.id, region->attr.parallel.ref_count);
 
         /* Check the ref count atomically __before__ unlocking */
         if (region->attr.parallel.ref_count == 0)
         {
+            pthread_mutex_unlock(&region->attr.parallel.lock_rgn);
             trace_destroy_parallel_region(region);
         } else {
-            LOG_DEBUG("(%3d) thread %lu releasing mutex",
-                __LINE__, self->id);
             pthread_mutex_unlock(&region->attr.parallel.lock_rgn);
         }
     }

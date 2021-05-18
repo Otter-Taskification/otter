@@ -10,6 +10,7 @@
 #include <otf2/OTF2_Pthread_Locks.h>
 
 #include <macros/debug.h>
+#include <otter-ompt-header.h>
 #include <otter-common.h>
 #include <otter-trace/trace.h>
 #include <otter-trace/trace-lookup-macros.h>
@@ -46,6 +47,7 @@ trace_new_location_definition(
         .location_group = loc_grp,
         .rgn_stack      = stack_create(),
         .rgn_defs       = queue_create(),
+        .rgn_defs_stack = stack_create(),
         .attributes     = OTF2_AttributeList_New()
     };
 
@@ -54,6 +56,11 @@ trace_new_location_definition(
 
     /* Thread location definition is written at thread-end (once all events
        counted) */
+
+    LOG_DEBUG("[t=%lu] location created", id);
+    LOG_DEBUG("[t=%lu] %-18s %p", id, "rgn_stack:",      new->rgn_stack);
+    LOG_DEBUG("[t=%lu] %-18s %p", id, "rgn_defs:",       new->rgn_defs);
+    LOG_DEBUG("[t=%lu] %-18s %p", id, "rgn_defs_stack:", new->rgn_defs_stack);
 
     return new;
 }
@@ -103,8 +110,8 @@ trace_new_workshare_region(
         }
     };
 
-    LOG_DEBUG("location %lu created region %u (workshare) at %p",
-        loc->ref, new->ref, new);
+    LOG_DEBUG("[t=%lu] created workshare region %u at %p",
+        loc->id, new->ref, new);
 
     /* Add region definition to location's region definition queue */
     queue_push(loc->rgn_defs, (data_item_t) {.ptr = new});
@@ -130,8 +137,8 @@ trace_new_sync_region(
         }
     };
 
-    LOG_DEBUG("location %lu created region %u (sync) at %p",
-        loc->ref, new->ref, new);
+    LOG_DEBUG("[t=%lu] created sync region %u at %p",
+        loc->id, new->ref, new);
 
     /* Add region definition to location's region definition queue */
     queue_push(loc->rgn_defs, (data_item_t) {.ptr = new});
@@ -150,7 +157,8 @@ trace_new_task_region(
     /* Create a region representing a task. Add to the location's region
        definition queue. */
 
-    LOG_INFO_IF((parent_task_region == NULL), "parent task region is null");
+    LOG_INFO_IF((parent_task_region == NULL),
+        "[t=%lu] parent task region is null", loc->id);
 
     trace_region_def_t *new = malloc(sizeof(*new));
     *new = (trace_region_def_t) {
@@ -171,8 +179,8 @@ trace_new_task_region(
         }
     };
 
-    LOG_DEBUG("location %lu created task region %u (sync) at %p",
-        loc->ref, new->ref, new);
+    LOG_DEBUG("[t=%lu] created task region %u at %p",
+        loc->id, new->ref, new);
 
     /* Add region definition to location's region definition queue */
     queue_push(loc->rgn_defs, (data_item_t) {.ptr = new});
@@ -189,11 +197,17 @@ trace_destroy_location(trace_location_def_t *loc)
 {
     if (loc == NULL) return;
     trace_write_location_definition(loc);
-    LOG_DEBUG("destroying location %lu (Otter id %lu)", loc->ref, loc->id);
-    LOG_DEBUG("%lu %lu", stack_size(loc->rgn_stack), queue_length(loc->rgn_defs));
+    LOG_DEBUG("[t=%lu] destroying rgn_stack %p", loc->id, loc->rgn_stack);
     stack_destroy(loc->rgn_stack, false, NULL);
-    queue_destroy(loc->rgn_defs, false, NULL);
+    if (loc->rgn_defs)
+    {
+        LOG_DEBUG("[t=%lu] destroying rgn_defs %p", loc->id, loc->rgn_defs);
+        queue_destroy(loc->rgn_defs, false, NULL);
+    }
+    LOG_DEBUG("[t=%lu] destroying rgn_defs_stack %p", loc->id, loc->rgn_defs_stack);
+    stack_destroy(loc->rgn_defs_stack, false, NULL);
     // OTF2_AttributeList_Delete(loc->attributes);
+    LOG_DEBUG("[t=%lu] destroying location", loc->id);
     free(loc);
     return;
 }
@@ -207,8 +221,9 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
         abort();
     }
 
-    LOG_DEBUG("(%3d) destroying parallel region %u (Otter id %lu)",
-        __LINE__, rgn->ref, rgn->attr.parallel.id);
+    size_t n_defs = queue_length(rgn->attr.parallel.rgn_defs);
+    LOG_DEBUG("[parallel=%lu] writing nested region definitions (%lu)", 
+        rgn->attr.parallel.id, n_defs);
 
     /* Lock the global def writer first */
     pthread_mutex_lock(&lock_global_def_writer);
@@ -218,8 +233,12 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
 
     /* write region's nested region definitions */
     trace_region_def_t *r = NULL;
+    int count=0;
     while (queue_pop(rgn->attr.parallel.rgn_defs, (data_item_t*) &r))
     {
+        LOG_DEBUG("[parallel=%lu] writing region definition %d/%lu (region %3u)",
+            rgn->attr.parallel.id, count+1, n_defs, r->ref);
+        count++;
         trace_write_region_definition(r);
 
         /* destroy each region once its definition is written */
@@ -250,6 +269,7 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
        and all definitions written */
     // OTF2_AttributeList_Delete(rgn->attributes);
     queue_destroy(rgn->attr.parallel.rgn_defs, false, NULL);
+    LOG_DEBUG("region %p (parallel id %lu)", rgn, rgn->attr.parallel.id);
     free(rgn);
     return;
 }
@@ -257,32 +277,30 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
 void 
 trace_destroy_workshare_region(trace_region_def_t *rgn)
 {
-    LOG_DEBUG("(%3d) destroying workshare attribute list %p",
-        __LINE__, rgn->attributes);
+    LOG_DEBUG("region %p destroying attribute list %p", rgn, rgn->attributes);
     OTF2_AttributeList_Delete(rgn->attributes);
-    LOG_DEBUG("(%3d) destroying workshare region %u (wstype %d)",
-        __LINE__, rgn->ref, rgn->attr.wshare.type);
+    LOG_DEBUG("region %p", rgn);
     free(rgn);
 }
 
 void
 trace_destroy_sync_region(trace_region_def_t *rgn)
 {
-    LOG_DEBUG("(%3d) destroying sync attribute list %p",
-        __LINE__, rgn->attributes);
+    LOG_DEBUG("region %p destroying attribute list %p", rgn, rgn->attributes);
     OTF2_AttributeList_Delete(rgn->attributes);
-    LOG_DEBUG("(%3d) destroying sync region %u (sync type %d)",
-        __LINE__, rgn->ref, rgn->attr.sync.type);
+    LOG_DEBUG("region %p", rgn);
     free(rgn);
 }
 
 void
 trace_destroy_task_region(trace_region_def_t *rgn)
 {
-    LOG_DEBUG("(%3d) destroying task attribute list %p",
-        __LINE__, rgn->attributes);
+    LOG_WARN_IF(
+        (!(rgn->attr.task.task_status == ompt_task_complete 
+            || rgn->attr.task.task_status == ompt_task_cancel)),
+        "destroying task region before task-complete/task-cancel");
+    LOG_DEBUG("region %p destroying attribute list %p", rgn, rgn->attributes);
     OTF2_AttributeList_Delete(rgn->attributes);
-    LOG_DEBUG("(%3d) destroying task region %u (Otter id %lu)",
-        __LINE__, rgn->ref, rgn->attr.task.id);
+    LOG_DEBUG("region %p", rgn);
     free(rgn);
 }

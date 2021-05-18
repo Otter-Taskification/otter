@@ -75,6 +75,7 @@ struct trace_location_def_t {
     uint64_t                events;
     stack_t                *rgn_stack;
     queue_t                *rgn_defs;
+    stack_t                *rgn_defs_stack;
     OTF2_LocationRef        ref;
     OTF2_LocationType       type;
     OTF2_LocationGroupRef   location_group;

@@ -106,7 +106,7 @@ print_resource_usage(void)
     fprintf(stderr, "%35s: %8lu %s\n", "parallel regions",
         get_unique_parallel_id(), "");
     fprintf(stderr, "%35s: %8lu %s\n", "tasks",
-        get_unique_task_id()-1, "");
+        get_unique_task_id(), "");
 }
 
 static void
@@ -117,7 +117,7 @@ on_ompt_callback_thread_begin(
     thread_data_t *thread_data = new_thread_data(thread_type);
     thread->ptr = thread_data;
 
-    LOG_DEBUG_THREAD_TYPE(thread_type, thread_data->id);
+    LOG_DEBUG("[t=%lu] (event) thread-begin", thread_data->id);
 
     /* Record thread-begin event */
     trace_event_thread_begin(thread_data->location);
@@ -136,7 +136,7 @@ on_ompt_callback_thread_end(
 {
     thread_data_t *thread_data = thread->ptr;
 
-    LOG_DEBUG_THREAD_TYPE(thread_data->type, thread_data->id);
+    LOG_DEBUG("[t=%lu] (event) thread-end", thread_data->id);
     LOG_DEBUG_IF((thread_data->type == ompt_thread_initial),
         "final clean-up...");
 
@@ -161,7 +161,7 @@ on_ompt_callback_parallel_begin(
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
     task_data_t *task_data = (task_data_t*) encountering_task->ptr;
 
-    LOG_DEBUG("[t=%lu] %-6s %s", thread_data->id, "begin", "parallel");
+    LOG_DEBUG("[t=%lu] (event) parallel-begin", thread_data->id);
 
     thread_data->is_master_thread = true;
 
@@ -185,11 +185,12 @@ on_ompt_callback_parallel_end(
 {
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
 
+    LOG_DEBUG("[t=%lu] (event) parallel-end", thread_data->id);
+
     if ((parallel == NULL) || (parallel->ptr == NULL))
     {
         LOG_ERROR("parallel end: null pointer");
     } else {
-        LOG_DEBUG("[t=%lu] %-6s %s", thread_data->id, "end", "parallel");
         parallel_data_t *parallel_data = parallel->ptr;
         trace_event_leave(thread_data->location);
         /* reset flag */
@@ -263,6 +264,8 @@ on_ompt_callback_task_create(
     }
     #endif
 
+    LOG_DEBUG("[t=%lu] (event) task-create", thread_data->id);
+
     /* get the task data of the parent, if it exists */
     task_data_t *parent_task_data = flags & ompt_task_initial ? 
         NULL : (task_data_t*) encountering_task->ptr;
@@ -289,9 +292,12 @@ on_ompt_callback_task_schedule(
     ompt_task_status_t       prior_task_status,
     ompt_data_t             *next_task)
 {
+
     LOG_DEBUG_PRIOR_TASK_STATUS(prior_task_status);
 
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
+
+    LOG_DEBUG("[t=%lu] (event) task-schedule", thread_data->id);
 
     if (prior_task_status == ompt_task_early_fulfill 
         || prior_task_status == ompt_task_late_fulfill)
@@ -341,41 +347,44 @@ on_ompt_callback_implicit_task(
     /* Only handle implicit-task events */
     if (!(flags & ompt_task_implicit)) return;
 
-    /* Get the enclosing parallel region data - parallel arg is NULL for
-       implicit-task-end event */
-    if (get_parallel_info(0, &parallel, NULL) != 2)
-    {
-        LOG_ERROR("parallel data unavailable");
-        abort();
-    }
-    parallel_data_t *parallel_data = (parallel_data_t*) parallel->ptr;
-    
+    LOG_DEBUG("[t=%lu] (event) implicit-task-%s",
+        thread_data->id, endpoint == ompt_scope_begin ? "begin" : "end");
 
     if (endpoint == ompt_scope_begin)
     {
-        task_data_t *task_data = new_task_data(
+        parallel_data_t *parallel_data = (parallel_data_t*) parallel->ptr;
+
+        /* Worker threads record parallel-begin during implicit-task-begin */
+        if (index != 0)
+            trace_event_enter(thread_data->location, parallel_data->region);
+
+        /* Create implicit task data __after__ parallel-begin so that the OTF2
+           region is added to the queue for the new parallel region */
+        task_data_t *implicit_task_data = new_task_data(
             thread_data->location,
             NULL,
             get_unique_task_id(),
             flags,
             0);
-        task->ptr = task_data;
+        task->ptr = implicit_task_data;
 
-		LOG_DEBUG_IMPLICIT_TASK(flags, "begin", task_data->id);
-
-        /* Worker threads record parallel-begin during implicit-task-begin */
-        // if (!thread_data->is_master_thread)
-        if (thread_data->id != parallel_data->master_thread)
-            trace_event_enter(thread_data->location, parallel_data->region);
+        /* Enter implicit task region */
+        // trace_event_enter(thread_data->location, implicit_task_data->region);
 
     } else {
 
-        LOG_DEBUG_IMPLICIT_TASK(flags, "end", ~(0L));
+        task_data_t *implicit_task_data = (task_data_t*)task->ptr;
+
+        /* Update implicit task status */
+        trace_event_task_schedule(thread_data->location,
+            implicit_task_data->region, ompt_task_complete);
+
+        /* Leave implicit task region */
+        // trace_event_leave(thread_data->location);
 
         /* Worker threads record parallel-end during implicit-task-end
             callback */
-        // if (!thread_data->is_master_thread)
-        if (thread_data->id != parallel_data->master_thread)
+        if (index != 0)
             trace_event_leave(thread_data->location);
     }
     return;
@@ -434,18 +443,22 @@ on_ompt_callback_sync_region(
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
     task_data_t *task_data = (task_data_t*) task->ptr;
 
-    LOG_DEBUG("[t=%lu] %-6s %s (task=%lu, type=%d)",
-        thread_data->id,
-        endpoint == ompt_scope_begin ? "begin" : "end",
-        kind == ompt_sync_region_barrier                ? "barrier" :
-        kind == ompt_sync_region_barrier_implicit       ? "barrier_implicit" :
-        kind == ompt_sync_region_barrier_explicit       ? "barrier_explicit" :
-        kind == ompt_sync_region_barrier_implementation ? "barrier_implementation" :
-        kind == ompt_sync_region_taskwait               ? "taskwait" :
-        kind == ompt_sync_region_taskgroup              ? "taskgroup" :
-        kind == ompt_sync_region_reduction              ? "reduction" : "unknown",
-        task_data->id,
-        task_data->type
+    LOG_DEBUG("[t=%lu] (event) sync-region-%s (%s)",
+        thread_data->id, endpoint == ompt_scope_begin ? "begin" : "end",
+        kind == ompt_sync_region_barrier
+                ? "barrier" :
+        kind == ompt_sync_region_barrier_implicit
+                ? "implicit barrier" :
+        kind == ompt_sync_region_barrier_explicit
+                ? "explicit barrier" :
+        kind == ompt_sync_region_barrier_implementation
+                ? "implementation barrier" :
+        kind == ompt_sync_region_taskwait
+                ? "taskwait" :
+        kind == ompt_sync_region_taskgroup
+                ? "taskgroup" :
+        kind == ompt_sync_region_reduction
+                ? "reduction" : "unknown"
     );
 
     if (endpoint == ompt_scope_begin)
@@ -462,13 +475,6 @@ on_ompt_callback_sync_region(
 unique_id_t
 get_unique_id(unique_id_type_t id_type)
 {
-    /* start counting tasks from 1 so that the initial task is always #1, and
-       the root node of the task graph will have ID 0 not attached to any real
-       task
-
-       count parallel regions from 1 so the implicit parallel region around the
-       whole program is always 0
-     */
-    static unique_id_t id[NUM_ID_TYPES] = {0,1,0,1};
+    static unique_id_t id[NUM_ID_TYPES] = {0,0,0,0};
     return __sync_fetch_and_add(&id[id_type], 1L);
 }

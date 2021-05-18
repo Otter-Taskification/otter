@@ -1,21 +1,22 @@
-import os
 import itertools
-from typing import Iterable
-from collections import deque, defaultdict
+from collections import deque
 
 
 try:
     import otf2
     import _otf2
     from otf2 import events, RegionRole
+    from otf2.events import ThreadBegin, ThreadEnd, Enter, Leave
 except ModuleNotFoundError as Err:
     print("Failed to import OTF2 module")
     print(Err)
 else:
-    print("OTF2 package imported frmom {}".format(os.path.abspath(otf2.__file__)))
+    from os.path import abspath, basename, dirname
+    print("OTF2 path: {}".format(dirname(otf2.__file__)))
+from Otter.types import *
 
 
-_supported_events = [events.ThreadBegin, events.ThreadEnd, events.Enter, events.Leave]
+_supported_events = [ThreadBegin, ThreadEnd, Enter, Leave]
 _supported_region_roles = [
 
     # OMP parallel region
@@ -40,37 +41,32 @@ def popleftwhile(predicate, queue):
 
 
 class ExecutionGraph:
-
-    class Trace:
-
-        def __init__(self, events: Iterable, definitions: Iterable):
-            self.events = defaultdict(deque)
-            for k, (location, event) in enumerate(events):
-                self.events[location].append(event)
-            self.definitions = definitions
-            self.attr_lookup = {a.name: a for a in self.definitions.attributes}
-            self.num_events    = k+1
-            self.num_locations = len(self.definitions.locations)
-            self.num_regions   = len(self.definitions.regions)
-            self.num_strings   = len(self.definitions.strings)
+    """Import an OTF2 trace produced by Otter and represent as an execution graph"""
 
     def __init__(self, trace_path: str):
+        self.graph = Graph()
+        self.events_padded = defaultdict(deque)
         with otf2.reader.open(trace_path) as tr:
-            self.trace = self.Trace(tr.events, tr.definitions)
-        msg = f"Trace: {trace_path}\n"\
-            + f"{'Locations':12}: {self.trace.num_locations}\n"\
-            + f"{'Events':12}: {self.trace.num_events}\n"\
-            + f"{'Regions':12}: {self.trace.num_regions}\n"\
-            + f"{'Strings':12}: {self.trace.num_strings}"
+            self.trace = Trace(tr.events, tr.definitions)
+        msg = f"{'Locations:':12} {self.trace.num_locations}\n"\
+            + f"{'Events:':12} {self.trace.num_events}\n"\
+            + f"{'Regions:':12} {self.trace.num_regions}\n"\
+            + f"{'Strings:':12} {self.trace.num_strings}"
         print(msg)
 
-    def pad_events(self):
+    def event_attribute(self, e: otf2.events._EventMeta, attr_name: str):
+        """Lookup the value of an event's attribute by the attribute name"""
+        if hasattr(e, 'attributes'):
+            return e.attributes[self.trace.attr_lookup[attr_name]]
+        else:
+            return None
 
-        self.events_padded = defaultdict(deque)
+    def pad_events(self):
+        """Pad each location's event queue so that collective events between locations are aligned across queues"""
 
         # Expect all locations to have the same type of initial event (ThreadBegin)
         first_type , = {type(event[0]) for event in self.trace.events.values()}
-        if not first_type is otf2.events.ThreadBegin:
+        if not first_type is ThreadBegin:
             raise TypeError(f"Invalid initial event type: {first_type}")
 
         # While any location still has events to consume
@@ -78,7 +74,7 @@ class ExecutionGraph:
 
             # type of next event for each location
             next_events = {location: event.popleft() for location, event in self.trace.events.items()}
-            next_types  = {type(e) for e in next_events.values()}
+            next_types  = set(map(type, next_events.values()))
 
             # Append popped events before scanning ahead
             for loc, event in next_events.items():
@@ -93,16 +89,8 @@ class ExecutionGraph:
                 if next_type not in _supported_events:
                     raise TypeError(f"Unsupported event type: {next_type}")
 
-                # Handle thread-begin
-                if next_type == otf2.events.ThreadBegin:
-                    print("thread-begin")
-
-                # Handle thread-end
-                elif next_type == otf2.events.ThreadEnd:
-                    print("THREAD END")
-
                 # Handle region-begin
-                elif next_type == otf2.events.Enter:
+                if next_type is Enter:
 
                     # Detect the region type(s) entered
                     region_roles = {e.region.region_role for e in next_events.values()}
@@ -115,36 +103,23 @@ class ExecutionGraph:
 
                     # We have region-begin events for all threads, all of same region type
                     region_role = region_roles.pop()
-                    # print(region_role)
 
-                    if region_role == RegionRole.PARALLEL:
-                        print("parallel-begin")
-
-                    elif region_role == RegionRole.SECTIONS:
-                        print("sections-begin")
-
-                    elif region_role == RegionRole.SINGLE:
-                        print("single-begin")
-
-                        # for e in next_events.values():
-                        #     print(e.attributes)
+                    if region_role == RegionRole.SINGLE:
 
                         # Exactly one of the threads should have event.attributes['workshare_type'] == 'single_executor'
-                        executor , = [loc for loc, event in next_events.items() if
-                                      event.attributes[self.trace.attr_lookup['workshare_type']] == 'single_executor']
-                        print(f"  executor: {executor.name} ({executor.type})")
+                        num_executors = len([e for e in next_events.values() if
+                                             self.event_attribute(e, 'workshare_type') == 'single_executor'])
 
-                        # Pad events until all threads reach single-end
+                        if num_executors != 1:
+                            raise ValueError(f"Invalid number of single executors: {num_executors}")
 
                         # Lambda that returns true for required single-end event:
-                        filter_single_end = lambda e: not (type(e) == otf2.events.Leave \
-                                                      and e.region.region_role == RegionRole.SINGLE)
+                        filter_single_end = lambda e: not (type(e) == Leave \
+                                                           and e.region.region_role == RegionRole.SINGLE)
 
+                        # Pad events until all threads reach single-end
                         chunks = [(loc, list(popleftwhile(filter_single_end, q)))
                                   for loc, q in self.trace.events.items()]
-
-                        for loc, events in chunks:
-                            print(f"{loc.name}: {len(events)}")
 
                         # Pad events with chunks
                         padded = list(zip(*list(itertools.zip_longest(*list(evts for loc, evts in chunks)))))
@@ -153,54 +128,29 @@ class ExecutionGraph:
                         for (key, _), chunk_padded in zip(chunks, padded):
                             self.events_padded[key].extend(chunk_padded)
 
-
-                    elif region_role == RegionRole.LOOP:
-                        print("[task]loop-begin")
-
-                    elif region_role == RegionRole.LOOP:
-                        print("workshare-begin")
-
-                    elif region_role in [RegionRole.BARRIER, RegionRole.IMPLICIT_BARRIER]:
-                        print("barrier-begin")
-
-                    elif region_role == RegionRole.TASK_WAIT:
-                        print("taskwait-begin")
-
-                    else:
+                    elif region_role not in _supported_region_roles:
                         raise TypeError(f"Unexpected region role encountered: {region_role}")
 
-                # Handle region-end
-                elif next_type == otf2.events.Leave:
-                    print("LEAVE")
+                    else:
+                        continue
 
-                else:
+                # Handle region-end
+                elif next_type not in _supported_events:
                     raise TypeError(f"Unexpected event type encountered: {next_type}")
 
             else:
+                print("*** MULTIPLE EVENT TYPES ***")
+                for event in next_events.values():
+                    print("{}: {} {}".format(
+                        type(event),
+                        event.region.region_role in _supported_region_roles,
+                        self.event_attribute(event, 'event_type')))
                 raise TypeError(f"Multiple events: {next_types}")
-
-        print("*** PADDED EVENTS ***")
-        for loc, events in self.events_padded.items():
-            print(loc.name)
-            for index, event in enumerate(events):
-                if event is not None:
-                    if hasattr(event, 'region'):
-                        print(f"  Event {index} ({type(event)}: {event.region.name})")
-                    else:
-                        print(f"  Event {index} ({type(event)}: {event.attributes})")
-                    for att, value in event.attributes.items():
-                        print(f"    {att.name}: {value}")
 
         return
 
-
-def main():
-    G = ExecutionGraph("/home/adam/git/otter/default-archive-path/default-archive-name.otf2")
-    return G
-
-
-if __name__ == "__main__":
-    G = main()
-    G.pad_events()
-    for location, padded_events in G.events_padded.items():
-        print(f"{location.name} has {len(padded_events)} padded events")
+    def make_graph(self):
+        task_nodes = defaultdict(set)
+        for k, step in enumerate(list(zip(*list([event_queue for event_queue in self.events_padded.values()])))):
+            graph_event, = {self.event_attribute(e, 'event_type') for e in step if e is not None}
+            print(graph_event)

@@ -585,11 +585,20 @@ trace_event_leave(trace_location_def_t *self)
     stack_print(self->rgn_stack);
     #endif
 
+    if (stack_is_empty(self->rgn_stack))
+    {
+        LOG_ERROR("stack is empty");
+        abort();
+    }
+
     /* For the region-end event, the region was previously pushed onto the 
        location's region stack so should now be at the top (as long as regions
        are correctly nested) */
     trace_region_def_t *region = NULL;
     stack_pop(self->rgn_stack, (data_item_t*) &region);
+
+    LOG_DEBUG("[t=%lu] popped region %u (addr=%p type=%u role=%u)", self->id,
+        region->ref, region, region->type, region->role);
 
     if (region->type == trace_region_parallel)
     {

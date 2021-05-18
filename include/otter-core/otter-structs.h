@@ -18,6 +18,7 @@ parallel_data_t *new_parallel_data(unique_id_t thread_id, unsigned int requested
 void parallel_destroy(parallel_data_t *thread_data);
 struct parallel_data_t {
     unique_id_t         id;
+    unique_id_t         master_thread;
     trace_region_def_t *region;
 };
 

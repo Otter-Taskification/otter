@@ -341,22 +341,31 @@ on_ompt_callback_implicit_task(
     /* Only handle implicit-task events */
     if (!(flags & ompt_task_implicit)) return;
 
+    /* Get the enclosing parallel region data - parallel arg is NULL for
+       implicit-task-end event */
+    if (get_parallel_info(0, &parallel, NULL) != 2)
+    {
+        LOG_ERROR("parallel data unavailable");
+        abort();
+    }
+    parallel_data_t *parallel_data = (parallel_data_t*) parallel->ptr;
+    
+
     if (endpoint == ompt_scope_begin)
     {
-        parallel_data_t *parallel_data = (parallel_data_t*) parallel->ptr;
         task_data_t *task_data = new_task_data(
             thread_data->location,
             NULL,
             get_unique_task_id(),
             flags,
-            0
-        );
+            0);
         task->ptr = task_data;
 
 		LOG_DEBUG_IMPLICIT_TASK(flags, "begin", task_data->id);
 
         /* Worker threads record parallel-begin during implicit-task-begin */
-        if (!thread_data->is_master_thread)
+        // if (!thread_data->is_master_thread)
+        if (thread_data->id != parallel_data->master_thread)
             trace_event_enter(thread_data->location, parallel_data->region);
 
     } else {
@@ -365,7 +374,8 @@ on_ompt_callback_implicit_task(
 
         /* Worker threads record parallel-end during implicit-task-end
             callback */
-        if (!thread_data->is_master_thread)
+        // if (!thread_data->is_master_thread)
+        if (thread_data->id != parallel_data->master_thread)
             trace_event_leave(thread_data->location);
     }
     return;

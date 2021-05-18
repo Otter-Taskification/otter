@@ -14,8 +14,9 @@ new_parallel_data(
 {
     parallel_data_t *parallel_data = malloc(sizeof(*parallel_data));
     *parallel_data = (parallel_data_t) {
-        .id     = get_unique_parallel_id(),
-        .region = NULL
+        .id            = get_unique_parallel_id(),
+        .master_thread = thread_id,
+        .region        = NULL
     };
 
     parallel_data->region = trace_new_parallel_region(

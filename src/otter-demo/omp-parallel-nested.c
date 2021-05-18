@@ -2,35 +2,20 @@
 #include <unistd.h>
 #include <stdio.h>
 
-#define THREADS 2
-#define LOOPS   6
-
-void work(int k, int t)
-{
-    #pragma omp parallel num_threads(4)
-    {
-        printf("%d/%d in region %d at level %d (encountering thread is %d)\n",
-            omp_get_thread_num(),
-            omp_get_num_threads(),
-            k,
-            omp_get_level(),
-            t
-        );
-        usleep(30);
-    }
-}
+#define THREADS 1
 
 int main(void)
 {
-    int j=0;
     omp_set_max_active_levels(2);
+
     #pragma omp parallel num_threads(THREADS)
     {
-        #pragma omp single
-        #pragma omp taskloop grainsize(1)
-        for (j=0; j<LOOPS; j++)
+        int j = omp_get_thread_num();
+        #pragma omp parallel num_threads(THREADS)
         {
-            work(j, omp_get_thread_num());
+            printf("%d: %d/%d level=%d\n",
+                j, omp_get_thread_num(), omp_get_num_threads(), omp_get_level());
         }
     }
+
 }

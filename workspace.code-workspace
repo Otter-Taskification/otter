@@ -2,6 +2,9 @@
     "folders": [
         {
             "path": "."
+        },
+        {
+            "path": "../../build/otf2-2.3/src"
         }
     ],
     "settings": {

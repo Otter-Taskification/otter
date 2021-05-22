@@ -7,7 +7,7 @@
 
 void work(int k, int t)
 {
-    #pragma omp parallel num_threads(4)
+    #pragma omp parallel num_threads(THREADS)
     {
         printf("%d/%d in region %d at level %d (encountering thread is %d)\n",
             omp_get_thread_num(),

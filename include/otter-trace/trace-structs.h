@@ -60,6 +60,7 @@ struct trace_region_def_t {
     OTF2_RegionRole      role;
     OTF2_AttributeList  *attributes;
     trace_region_type_t  type;
+    unique_id_t          encountering_task_id;
     union {
         trace_parallel_region_attr_t    parallel;
         trace_wshare_region_attr_t      wshare;
@@ -95,16 +96,18 @@ trace_new_location_definition(
 /* Create new region */
 trace_region_def_t *
 trace_new_parallel_region(
-    unique_id_t  id,
-    unique_id_t  master,
-    int          flags,
-    unsigned int requested_parallelism);
+    unique_id_t    id, 
+    unique_id_t    master,
+    unique_id_t    encountering_task_id,
+    int            flags,
+    unsigned int   requested_parallelism);
 
 trace_region_def_t *
 trace_new_workshare_region(
     trace_location_def_t *loc,
     ompt_work_t           wstype,
-    uint64_t              count);
+    uint64_t              count,
+    unique_id_t           encountering_task_id);
 
 trace_region_def_t *
 trace_new_sync_region(

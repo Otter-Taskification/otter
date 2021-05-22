@@ -25,6 +25,7 @@ static uint64_t get_timestamp(void);
 
 /* apply a region's attributes to an event */
 static void trace_add_thread_attributes(trace_location_def_t *self);
+static void trace_add_common_region_attributes(trace_region_def_t *rgn);
 static void trace_add_parallel_attributes(trace_region_def_t *rgn);
 static void trace_add_workshare_attributes(trace_region_def_t *rgn);
 static void trace_add_sync_attributes(trace_region_def_t *rgn);
@@ -372,6 +373,37 @@ trace_write_region_definition(trace_region_def_t *rgn)
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 static void
+trace_add_common_region_attributes(trace_region_def_t *rgn)
+{
+    /* Add encountering task ID */
+    OTF2_AttributeList_AddUint64(
+        rgn->attributes,
+        attr_encountering_task_id,
+        rgn->encountering_task_id
+    );
+
+    /* Add the region type */
+    OTF2_AttributeList_AddStringRef(rgn->attributes, attr_region_type,
+        rgn->type == trace_region_parallel ?
+            attr_label_ref[attr_region_type_parallel] :
+        rgn->type == trace_region_workshare ?
+            attr_label_ref[attr_region_type_workshare] :
+        rgn->type == trace_region_synchronise ?
+            attr_label_ref[attr_region_type_sync] :
+        rgn->type == trace_region_task ?
+            rgn->attr.task.type == ompt_task_initial ?
+                attr_label_ref[attr_region_type_initial_task] :
+            rgn->attr.task.type == ompt_task_implicit ?
+                attr_label_ref[attr_region_type_implicit_task] :
+            rgn->attr.task.type == ompt_task_explicit ?
+                attr_label_ref[attr_region_type_explicit_task] :
+            attr_label_ref[attr_region_type_target_task] :
+        attr_label_ref[attr_region_type_task]
+    );
+    return;
+}
+
+static void
 trace_add_thread_attributes(trace_location_def_t *self)
 {
     OTF2_AttributeList_AddStringRef(self->attributes, attr_thread_type,
@@ -529,6 +561,9 @@ trace_event_enter(
             self->id, &region->attr.parallel.lock_rgn);
     }
 
+    /* Add attributes common to all enter/leave events */
+    trace_add_common_region_attributes(region);
+
     /* Add the event type attribute */
     OTF2_AttributeList_AddStringRef(region->attributes, attr_event_type,
         region->type == trace_region_parallel ?
@@ -540,36 +575,16 @@ trace_event_enter(
         attr_label_ref[attr_event_type_task_enter]
     );
 
-    /* Add the region type */
-    OTF2_AttributeList_AddStringRef(region->attributes, attr_region_type,
-        region->type == trace_region_parallel ?
-            attr_label_ref[attr_region_type_parallel] :
-        region->type == trace_region_workshare ?
-            attr_label_ref[attr_region_type_workshare] :
-        region->type == trace_region_synchronise ?
-            attr_label_ref[attr_region_type_sync] :
-        attr_label_ref[attr_region_type_task]
-    );
-
     /* Add the endpoint */
     OTF2_AttributeList_AddStringRef(region->attributes, attr_endpoint,
         attr_label_ref[attr_endpoint_enter]);
 
     /* Add region's attributes to the event */
-    switch (region->type)
-    {
-    case trace_region_parallel:
-        trace_add_parallel_attributes(region);
-    break;
-    case trace_region_workshare:
-        trace_add_workshare_attributes(region);
-    break;
-    case trace_region_synchronise:
-        trace_add_sync_attributes(region);
-    break;
-    case trace_region_task:
-        trace_add_task_attributes(region);
-    break;
+    switch (region->type) {
+    case trace_region_parallel: trace_add_parallel_attributes(region); break;
+    case trace_region_workshare: trace_add_workshare_attributes(region); break;
+    case trace_region_synchronise: trace_add_sync_attributes(region); break;
+    case trace_region_task: trace_add_task_attributes(region); break;
     default:
         LOG_ERROR("unhandled region type %d", region->type);
         abort();
@@ -629,6 +644,9 @@ trace_event_leave(trace_location_def_t *self)
             self->id, &region->attr.parallel.lock_rgn);
     }
 
+    /* Add attributes common to all enter/leave events */
+    trace_add_common_region_attributes(region);
+
     /* Add the event type attribute */
     OTF2_AttributeList_AddStringRef(region->attributes, attr_event_type,
         region->type == trace_region_parallel ?
@@ -640,36 +658,16 @@ trace_event_leave(trace_location_def_t *self)
         attr_label_ref[attr_event_type_task_leave]
     );
 
-    /* Add the region type */
-    OTF2_AttributeList_AddStringRef(region->attributes, attr_region_type,
-        region->type == trace_region_parallel ?
-            attr_label_ref[attr_region_type_parallel] :
-        region->type == trace_region_workshare ?
-            attr_label_ref[attr_region_type_workshare] :
-        region->type == trace_region_synchronise ?
-            attr_label_ref[attr_region_type_sync] :
-        attr_label_ref[attr_region_type_task]
-    );
-
     /* Add the endpoint */
     OTF2_AttributeList_AddStringRef(region->attributes, attr_endpoint,
         attr_label_ref[attr_endpoint_leave]);
 
     /* Add region's attributes to the event */
-    switch (region->type)
-    {
-    case trace_region_parallel:
-        trace_add_parallel_attributes(region);
-    break;
-    case trace_region_workshare:
-        trace_add_workshare_attributes(region);
-    break;
-    case trace_region_synchronise:
-        trace_add_sync_attributes(region);
-    break;
-    case trace_region_task:
-        trace_add_task_attributes(region);
-    break;
+    switch (region->type) {
+    case trace_region_parallel: trace_add_parallel_attributes(region); break;
+    case trace_region_workshare: trace_add_workshare_attributes(region); break;
+    case trace_region_synchronise: trace_add_sync_attributes(region); break;
+    case trace_region_task: trace_add_task_attributes(region); break;
     default:
         LOG_ERROR("unhandled region type %d", region->type);
         abort();
@@ -727,9 +725,21 @@ trace_event_task_create(
     trace_location_def_t *self, 
     trace_region_def_t   *created_task)
 {
+    trace_add_common_region_attributes(created_task);
+
+    /* task-create */
     OTF2_AttributeList_AddStringRef(created_task->attributes, attr_event_type,
         attr_label_ref[attr_event_type_task_create]);
+
+    /* discrete event (no duration) */
+    OTF2_AttributeList_AddStringRef(
+        created_task->attributes,
+        attr_endpoint,
+        attr_label_ref[attr_endpoint_discrete]
+    );
+
     trace_add_task_attributes(created_task);
+    
     OTF2_EvtWriter_ThreadTaskCreate(
         self->evt_writer,
         created_task->attributes,

@@ -67,10 +67,11 @@ trace_new_location_definition(
 
 trace_region_def_t *
 trace_new_parallel_region(
-    unique_id_t           id, 
-    unique_id_t           master, 
-    int                   flags,
-    unsigned int          requested_parallelism)
+    unique_id_t    id, 
+    unique_id_t    master,
+    unique_id_t    encountering_task_id,
+    int            flags,
+    unsigned int   requested_parallelism)
 {
     trace_region_def_t *new = malloc(sizeof(*new));
     *new = (trace_region_def_t) {
@@ -78,6 +79,7 @@ trace_new_parallel_region(
         .role       = OTF2_REGION_ROLE_PARALLEL,
         .attributes = OTF2_AttributeList_New(),
         .type       = trace_region_parallel,
+        .encountering_task_id = encountering_task_id,
         .attr.parallel = {
             .id            = id,
             .master_thread = master,
@@ -96,7 +98,8 @@ trace_region_def_t *
 trace_new_workshare_region(
     trace_location_def_t *loc,
     ompt_work_t           wstype, 
-    uint64_t              count)
+    uint64_t              count,
+    unique_id_t           encountering_task_id)
 {
     trace_region_def_t *new = malloc(sizeof(*new));
     *new = (trace_region_def_t) {
@@ -104,6 +107,7 @@ trace_new_workshare_region(
         .role       = WORK_TYPE_TO_OTF2_REGION_ROLE(wstype),
         .attributes = OTF2_AttributeList_New(),
         .type       = trace_region_workshare,
+        .encountering_task_id = encountering_task_id,
         .attr.wshare = {
             .type       = wstype,
             .count      = count
@@ -131,9 +135,9 @@ trace_new_sync_region(
         .role       = SYNC_TYPE_TO_OTF2_REGION_ROLE(stype),
         .attributes = OTF2_AttributeList_New(),
         .type       = trace_region_synchronise,
+        .encountering_task_id = encountering_task_id,
         .attr.sync = {
             .type = stype,
-            .encountering_task_id = encountering_task_id
         }
     };
 
@@ -172,12 +176,13 @@ trace_new_task_region(
             .flags           = flags,
             .has_dependences = has_dependences,
             .parent_id   = parent_task_region != NULL ? 
-                parent_task_region->attr.task.id   : 0,
+                parent_task_region->attr.task.id   : OTF2_UNDEFINED_UINT64,
             .parent_type = parent_task_region != NULL ? 
-                parent_task_region->attr.task.type : 0,
+                parent_task_region->attr.task.type : OTF2_UNDEFINED_UINT32,
             .task_status     = 0 /* no status */
         }
     };
+    new->encountering_task_id = new->attr.task.parent_id;
 
     LOG_DEBUG("[t=%lu] created task region %u at %p",
         loc->id, new->ref, new);

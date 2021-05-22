@@ -1,5 +1,17 @@
 import itertools
 from collections import deque
+from os.path import abspath, basename, dirname
+from Otter.types import *
+
+
+try:
+    import igraph as ig
+except ModuleNotFoundError as Err:
+    print("Failed to import igraph")
+    print(Err)
+    raise
+else:
+    print("igraph path: {}".format(dirname(ig.__file__)))
 
 
 try:
@@ -10,10 +22,9 @@ try:
 except ModuleNotFoundError as Err:
     print("Failed to import OTF2 module")
     print(Err)
+    raise
 else:
-    from os.path import abspath, basename, dirname
     print("OTF2 path: {}".format(dirname(otf2.__file__)))
-from Otter.types import *
 
 
 _supported_events = [ThreadBegin, ThreadEnd, Enter, Leave]
@@ -44,113 +55,97 @@ class ExecutionGraph:
     """Import an OTF2 trace produced by Otter and represent as an execution graph"""
 
     def __init__(self, trace_path: str):
-        self.graph = Graph()
-        self.events_padded = defaultdict(deque)
+        self.graph = ig.Graph(directed=True)
+        self.path = trace_path
         with otf2.reader.open(trace_path) as tr:
-            self.trace = Trace(tr.events, tr.definitions)
-        msg = f"{'Locations:':12} {self.trace.num_locations}\n"\
+            self.trace = Trace(tr.events, tr.definitions, self.graph)
+        summary = f"{'Locations:':12} {self.trace.num_locations}\n"\
             + f"{'Events:':12} {self.trace.num_events}\n"\
             + f"{'Regions:':12} {self.trace.num_regions}\n"\
             + f"{'Strings:':12} {self.trace.num_strings}"
-        print(msg)
+        print(summary)
+
+    def __repr__(self):
+        repr = "Trace loaded: {}\n".format(self.path)
+        repr += f"{'Locations:':12} {self.trace.num_locations}\n"\
+            + f"{'Events:':12} {self.trace.num_events}\n"\
+            + f"{'Regions:':12} {self.trace.num_regions}\n"\
+            + f"{'Strings:':12} {self.trace.num_strings}"
+        return repr
 
     def event_attribute(self, e: otf2.events._EventMeta, attr_name: str):
         """Lookup the value of an event's attribute by the attribute name"""
         if hasattr(e, 'attributes'):
-            return e.attributes[self.trace.attr_lookup[attr_name]]
+            return e.attributes.get(self.trace.attr_lookup.get(attr_name, ""), None)
         else:
             return None
 
-    def pad_events(self):
-        """Pad each location's event queue so that collective events between locations are aligned across queues"""
+    def gather_events_by_region(self):
+        self.events_by_region = self.trace.gather_events_by_region()
 
-        # Expect all locations to have the same type of initial event (ThreadBegin)
-        first_type , = {type(event[0]) for event in self.trace.events.values()}
-        if not first_type is ThreadBegin:
-            raise TypeError(f"Invalid initial event type: {first_type}")
-
-        # While any location still has events to consume
-        while max(map(len, self.trace.events.values())) != 0:
-
-            # type of next event for each location
-            next_events = {location: event.popleft() for location, event in self.trace.events.items()}
-            next_types  = set(map(type, next_events.values()))
-
-            # Append popped events before scanning ahead
-            for loc, event in next_events.items():
-                self.events_padded[loc].append(event)
-
-            if len(next_types) == 1:
-
-                # Get the event type encountered
-                next_type = next_types.pop()
-
-                # Raise error if unsupported event type encountered
-                if next_type not in _supported_events:
-                    raise TypeError(f"Unsupported event type: {next_type}")
-
-                # Handle region-begin
-                if next_type is Enter:
-
-                    # Detect the region type(s) entered
-                    region_roles = {e.region.region_role for e in next_events.values()}
-
-                    if not all([role in _supported_region_roles for role in region_roles]):
-                        raise TypeError(f"Unsupported region role in: {region_roles}")
-
-                    if len(region_roles) != 1:
-                        raise TypeError(f"Multiple region roles encountered for region-enter event: {region_roles}")
-
-                    # We have region-begin events for all threads, all of same region type
-                    region_role = region_roles.pop()
-
-                    if region_role == RegionRole.SINGLE:
-
-                        # Exactly one of the threads should have event.attributes['workshare_type'] == 'single_executor'
-                        num_executors = len([e for e in next_events.values() if
-                                             self.event_attribute(e, 'workshare_type') == 'single_executor'])
-
-                        if num_executors != 1:
-                            raise ValueError(f"Invalid number of single executors: {num_executors}")
-
-                        # Lambda that returns true for required single-end event:
-                        filter_single_end = lambda e: not (type(e) == Leave \
-                                                           and e.region.region_role == RegionRole.SINGLE)
-
-                        # Pad events until all threads reach single-end
-                        chunks = [(loc, list(popleftwhile(filter_single_end, q)))
-                                  for loc, q in self.trace.events.items()]
-
-                        # Pad events with chunks
-                        padded = list(zip(*list(itertools.zip_longest(*list(evts for loc, evts in chunks)))))
-
-                        # Append padded chunks to each location's queue of events
-                        for (key, _), chunk_padded in zip(chunks, padded):
-                            self.events_padded[key].extend(chunk_padded)
-
-                    elif region_role not in _supported_region_roles:
-                        raise TypeError(f"Unexpected region role encountered: {region_role}")
-
-                    else:
-                        continue
-
-                # Handle region-end
-                elif next_type not in _supported_events:
-                    raise TypeError(f"Unexpected event type encountered: {next_type}")
-
-            else:
-                print("*** MULTIPLE EVENT TYPES ***")
-                for event in next_events.values():
-                    print("{}: {} {}".format(
+    def print_events_by_region(self, verbose=False, match=None):
+        for region, location_event_map in self.events_by_region.items():
+            print(region.name)
+            for location, event_queue in location_event_map.items():
+                print(location.name)
+                for event in event_queue:
+                    print("  {}: {} ({} {})".format(
                         type(event),
-                        event.region.region_role in _supported_region_roles,
-                        self.event_attribute(event, 'event_type')))
-                raise TypeError(f"Multiple events: {next_types}")
+                        self.event_attribute(event, 'event_type'),
+                        self.event_attribute(event, 'region_type'),
+                        self.event_attribute(event, 'unique_id')
+                    ))
+                    # if (type(event)) == ThreadTaskCreate:
+                    #     print(event)
+                    #     print(event.attributes)
+                    if verbose and event.region.name.startswith(match or ""):
+                        for attr, value in event.attributes.items():
+                            print("    {}: {}".format(attr.name, value))
 
-        return
+    def make_subgraphs(self):
+        self.parallel_region_nodes = defaultdict(dict)
+        self.explicit_task_nodes = defaultdict(dict)
+        for region, region_event_map in self.events_by_region.items():
+            self.region_to_graph(region, region_event_map)
 
-    def make_graph(self):
-        task_nodes = defaultdict(set)
-        for k, step in enumerate(list(zip(*list([event_queue for event_queue in self.events_padded.values()])))):
-            graph_event, = {self.event_attribute(e, 'event_type') for e in step if e is not None}
-            print(graph_event)
+    def region_to_graph(self, region, location_event_map: dict):
+        num_locations = len(location_event_map.keys())
+        print("Converting region '{}' ({} locations) to graph".format(region.name, num_locations))
+        print("Scanning events across locations: {}".format(", ".join([l.name for l in location_event_map.keys()])))
+        if len({len(event_queue) for event_queue in location_event_map.values()}) != 1:
+            for location, event_queue in location_event_map.items():
+                print("{}: {} events".format(location, len(event_queue)))
+            raise ValueError("Different number of events across threads")
+        prior_node = None
+        for events in zip(*list(location_event_map.values())):
+            node_attributes = dict()
+            for event in events:
+                event_attributes = {attr.name: value for attr, value in event.attributes.items() if event.region.name != "single_other"}
+                node_attributes = {**node_attributes, **event_attributes}
+            print(": ".join([str({type(e) for e in events}), ", ".join({e.region.name for e in events})]))
+            print(", ".join([ ": ".join([str(type(e)), e.region.name]) for e in events]))
+            print("NODE ATTRIBUTES: {}".format(node_attributes))
+            if node_attributes.get('region_type', '') == 'implicit_task':
+                continue
+            if node_attributes.get('region_type', '') == 'parallel':
+                parallel_name = events[0].region.name
+                if parallel_name in self.parallel_region_nodes and node_attributes['endpoint'] in self.parallel_region_nodes[parallel_name]:
+                    n = self.parallel_region_nodes[parallel_name][node_attributes['endpoint']]
+                else:
+                    n = self.graph.add_vertex(name='{} {}'.format(node_attributes['endpoint'], parallel_name), **node_attributes)
+                    self.parallel_region_nodes[parallel_name][node_attributes['endpoint']] = n
+            elif node_attributes.get('region_type', '') == 'explicit_task':
+                task_name = events[0].region.name
+                if task_name in self.explicit_task_nodes and node_attributes['endpoint'] in self.explicit_task_nodes[task_name]:
+                    n = self.explicit_task_nodes[task_name][node_attributes['endpoint']]
+                else:
+                    n = self.graph.add_vertex(name='{} {}'.format(node_attributes['endpoint'], task_name), **node_attributes)
+                    self.explicit_task_nodes[task_name][node_attributes['endpoint']] = n
+            else:
+                n = self.graph.add_vertex(**node_attributes)
+            if prior_node is not None:
+                print("Adding edge between nodes:")
+                print(prior_node)
+                print(n)
+                self.graph.add_edge(prior_node, n)
+            prior_node = n

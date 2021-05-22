@@ -166,8 +166,13 @@ on_ompt_callback_parallel_begin(
     thread_data->is_master_thread = true;
 
     /* assign space for this parallel region */
-    parallel_data_t *parallel_data = new_parallel_data(thread_data->id,
-        requested_parallelism, flags);
+    parallel_data_t *parallel_data = new_parallel_data(
+        thread_data->id,
+        // task_data ? task_data->id : OTF2_UNDEFINED_UINT64,
+        task_data->id,
+        task_data,
+        requested_parallelism,
+        flags);
     parallel->ptr = parallel_data;
 
     /* record enter region event */
@@ -345,31 +350,35 @@ on_ompt_callback_implicit_task(
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
 
     /* Only handle implicit-task events */
-    if (!(flags & ompt_task_implicit)) return;
+    // if (!(flags & ompt_task_implicit)) return;
 
-    LOG_DEBUG("[t=%lu] (event) implicit-task-%s",
-        thread_data->id, endpoint == ompt_scope_begin ? "begin" : "end");
+    LOG_DEBUG("[t=%lu] (event) %s-task-%s",
+        thread_data->id,
+        flags & ompt_task_initial ? "initial" :
+            flags & ompt_task_implicit ? "implicit" : "???",
+        endpoint == ompt_scope_begin ? "begin" : "end");
 
     if (endpoint == ompt_scope_begin)
     {
         parallel_data_t *parallel_data = (parallel_data_t*) parallel->ptr;
 
         /* Worker threads record parallel-begin during implicit-task-begin */
-        if (index != 0)
+        if (index != 0 && (flags & ompt_task_implicit))
             trace_event_enter(thread_data->location, parallel_data->region);
 
         /* Create implicit task data __after__ parallel-begin so that the OTF2
            region is added to the queue for the new parallel region */
         task_data_t *implicit_task_data = new_task_data(
             thread_data->location,
-            NULL,
+            flags & ompt_task_implicit ?
+                parallel_data->encountering_task_data->region : NULL,
             get_unique_task_id(),
             flags,
             0);
         task->ptr = implicit_task_data;
 
         /* Enter implicit task region */
-        // trace_event_enter(thread_data->location, implicit_task_data->region);
+        trace_event_enter(thread_data->location, implicit_task_data->region);
 
     } else {
 
@@ -380,12 +389,21 @@ on_ompt_callback_implicit_task(
             implicit_task_data->region, ompt_task_complete);
 
         /* Leave implicit task region */
-        // trace_event_leave(thread_data->location);
+        trace_event_leave(thread_data->location);
 
         /* Worker threads record parallel-end during implicit-task-end
             callback */
-        if (index != 0)
+        if (index != 0 && (flags & ompt_task_implicit))
             trace_event_leave(thread_data->location);
+
+        /* For initial-task-end event, must manually record region defintion
+           as it never gets handed off to an enclosing parallel region to be
+           written at parallel-end */
+        if (flags & ompt_task_initial)
+        {
+            trace_write_region_definition(implicit_task_data->region);
+            trace_destroy_task_region(implicit_task_data->region);
+        }
     }
     return;
 }
@@ -422,7 +440,7 @@ on_ompt_callback_work(
         if (endpoint == ompt_scope_begin)
         {
             trace_region_def_t *wshare_rgn = trace_new_workshare_region(
-                thread_data->location, wstype, count);
+                thread_data->location, wstype, count, task_data->id);
             trace_event_enter(thread_data->location, wshare_rgn);
         } else {
             trace_event_leave(thread_data->location);

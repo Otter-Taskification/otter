@@ -14,11 +14,17 @@ typedef struct task_data_t task_data_t;
 typedef struct scope_t scope_t;
 
 /* Parallel */
-parallel_data_t *new_parallel_data(unique_id_t thread_id, unsigned int requested_parallelism, int flags);
+parallel_data_t *new_parallel_data(
+    unique_id_t thread_id,
+    unique_id_t encountering_task_id,
+    task_data_t *encountering_task_data,
+    unsigned int requested_parallelism,
+    int flags);
 void parallel_destroy(parallel_data_t *thread_data);
 struct parallel_data_t {
     unique_id_t         id;
     unique_id_t         master_thread;
+    task_data_t        *encountering_task_data;
     trace_region_def_t *region;
 };
 

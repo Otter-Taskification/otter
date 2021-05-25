@@ -101,10 +101,10 @@
 #endif
 
 #define TASK_TYPE_TO_STR_REF(type)                                             \
-    (type == ompt_task_initial ? attr_label_ref[attr_task_type_initial] :      \
-     type == ompt_task_implicit ? attr_label_ref[attr_task_type_implicit] :    \
-     type == ompt_task_explicit ? attr_label_ref[attr_task_type_explicit] :    \
-     type == ompt_task_target ? attr_label_ref[attr_task_type_target] : 0 )    \
+    (type == ompt_task_initial ? attr_label_ref[attr_task_type_initial_task]:  \
+     type == ompt_task_implicit ? attr_label_ref[attr_task_type_implicit_task]:\
+     type == ompt_task_explicit ? attr_label_ref[attr_task_type_explicit_task]:\
+     type == ompt_task_target ? attr_label_ref[attr_task_type_target_task]: 0 )\
 
 #define TASK_STATUS_TO_STR_REF(status)                                         \
    (status == ompt_task_complete      ?                                        \

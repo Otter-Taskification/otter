@@ -387,17 +387,11 @@ trace_add_common_region_attributes(trace_region_def_t *rgn)
         rgn->type == trace_region_parallel ?
             attr_label_ref[attr_region_type_parallel] :
         rgn->type == trace_region_workshare ?
-            attr_label_ref[attr_region_type_workshare] :
+            WORK_TYPE_TO_STR_REF(rgn->attr.wshare.type) :
         rgn->type == trace_region_synchronise ?
-            attr_label_ref[attr_region_type_sync] :
-        rgn->type == trace_region_task ?
-            rgn->attr.task.type == ompt_task_initial ?
-                attr_label_ref[attr_region_type_initial_task] :
-            rgn->attr.task.type == ompt_task_implicit ?
-                attr_label_ref[attr_region_type_implicit_task] :
-            rgn->attr.task.type == ompt_task_explicit ?
-                attr_label_ref[attr_region_type_explicit_task] :
-            attr_label_ref[attr_region_type_target_task] :
+            SYNC_TYPE_TO_STR_REF(rgn->attr.sync.type) :
+        rgn->type == trace_region_task ? 
+            TASK_TYPE_TO_STR_REF(rgn->attr.task.type) :
         attr_label_ref[attr_region_type_task]
     );
     return;
@@ -406,6 +400,7 @@ trace_add_common_region_attributes(trace_region_def_t *rgn)
 static void
 trace_add_thread_attributes(trace_location_def_t *self)
 {
+    OTF2_AttributeList_AddUint64(self->attributes, attr_unique_id, self->id);
     OTF2_AttributeList_AddStringRef(self->attributes, attr_thread_type,
         self->thread_type == ompt_thread_initial ? 
             attr_label_ref[attr_thread_type_initial] :

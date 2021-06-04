@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -7,6 +9,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sched.h>
 
 #include <otf2/otf2.h>
 #include <otf2/OTF2_Pthread_Locks.h>
@@ -25,7 +28,7 @@ static uint64_t get_timestamp(void);
 
 /* apply a region's attributes to an event */
 static void trace_add_thread_attributes(trace_location_def_t *self);
-static void trace_add_common_region_attributes(trace_region_def_t *rgn);
+static void trace_add_common_event_attributes(trace_region_def_t *rgn);
 static void trace_add_parallel_attributes(trace_region_def_t *rgn);
 static void trace_add_workshare_attributes(trace_region_def_t *rgn);
 static void trace_add_sync_attributes(trace_region_def_t *rgn);
@@ -373,8 +376,11 @@ trace_write_region_definition(trace_region_def_t *rgn)
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 static void
-trace_add_common_region_attributes(trace_region_def_t *rgn)
+trace_add_common_event_attributes(trace_region_def_t *rgn)
 {
+    /* CPU of encountering thread */
+    OTF2_AttributeList_AddInt32(rgn->attributes, attr_cpu, sched_getcpu());
+
     /* Add encountering task ID */
     OTF2_AttributeList_AddUint64(
         rgn->attributes,
@@ -400,6 +406,7 @@ trace_add_common_region_attributes(trace_region_def_t *rgn)
 static void
 trace_add_thread_attributes(trace_location_def_t *self)
 {
+    OTF2_AttributeList_AddInt32(self->attributes, attr_cpu, sched_getcpu());
     OTF2_AttributeList_AddUint64(self->attributes, attr_unique_id, self->id);
     OTF2_AttributeList_AddStringRef(self->attributes, attr_thread_type,
         self->thread_type == ompt_thread_initial ? 
@@ -557,7 +564,7 @@ trace_event_enter(
     }
 
     /* Add attributes common to all enter/leave events */
-    trace_add_common_region_attributes(region);
+    trace_add_common_event_attributes(region);
 
     /* Add the event type attribute */
     OTF2_AttributeList_AddStringRef(region->attributes, attr_event_type,
@@ -640,7 +647,7 @@ trace_event_leave(trace_location_def_t *self)
     }
 
     /* Add attributes common to all enter/leave events */
-    trace_add_common_region_attributes(region);
+    trace_add_common_event_attributes(region);
 
     /* Add the event type attribute */
     OTF2_AttributeList_AddStringRef(region->attributes, attr_event_type,
@@ -720,7 +727,7 @@ trace_event_task_create(
     trace_location_def_t *self, 
     trace_region_def_t   *created_task)
 {
-    trace_add_common_region_attributes(created_task);
+    trace_add_common_event_attributes(created_task);
 
     /* task-create */
     OTF2_AttributeList_AddStringRef(created_task->attributes, attr_event_type,

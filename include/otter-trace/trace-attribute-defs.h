@@ -70,6 +70,9 @@ INCLUDE_LABEL(event_type,  task_schedule  )
 INCLUDE_LABEL(event_type,  task_enter     )
 INCLUDE_LABEL(event_type,  task_leave     )
 
+/* Result of call to sched_getcpu() */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_INT32, cpu, "cpu on which the encountering thread is running")
+
 /* Region begin or end event? */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, endpoint, "is this a region-enter or region-leave event")
 INCLUDE_LABEL(endpoint, enter   )

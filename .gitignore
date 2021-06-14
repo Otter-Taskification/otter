@@ -8,3 +8,5 @@
 *.svg
 
 docs/*.pdf
+
+trace/*

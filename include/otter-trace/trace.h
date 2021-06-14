@@ -12,6 +12,17 @@
 #define DEFAULT_SYSTEM_TREE  0
 #define DEFAULT_NAME_BUF_SZ  256
 
+#define CHECK_OTF2_ERROR_CODE(r)                                               \
+    {if (r != OTF2_SUCCESS)                                                    \
+    {                                                                          \
+        LOG_ERROR("%s: %s (%s:%d)",                                            \
+            OTF2_Error_GetName(r),                                             \
+            OTF2_Error_GetDescription(r),                                      \
+            __FILE__,                                                          \
+            __LINE__                                                           \
+        );                                                                     \
+    }}
+
 #define get_unique_rgn_ref() (get_unique_uint32_ref(trace_region))
 #define get_unique_str_ref() (get_unique_uint32_ref(trace_string))
 #define get_unique_loc_ref() (get_unique_uint64_ref(trace_location))

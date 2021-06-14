@@ -70,6 +70,9 @@ INCLUDE_LABEL(event_type,  task_schedule  )
 INCLUDE_LABEL(event_type,  task_enter     )
 INCLUDE_LABEL(event_type,  task_leave     )
 
+/* Result of call to sched_getcpu() */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_INT32, cpu, "cpu on which the encountering thread is running")
+
 /* Region begin or end event? */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, endpoint, "is this a region-enter or region-leave event")
 INCLUDE_LABEL(endpoint, enter   )
@@ -79,10 +82,10 @@ INCLUDE_LABEL(endpoint, discrete)
 /* task type */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_type, "task classification")
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, parent_task_type, "task classification of the parent task of this task")
-INCLUDE_LABEL(task_type,  initial  )
-INCLUDE_LABEL(task_type,  implicit )
-INCLUDE_LABEL(task_type,  explicit )
-INCLUDE_LABEL(task_type,  target   )
+INCLUDE_LABEL(task_type,  initial_task  )
+INCLUDE_LABEL(task_type,  implicit_task )
+INCLUDE_LABEL(task_type,  explicit_task )
+INCLUDE_LABEL(task_type,  target_task   )
 
 /* task flags */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_is_undeferred, "task is undeferred")

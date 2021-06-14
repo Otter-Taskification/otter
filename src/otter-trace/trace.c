@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -7,6 +9,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sched.h>
 
 #include <otf2/otf2.h>
 #include <otf2/OTF2_Pthread_Locks.h>
@@ -25,7 +28,7 @@ static uint64_t get_timestamp(void);
 
 /* apply a region's attributes to an event */
 static void trace_add_thread_attributes(trace_location_def_t *self);
-static void trace_add_common_region_attributes(trace_region_def_t *rgn);
+static void trace_add_common_event_attributes(trace_region_def_t *rgn);
 static void trace_add_parallel_attributes(trace_region_def_t *rgn);
 static void trace_add_workshare_attributes(trace_region_def_t *rgn);
 static void trace_add_sync_attributes(trace_region_def_t *rgn);
@@ -373,107 +376,136 @@ trace_write_region_definition(trace_region_def_t *rgn)
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 static void
-trace_add_common_region_attributes(trace_region_def_t *rgn)
+trace_add_common_event_attributes(trace_region_def_t *rgn)
 {
+    OTF2_ErrorCode r = OTF2_SUCCESS;
+
+    /* CPU of encountering thread */
+    r = OTF2_AttributeList_AddInt32(rgn->attributes, attr_cpu, sched_getcpu());
+    CHECK_OTF2_ERROR_CODE(r);
+
     /* Add encountering task ID */
-    OTF2_AttributeList_AddUint64(
+    r = OTF2_AttributeList_AddUint64(
         rgn->attributes,
         attr_encountering_task_id,
         rgn->encountering_task_id
     );
+    CHECK_OTF2_ERROR_CODE(r);
 
     /* Add the region type */
-    OTF2_AttributeList_AddStringRef(rgn->attributes, attr_region_type,
+    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_region_type,
         rgn->type == trace_region_parallel ?
             attr_label_ref[attr_region_type_parallel] :
         rgn->type == trace_region_workshare ?
-            attr_label_ref[attr_region_type_workshare] :
+            WORK_TYPE_TO_STR_REF(rgn->attr.wshare.type) :
         rgn->type == trace_region_synchronise ?
-            attr_label_ref[attr_region_type_sync] :
-        rgn->type == trace_region_task ?
-            rgn->attr.task.type == ompt_task_initial ?
-                attr_label_ref[attr_region_type_initial_task] :
-            rgn->attr.task.type == ompt_task_implicit ?
-                attr_label_ref[attr_region_type_implicit_task] :
-            rgn->attr.task.type == ompt_task_explicit ?
-                attr_label_ref[attr_region_type_explicit_task] :
-            attr_label_ref[attr_region_type_target_task] :
+            SYNC_TYPE_TO_STR_REF(rgn->attr.sync.type) :
+        rgn->type == trace_region_task ? 
+            TASK_TYPE_TO_STR_REF(rgn->attr.task.type) :
         attr_label_ref[attr_region_type_task]
     );
+    CHECK_OTF2_ERROR_CODE(r);
+
     return;
 }
 
 static void
 trace_add_thread_attributes(trace_location_def_t *self)
 {
-    OTF2_AttributeList_AddStringRef(self->attributes, attr_thread_type,
+    OTF2_ErrorCode r = OTF2_SUCCESS;
+    r = OTF2_AttributeList_AddInt32(self->attributes, attr_cpu, sched_getcpu());
+    CHECK_OTF2_ERROR_CODE(r);
+    r = OTF2_AttributeList_AddUint64(self->attributes, attr_unique_id, self->id);
+    CHECK_OTF2_ERROR_CODE(r);
+    r = OTF2_AttributeList_AddStringRef(self->attributes, attr_thread_type,
         self->thread_type == ompt_thread_initial ? 
             attr_label_ref[attr_thread_type_initial] :
         self->thread_type == ompt_thread_worker ? 
             attr_label_ref[attr_thread_type_worker] : 0);
+    CHECK_OTF2_ERROR_CODE(r);
     return;
 }
 
 static void
 trace_add_parallel_attributes(trace_region_def_t *rgn)
 {
-    OTF2_AttributeList_AddUint64(rgn->attributes, attr_unique_id,
+    OTF2_ErrorCode r = OTF2_SUCCESS;
+    r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_unique_id,
         rgn->attr.parallel.id);
-    OTF2_AttributeList_AddUint32(rgn->attributes, attr_requested_parallelism,
+    CHECK_OTF2_ERROR_CODE(r);
+    r = OTF2_AttributeList_AddUint32(rgn->attributes, attr_requested_parallelism,
         rgn->attr.parallel.requested_parallelism);
-    OTF2_AttributeList_AddStringRef(rgn->attributes, attr_is_league,
+    CHECK_OTF2_ERROR_CODE(r);
+    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_is_league,
         rgn->attr.parallel.is_league ? 
             attr_label_ref[attr_flag_true] : attr_label_ref[attr_flag_false]);
+    CHECK_OTF2_ERROR_CODE(r);
     return;
 }
 
 static void
 trace_add_workshare_attributes(trace_region_def_t *rgn)
 {
-    OTF2_AttributeList_AddStringRef(rgn->attributes, attr_workshare_type,
+    OTF2_ErrorCode r = OTF2_SUCCESS;
+    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_workshare_type,
         WORK_TYPE_TO_STR_REF(rgn->attr.wshare.type));
-    OTF2_AttributeList_AddUint64(rgn->attributes, attr_workshare_count,
+    CHECK_OTF2_ERROR_CODE(r);
+    r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_workshare_count,
         rgn->attr.wshare.count);
+    CHECK_OTF2_ERROR_CODE(r);
     return;
 }
 
 static void
 trace_add_sync_attributes(trace_region_def_t *rgn)
 {
-    OTF2_AttributeList_AddStringRef(rgn->attributes, attr_sync_type,
+    OTF2_ErrorCode r = OTF2_SUCCESS;
+    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_sync_type,
         SYNC_TYPE_TO_STR_REF(rgn->attr.sync.type));
-    OTF2_AttributeList_AddUint64(rgn->attributes, attr_encountering_task_id,
-        rgn->attr.sync.encountering_task_id);
+    CHECK_OTF2_ERROR_CODE(r);
     return;
 }
 
 static void
 trace_add_task_attributes(trace_region_def_t *rgn)
 {
-    OTF2_AttributeList_AddUint64(rgn->attributes, attr_unique_id,
+    OTF2_ErrorCode r = OTF2_SUCCESS;
+    r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_unique_id,
         rgn->attr.task.id);
-    OTF2_AttributeList_AddStringRef(rgn->attributes, attr_task_type,
+    CHECK_OTF2_ERROR_CODE(r);
+    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_task_type,
         TASK_TYPE_TO_STR_REF(rgn->attr.task.type));
-    OTF2_AttributeList_AddUint32(rgn->attributes, attr_task_flags,
+    CHECK_OTF2_ERROR_CODE(r);
+    r = OTF2_AttributeList_AddUint32(rgn->attributes, attr_task_flags,
         rgn->attr.task.flags);
-    OTF2_AttributeList_AddUint64(rgn->attributes, attr_parent_task_id,
+    CHECK_OTF2_ERROR_CODE(r);
+    r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_parent_task_id,
         rgn->attr.task.parent_id);
-    OTF2_AttributeList_AddStringRef(rgn->attributes, attr_parent_task_type,
+    CHECK_OTF2_ERROR_CODE(r);
+    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_parent_task_type,
         TASK_TYPE_TO_STR_REF(rgn->attr.task.parent_type));
-    OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_has_dependences,
+    CHECK_OTF2_ERROR_CODE(r);
+    r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_has_dependences,
         rgn->attr.task.has_dependences);
-    OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_undeferred,
+    CHECK_OTF2_ERROR_CODE(r);
+    r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_undeferred,
         rgn->attr.task.flags & ompt_task_undeferred);
-    OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_untied,
+    CHECK_OTF2_ERROR_CODE(r);
+    r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_untied,
         rgn->attr.task.flags & ompt_task_untied);
-    OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_final,
+    CHECK_OTF2_ERROR_CODE(r);
+    r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_final,
         rgn->attr.task.flags & ompt_task_final);
-    OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_mergeable,
+    CHECK_OTF2_ERROR_CODE(r);
+    r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_mergeable,
         rgn->attr.task.flags & ompt_task_mergeable);
-    OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_merged,
+    CHECK_OTF2_ERROR_CODE(r);
+    r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_merged,
         rgn->attr.task.flags & ompt_task_merged);
-    OTF2_AttributeList_AddStringRef(rgn->attributes, attr_prior_task_status,
+    CHECK_OTF2_ERROR_CODE(r);
+    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_prior_task_status,
         TASK_STATUS_TO_STR_REF(rgn->attr.task.task_status));
+    CHECK_OTF2_ERROR_CODE(r);
     return;
 }
 
@@ -562,7 +594,7 @@ trace_event_enter(
     }
 
     /* Add attributes common to all enter/leave events */
-    trace_add_common_region_attributes(region);
+    trace_add_common_event_attributes(region);
 
     /* Add the event type attribute */
     OTF2_AttributeList_AddStringRef(region->attributes, attr_event_type,
@@ -645,7 +677,7 @@ trace_event_leave(trace_location_def_t *self)
     }
 
     /* Add attributes common to all enter/leave events */
-    trace_add_common_region_attributes(region);
+    trace_add_common_event_attributes(region);
 
     /* Add the event type attribute */
     OTF2_AttributeList_AddStringRef(region->attributes, attr_event_type,
@@ -725,7 +757,7 @@ trace_event_task_create(
     trace_location_def_t *self, 
     trace_region_def_t   *created_task)
 {
-    trace_add_common_region_attributes(created_task);
+    trace_add_common_event_attributes(created_task);
 
     /* task-create */
     OTF2_AttributeList_AddStringRef(created_task->attributes, attr_event_type,

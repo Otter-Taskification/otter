@@ -1,14 +1,26 @@
 #include <omp.h>
 
+#define LOOPS 2
+
 int main(void)
 {
-    #pragma omp parallel num_threads(4)
+    int i=0;
+    #pragma omp parallel num_threads(3)
     {
-        #pragma omp single
         #pragma omp task
         {
             #pragma omp taskloop
-            for (int i=0; i<5; i++)
+            for (i=0; i<LOOPS; i++)
+            {
+            }
+        }
+    }
+    #pragma omp parallel num_threads(3)
+    {
+        #pragma omp task
+        {
+            #pragma omp taskloop
+            for (i=0; i<LOOPS; i++)
             {
             }
         }

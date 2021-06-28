@@ -1,5 +1,12 @@
-omp-demo
-*.dot
+./omp-*
+*.csv
+*.txt
+*.pdf
+*.gv
 *.ps
 *.png
 *.svg
+
+docs/*.pdf
+
+trace/*

@@ -1,0 +1,79 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[hscale=0.83,vscale=0.92]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage[font=footnotesize,labelfont=bf]{caption}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\graphicspath{{./analysis/}}
+
+\newcommand{\ord}{\textsuperscript{th} }
+\newcommand{\code}[1]{\texttt{#1} }
+
+\title{OTTER:\\OpenMP Task Tracer}
+\begin{document}
+
+\author{Adam Tuft}
+\maketitle
+
+\tableofcontents
+
+\pagebreak
+
+\section{Introduction}
+
+\section{OTTER Core}
+
+OTTER Core implements the OMPT callbacks defined by the OMP runtime. It collects the data required to build the task graph and to record OTF2 locations, regions and events. OTTER Core defines various types used to store data relevant to corresponding OMP constructs such as parallel regions, threads, tasks etc.
+
+OTTER Core defines \code{scope\_type\_t} which enumerates the OMP constructs relevant to OTTER and the \code{scope\_t} object which contains data used to record entry into and exit from scopes. The scopes defined by OTTER are associated with OMP constructs which emit begin and end execution model events e.g. \code{scope\_parallel} is associated with parallel regions and their \emph{parallel-begin} and \emph{parallel-end} events.
+
+The OTTER scopes corresponding to OMP constructs that can be nested (e.g. parallel regions) are represented in the task graph by pairs of nodes (scope entry and exit nodes) which allows the nesting of OMP constructs to be reflected in the task graph. Those scopes representing standalone constructs (such as implicit barriers) are represented by single nodes generated during their \emph{scope-end} events.
+
+A \code{scope\_t} stores references to the scope's begin and end nodes as well as data used to identify the scope, a flag indicating whether the scope has encountered its \emph{scope-end} event and a stack storing references to the nodes created while the scope is active. A mutex ensures thread-safe updates of its stack. Scopes representing standalone constructs, such as barrier regions, do not use a \code{scope\_t} as they cannot be nested. Instead, their task graph node is created by the master thread of the team during their \emph{scope-end} events and added to the thread's queue of synchronisation nodes to be processed at the enclosing scope's \emph{scope-end} event.
+
+A thread tracks the scope within which a callback occurs by maintaining a stack of \code{scope\_t} objects. When a \emph{scope-begin} event is received, a \code{scope\_t} is created and pushed onto the encountering thread's stack, which is then popped during the matching \emph{scope-end} event. At \emph{scope-begin} the \code{scope\_t} is added to a global queue for the initial thread to process at \emph{tool-finalise}. Between a scope's begin and end events, a thread can inspect the innermost scope's data by examining the struct at the top of its stack.
+
+In order for the graph nodes created during a scope to be connected to the scope's begin and end nodes, a scope records the nodes it encloses in a stack. When a node is added to the task graph it is also added to the innermost scope's node stack. During the \emph{tool-finalise} event the initial thread consumes the global scope queue, checking the nodes in each scope's stack and adding an edge from the node to the scope's end node for each node with no immediate descendants. This ensures that all nodes that are descendants of the scope's begin node are also ancestors of its end node.
+
+For standalone constructs a node is added to the task graph during the construct's \emph{scope-end} event. This node is also added to the encountering thread's synchronisation node queue but \textbf{not} the enclosing thread's node stack. At the enclosing scope's \emph{scope-end} event the encountering thread consumes its queue of synchronisation nodes; for each node in the queue, it consumes the scope's nodes stack to connect all nodes with no immediate descendants to the synchronisation node before pushing the synchronisation node onto the scope's node stack.
+
+\subsection{\emph{Parallel-begin} and \emph{Implicit-task-begin} events}
+
+(Parallel scopes and implicit-task-begin events - only encountering thread receices \emph{parallel-begin} and \emph{parallel-end} events but all participating threads need reference to the same parallel scope object = create scope in \emph{parallel-begin}, store in parallel data and retrieve during each thread's \emph{implicit-task-begin} event.)
+
+\subsection{Connecting Consecutive Scopes}
+
+At a \emph{scope-begin} event a thread connects the new scope to the task graph by checking the type of the encountering task:
+
+\begin{itemize}
+\item for initial tasks, if a prior scope exists an edge is created between that scope and the new scope, otherwise an edge is created from the initial tasks's node to the new scope's begin node;
+\item for implicit tasks, if the prior scope encloses the new scope the two scope-begin nodes are connected with an edge, otherwise the prior scope's end node is connected to the new scope's begin node;
+\item for explitit and target tasks an edge is created from the task's node to the new scope's begin node.
+\end{itemize}
+
+\section{Graph Data Structure}
+
+OTTER uses a simple representation of a graph which allows addition of arbitrary nodes and directed edges. The graph is represented as a pair of queues; one for the nodes and another for the edges. A node is a struct containing an id, a type indicator, a pointer to arbitrary data and a flag to indicate whether it is the source of any edges. An edge is a struct with pointers to its start and end nodes.
+
+Note that OTTER's graph implementation is very basic as it is not intended to be a general-purpose graph. For example, it does not support deletion of nodes or edges. It does support iterating over its nodes and edges with \code{graph\_scan\_nodes} and \code{graph\_scan\_edges}.
+
+\section{OTTER Task Graph}
+
+The task graph module manages the underlying graph data structure that represents the task graph of the OMP program. It manages a single global instance of a graph which is exposed to OTTER-core only through the \code{task\_graph\_} functions. The task graph is initialised once when OTTER starts (before the OMP program begins) and is destroyed when OTTER exits (after the OMP program is finished). Any other initialisation or destruction is an error. The task graph struct includes a mutex that is locked when a node or edge is added to ensure thread-safe updates of the task graph.
+
+The module header defines the \code{task\_graph\_node\_type\_t} enum which lists the kinds of nodes that can be represented in the task graph. This enum is closely aligned to the \code{scope\_t} enum defined in \code{otter-core/otter.h} and is used to format the nodes when the task graph is saved.
+
+Task graph output file name and format are controlled through environment variables. OTTER can save the task graph as a dot-file (.gv) or edge list (.csv).
+
+\section{OTTER Trace}
+
+To do...
+
+\end{document}

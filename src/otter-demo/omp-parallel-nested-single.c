@@ -11,6 +11,7 @@ int main(void)
     #pragma omp parallel num_threads(THREADS)
     {
         int j = omp_get_thread_num();
+        #pragma omp single
         #pragma omp parallel num_threads(THREADS)
         {
             printf("%d: %d/%d level=%d\n",

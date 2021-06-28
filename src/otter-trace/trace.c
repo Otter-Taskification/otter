@@ -16,6 +16,7 @@
 
 #include <macros/debug.h>
 #include <otter-common.h>
+#include <otter-core/otter-environment-variables.h>
 #include <otter-trace/trace.h>
 #include <otter-trace/trace-structs.h>
 #include <otter-trace/trace-attributes.h>
@@ -102,7 +103,8 @@ trace_initialise_archive(otter_opt_t *opt)
     snprintf(archive_path, DEFAULT_NAME_BUF_SZ, "%s/%s",
         opt->tracepath, archive_name);
 
-    LOG_INFO("%-30s %s/%s", "Trace output path", opt->tracepath, archive_name);
+    fprintf(stderr, "%-30s %s/%s\n",
+        "Trace output path:", opt->tracepath, archive_name);
 
     /* open OTF2 archive */
     Archive = OTF2_Archive_Open(

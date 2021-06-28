@@ -13,4 +13,9 @@ int main(void)
     {
         // pass
     }
+
+    #pragma omp parallel num_threads(THREADS*2)
+    {
+        // pass
+    }
 }

@@ -1,0 +1,6 @@
+- Remove redundant code:
+    - src/otter-datatypes/dynamic-array.c
+    - src/otter-datatypes/queue.c
+- Update README
+- Add LICENCE
+- Remove/update outdated docs/...

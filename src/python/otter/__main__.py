@@ -67,6 +67,7 @@ if __name__ == "__main__":
     vertex_type_format = {'parallel': {'shape': 'circle', 'color': 'yellow'},
                           'initial_task': {'shape': 'rectangle', 'color': 'purple'},
                           'explicit_task': {'shape': 'rectangle', 'color': 'darkcyan'},
+                          'loop': {'shape': 'triangle-up', 'color': 'coral'},
                           'taskloop': {'shape': 'triangle-up', 'color': 'blue'},
                           'taskgroup': {'shape': 'triangle-down', 'color': 'green'},
                           'taskwait': {'shape': 'triangle-down', 'color': 'deeppink'},
@@ -447,8 +448,8 @@ if __name__ == "__main__":
             tcnode['taskwaitnode'] = twnode
 
             # Get the corresponding task-leave node (assuming only one):
-            taskleavenode, = g.vs.select(lambda v: v['event_type']=='task_leave' and v['unique_id']==taskcreatenode['unique_id'])
-            g.add_edge(taskleavenode, twnode)
+            tlnode, = g.vs.select(lambda v: v['event_type']=='task_leave' and v['unique_id']==tcnode['unique_id'])
+            g.add_edge(tlnode, twnode)
 
     print("\nProcessing taskgroup nodes:")
     for tgnode in g.vs.select(lambda v: v['region_type']=='taskgroup' and v['endpoint']=='leave'):
@@ -513,5 +514,5 @@ if __name__ == "__main__":
         v.update_attributes(vertex_type_format.get(v['region_type'], vertex_default_format))
         v.update_attributes(label=v['unique_id'])
 
-    plot_graph(g, vertex_size=35, bbox=(1200,800), margin=80, layout=g.layout_reingold_tilford(), target="graph.svg")
-    plot_graph(task_graph, vertex_size=25, bbox=(800, 400), margin=20, target="graph-tasks.svg", layout=task_graph.layout(layout="rt"))
+    plot_graph(g, vertex_size=35, bbox=(1200,800), margin=80, target="graph.svg")
+    plot_graph(task_graph, vertex_size=25, bbox=(800, 400), margin=20, target="graph-tasks.svg")

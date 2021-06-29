@@ -447,8 +447,8 @@ if __name__ == "__main__":
             tcnode['taskwaitnode'] = twnode
 
             # Get the corresponding task-leave node (assuming only one):
-            taskleavenode, = g.vs.select(lambda v: v['event_type']=='task_leave' and v['unique_id']==taskcreatenode['unique_id'])
-            g.add_edge(taskleavenode, twnode)
+            tlnode, = g.vs.select(lambda v: v['event_type']=='task_leave' and v['unique_id']==tcnode['unique_id'])
+            g.add_edge(tlnode, twnode)
 
     print("\nProcessing taskgroup nodes:")
     for tgnode in g.vs.select(lambda v: v['region_type']=='taskgroup' and v['endpoint']=='leave'):

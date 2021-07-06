@@ -18,7 +18,7 @@
 #define print_matching_set_result(name, value, result, event)                  \
     do {                                                                       \
         if ((result == name))                                                  \
-            fprintf(stderr, "%-32s -> %s (%d)\n", #event, #name, result);      \
+            fprintf(stderr, "%-32s | %-15s (%d)\n", #event, #name, result);    \
     } while(0);
 
 /* Submit implemented callbacks to OMP and report the result */
@@ -29,6 +29,16 @@
                 event, (ompt_callback_t) callbacks.on_##event);                \
             FOREACH_OMPT_SET_RESULT(print_matching_set_result, r, event);      \
         }                                                                      \
+    } while(0);
+
+/* Report the return code from ompt_set_callback for a given event, then clear
+   the callback */
+#define report_callback(event, callback, id)                                   \
+    do {                                                                       \
+        ompt_set_result_t r = ompt_set_callback(                               \
+            event, (ompt_callback_t) UINT64_MAX);                              \
+        FOREACH_OMPT_SET_RESULT(print_matching_set_result, r, event);          \
+        ompt_set_callback(event, (ompt_callback_t) NULL);                      \
     } while(0);
 
 /* parallel region type in on_ompt_callback_parallel_begin */

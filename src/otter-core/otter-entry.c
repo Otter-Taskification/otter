@@ -1,9 +1,11 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <macros/debug.h>
 #include <macros/callback.h>
 #include <otter-ompt-header.h>
 #include <otter-core/otter-entry.h>
+#include <otter-core/otter-environment-variables.h>
 
 /* Entry & exit functions passed back to the OMP runtime */
 static int ompt_initialise(ompt_function_lookup_t, int, ompt_data_t *);
@@ -56,7 +58,14 @@ ompt_initialise(
     ompt_set_callback_t ompt_set_callback = 
         (ompt_set_callback_t) lookup("ompt_set_callback");
 
-    fprintf(stderr, "Registering callbacks:\n");
+    if (getenv(ENV_VAR_REPORT_CBK) != NULL) 
+    {
+        fprintf(stderr, "\nReturn codes from ompt_set_callback:\n");
+        fprintf(stderr, "%-32s | %s\n", "Event", "Availability");
+        FOREACH_OMPT_EVENT(report_callback);
+    }
+
+    fprintf(stderr, "\nRegistering callbacks:\n");
     FOREACH_OMPT_EVENT(set_callback);
 
     return 1;

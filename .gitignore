@@ -1,4 +1,4 @@
-omp-*
+/omp-*
 *.csv
 *.txt
 *.pdf
@@ -7,8 +7,9 @@ omp-*
 *.png
 *.svg
 
-docs/*.pdf
-
 trace/*
 
 workspace.code-workspace
+
+!src/
+!src/*

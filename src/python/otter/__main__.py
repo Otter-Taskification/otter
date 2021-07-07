@@ -13,6 +13,48 @@ def plot_graph(g, layout=None, **kwargs):
     ig.plot(g, layout=layout, **kwargs)
 
 
+def to_dot(g, convert=True, **kwargs):
+    if convert:
+        for v in g.vs:
+            v['parent_task_id'] = str(v['parent_task_id'])
+
+            if v['parent_task_type'] in [None, ""]:
+                v['parent_task_type'] = 'undefined'
+
+            if v['prior_task_status'] in [None, ""]:
+                v['prior_task_status'] = 'undefined'
+
+            v['label'] = " " if v['unique_id'] is None else str(v['unique_id'])
+
+            if v['event_type'] == 'task_enter':
+                v['color'] = "lightgreen"
+            elif v['event_type'] == 'task_leave':
+                v['color'] = "lightblue"
+
+            v['style'] = 'filled'
+
+            v['shape'] = {'parallel': 'hexagon',
+                          'taskwait': 'octagon',
+                          'taskgroup': 'hexagon',
+                          'taskloop': 'circle',
+                          'single_executor': 'diamond'}.get(v['region_type'], "rectangle")
+
+            v['label'] = {'parallel': "{}".format(v['unique_id']),
+                          'taskwait': 'tw',
+                          'taskgroup': 'tg',
+                          'taskloop': 'tl',
+                          'barrier_implicit': 'ib',
+                          'single_executor': 'sn'}.get(v['region_type'], v['label'])
+
+        for e in g.es:
+            if e['color'] in [None, ""]:
+                e['color'] = 'black'
+
+    fname = kwargs.get('target', 'graph.dot')
+    print("Writing graph to '{}'".format(fname))
+    g.write_dot(fname)
+
+
 if __name__ == "__main__":
 
     g = ig.Graph(directed=True)
@@ -37,15 +79,15 @@ if __name__ == "__main__":
 
     # Define some formatting arguments according to region_type attribute
     vertex_default_format = {'shape': 'circle', 'color': 'red'}
-    vertex_type_format = {'parallel': {'shape': 'circle', 'color': 'yellow'},
+    vertex_type_format = {'parallel': {'shape': 'circle', 'color': 'darkorange'},
                           'initial_task': {'shape': 'rectangle', 'color': 'purple'},
                           'explicit_task': {'shape': 'rectangle', 'color': 'darkcyan'},
                           'loop': {'shape': 'triangle-up', 'color': 'coral'},
-                          'taskloop': {'shape': 'triangle-up', 'color': 'blue'},
+                          'taskloop': {'shape': 'triangle-up', 'color': 'salmon'},
                           'taskgroup': {'shape': 'triangle-down', 'color': 'green'},
                           'taskwait': {'shape': 'triangle-down', 'color': 'deeppink'},
                           'single_executor': {'shape': 'circle', 'color': 'fuchsia'},
-                          'barrier_implicit': {'shape': 'circle', 'color': 'darkblue'}}
+                          'barrier_implicit': {'shape': 'circle', 'color': 'turquoise'}}
 
     # For all parallel, initial and explicit task regions (i.e. regions which are globally defined), create
     # enter and leave nodes
@@ -176,11 +218,12 @@ if __name__ == "__main__":
                     or (num_events == 2)\
                     or (num_events == 2 + len(task_create_nodes)):
 
-                # On task-leave, add edges for all tasks created during this task
-                if event_attr['event_type'] == 'task_leave' and len(task_create_nodes) > 0:
-                    for n in task_create_nodes:
-                        e = g.add_edge(n, node)
+                # Following one or more task-create events, join the list of task-create nodes to the next node
+                if event_attr['event_type'] != 'task_create' and len(task_create_nodes) > 0:
+                    # for n in task_create_nodes:
+                    #     e = g.add_edge(n, node)
                     task_create_nodes = list()
+                    e = g.add_edge(prior_node, node)
                 else:
                     e = g.add_edge(prior_node, node)
                 print("edge {}: ({}->{})".format(e.index, prior_node.index, node.index))
@@ -411,22 +454,30 @@ if __name__ == "__main__":
         # Get the tasks with the same parent task ID
         parent_tasks = twnode['encountering_task_id_list']
         child_tasks = set(chain(*task_graph.neighborhood(parent_tasks, mode='out', order=1))) - set(parent_tasks)
-        print(f"  {child_tasks=}")
+        print(f" {child_tasks=}")
 
         # Look up the task-enter nodes with the same encountering task as the taskwait region, created before the
         # taskwait was encountered
         for tcnode in g.vs.select(lambda v: v['event_type']=='task_create' and
                 v['unique_id'] in child_tasks and
                 v['event'].time < twnode['taskwait_enter_time'][v['parent_task_id']] and
-                task_attr[v['unique_id']]['task_end'] > twnode['taskwait_enter_time'][v['encountering_task_id']] and
+                # task_attr[v['unique_id']]['task_end'] > twnode['taskwait_enter_time'][v['encountering_task_id']] and
                 v.attributes().get('taskwaitnode', None) is None):
-            print("  node {}: task={} crt_ts={}".format(tcnode.index, tcnode['unique_id'],
-                twnode['taskwait_enter_time'][tcnode['encountering_task_id']] - tcnode['event'].time))
+            print("  task-create node {}: task={}".format(tcnode.index, tcnode['unique_id']))
             tcnode['taskwaitnode'] = twnode
 
             # Get the corresponding task-leave node (assuming only one):
             tlnode, = g.vs.select(lambda v: v['event_type']=='task_leave' and v['unique_id']==tcnode['unique_id'])
-            g.add_edge(tlnode, twnode)
+
+            # If there is already an edge between these nodes, retrieve it. Otherwise create it
+            try:
+                eid = g.get_eid(tlnode.index, twnode.index)
+                e = g.es[eid]
+                e['color'] = 'red'
+                print("retrieved edge ({}->{})".format(e.source_vertex.index, e.target_vertex.index), e['color'])
+            except ig._igraph.InternalError:
+                e = g.add_edge(tlnode, twnode)
+            e['color'] = 'red'
 
     print("\nProcessing taskgroup nodes:")
     for tgnode in g.vs.select(lambda v: v['region_type']=='taskgroup' and v['endpoint']=='leave'):
@@ -462,12 +513,14 @@ if __name__ == "__main__":
                                                  v['endpoint'] == 'leave' and v['unique_id'] == taskcreatenode['unique_id'])
         g.add_edge(inedge.source_vertex, task_enter_node)
         for e in outedges:
-            g.add_edge(task_leave_node, e.target_vertex)
+            g.add_edge(task_leave_node, e.target_vertex, color=e['color'])
         to_delete.append(taskcreatenode)
         taskcreatenode['color'] = 'red'
         print(f" task {taskcreatenode['unique_id']}: substitute node {taskcreatenode.index} for node {task_enter_node.index}")
 
     g.delete_vertices(to_delete)
+
+    g = g.simplify(combine_edges="first")
 
     # Reduce redundant pairs of nodes by looping over edges and deleting the destination nodes where the region_type matches and the endpoints are enter+leave
     to_delete = list()
@@ -479,11 +532,26 @@ if __name__ == "__main__":
             to_delete.append(edge.target_vertex)
             # Replace edges leaving the target vertex
             for outedge in edge.target_vertex.out_edges():
-                g.add_edge(edge.source_vertex, outedge.target_vertex)
+                g.add_edge(edge.source_vertex, outedge.target_vertex, color=outedge.attributes().get('color', 'black'))
 
     for node in to_delete:
         print(f" deleting node {node.index} ({node['event_type']}, {node['region_type']})")
     g.delete_vertices(to_delete)
+
+    # Remove redundant edges between task-enter and task-leave nodes where there are any other edges present
+    to_delete = list()
+    print("\nReducing redundant task edges:")
+    for edge in g.es.select(lambda e: e.source_vertex['region_type'] == 'explicit_task'
+            and e.target_vertex['region_type'] == 'explicit_task'
+            and e.source_vertex['unique_id'] == e.target_vertex['unique_id']
+            and e.source_vertex['endpoint'] == 'enter'
+            and e.target_vertex['endpoint'] == 'leave'
+            and e.target_vertex.indegree() > 1):
+        to_delete.append(edge)
+
+    for e in to_delete:
+        print(" deleting edge: ({}->{})".format(e.source_vertex.index, e.target_vertex.index))
+    g.delete_edges(to_delete)
 
     # Apply formatting based on region_type attribute:
     # Label nodes with unique id
@@ -491,5 +559,5 @@ if __name__ == "__main__":
         v.update_attributes(vertex_type_format.get(v['region_type'], vertex_default_format))
         v.update_attributes(label=v['unique_id'])
 
-    plot_graph(g, vertex_size=35, bbox=(1200,800), margin=80, target="graph.svg")
-    plot_graph(task_graph, vertex_size=25, bbox=(800, 400), margin=20, target="graph-tasks.svg")
+    # plot_graph(g, vertex_size=35, bbox=(1200,800), margin=80, target="graph.svg")
+    to_dot(g, target="graph.dot")

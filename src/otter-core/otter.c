@@ -371,7 +371,13 @@ on_ompt_callback_implicit_task(
 
     if (endpoint == ompt_scope_begin)
     {
-        parallel_data_t *parallel_data = (parallel_data_t*) parallel->ptr;
+        /* For initial-task-begin event:
+            - LLVM:  parallel != NULL
+            - Intel: parallel == NULL
+         */
+        parallel_data_t *parallel_data = NULL;
+        if (flags & ompt_task_implicit)
+            parallel_data = (parallel_data_t*) parallel->ptr;
 
         /* Worker threads record parallel-begin during implicit-task-begin */
         if (index != 0 && (flags & ompt_task_implicit))

@@ -28,7 +28,7 @@ ompt_get_thread_data_t     get_thread_data;
 ompt_get_parallel_info_t   get_parallel_info;
 
 /* Register the tool's callbacks with otter-entry.c */
-void
+otter_opt_t *
 tool_setup(
     tool_callbacks_t        *callbacks,
     ompt_function_lookup_t  lookup)
@@ -55,6 +55,7 @@ tool_setup(
         .hostname         = NULL,
         .tracename        = NULL,
         .tracepath        = NULL,
+        .archive_name     = NULL,
         .append_hostname  = false
     };
 
@@ -75,14 +76,24 @@ tool_setup(
 
     trace_initialise_archive(&opt);
 
-    return;
+    return &opt;
 }
 
 void
-tool_finalise(void)
+tool_finalise(ompt_data_t *tool_data)
 {
     trace_finalise_archive();
     print_resource_usage();
+
+    otter_opt_t *opt = tool_data->ptr;
+
+    char trace_folder[PATH_MAX] = {0};
+
+    realpath(opt->tracepath, &trace_folder[0]);
+
+    fprintf(stderr, "%s%s/%s\n",
+        "OTTER_TRACE_FOLDER=", trace_folder, opt->archive_name);
+
     return;
 }
 

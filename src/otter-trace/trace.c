@@ -77,7 +77,7 @@ trace_initialise_archive(otter_opt_t *opt)
 {
     /* Determine filename & path from options */
     char archive_path[DEFAULT_NAME_BUF_SZ+1] = {0};
-    char archive_name[DEFAULT_NAME_BUF_SZ+1] = {0};
+    static char archive_name[DEFAULT_NAME_BUF_SZ+1] = {0};
     char *p = &archive_name[0];
 
     /* Copy filename */
@@ -105,6 +105,9 @@ trace_initialise_archive(otter_opt_t *opt)
 
     fprintf(stderr, "%-30s %s/%s\n",
         "Trace output path:", opt->tracepath, archive_name);
+
+    /* Store archive name in options struct */
+    opt->archive_name = &archive_name[0];
 
     /* open OTF2 archive */
     Archive = OTF2_Archive_Open(

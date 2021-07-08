@@ -1,5 +1,6 @@
 import argparse
 import re
+import warnings
 import igraph as ig
 from itertools import chain
 from collections import defaultdict, deque
@@ -13,46 +14,57 @@ def plot_graph(g, layout=None, **kwargs):
     ig.plot(g, layout=layout, **kwargs)
 
 
-def to_dot(g, convert=True, **kwargs):
-    if convert:
-        for v in g.vs:
-            v['parent_task_id'] = str(v['parent_task_id'])
+def graph_to_dot(g, **kwargs):
 
-            if v['parent_task_type'] in [None, ""]:
-                v['parent_task_type'] = 'undefined'
+    for v in g.vs:
+        # Fix some types for dot file format
+        v['parent_task_id'] = str(v['parent_task_id'])
+        if v['parent_task_type'] in [None, ""]:
+            v['parent_task_type'] = 'undefined'
+        if v['prior_task_status'] in [None, ""]:
+            v['prior_task_status'] = 'undefined'
+        if v['event_type'] == 'task_enter':
+            v['color'] = "limegreen"
+        elif v['event_type'] == 'task_leave':
+            v['color'] = "lightblue"
 
-            if v['prior_task_status'] in [None, ""]:
-                v['prior_task_status'] = 'undefined'
+        # Style attributes
+        v['style'] = 'filled'
+        v['shape'] = {'parallel': 'hexagon',
+                      'taskwait': 'octagon',
+                      'taskgroup': 'hexagon',
+                      'taskloop': 'circle',
+                      'single_executor': 'diamond'}.get(v['region_type'], "rectangle")
 
-            v['label'] = " " if v['unique_id'] is None else str(v['unique_id'])
+        # Set label for task-enter and task-leave nodes
+        v['label'] = " " if v['unique_id'] is None else str(v['unique_id'])
 
-            if v['event_type'] == 'task_enter':
-                v['color'] = "lightgreen"
-            elif v['event_type'] == 'task_leave':
-                v['color'] = "lightblue"
+        # Set label for all other nodes
+        v['label'] = {'parallel': "{}".format(v['unique_id']),
+                      'taskwait': 'tw',
+                      'taskgroup': 'tg',
+                      'taskloop': 'tl',
+                      'barrier_implicit': 'ib',
+                      'single_executor': 'sn'}.get(v['region_type'], v['label'])
 
-            v['style'] = 'filled'
-
-            v['shape'] = {'parallel': 'hexagon',
-                          'taskwait': 'octagon',
-                          'taskgroup': 'hexagon',
-                          'taskloop': 'circle',
-                          'single_executor': 'diamond'}.get(v['region_type'], "rectangle")
-
-            v['label'] = {'parallel': "{}".format(v['unique_id']),
-                          'taskwait': 'tw',
-                          'taskgroup': 'tg',
-                          'taskloop': 'tl',
-                          'barrier_implicit': 'ib',
-                          'single_executor': 'sn'}.get(v['region_type'], v['label'])
-
+        # Default edge colour if none set
         for e in g.es:
             if e['color'] in [None, ""]:
                 e['color'] = 'black'
 
     fname = kwargs.get('target', 'graph.dot')
     print("Writing graph to '{}'".format(fname))
-    g.write_dot(fname)
+
+    # Ignore runtime warnings emitted due to types being ignored/changed by igraph
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        g.write_dot(fname)
+
+
+def graph_to_graphml(g, **kwargs):
+    fname = kwargs.get('target', 'graph.graphml')
+    print("Writing graph to '{}'".format(fname))
+    g.write_graphml(fname)
 
 
 if __name__ == "__main__":
@@ -86,7 +98,7 @@ if __name__ == "__main__":
                           'taskloop': {'shape': 'triangle-up', 'color': 'salmon'},
                           'taskgroup': {'shape': 'triangle-down', 'color': 'green'},
                           'taskwait': {'shape': 'triangle-down', 'color': 'deeppink'},
-                          'single_executor': {'shape': 'circle', 'color': 'fuchsia'},
+                          'single_executor': {'shape': 'circle', 'color': 'skyblue'},
                           'barrier_implicit': {'shape': 'circle', 'color': 'turquoise'}}
 
     # For all parallel, initial and explicit task regions (i.e. regions which are globally defined), create
@@ -398,7 +410,7 @@ if __name__ == "__main__":
                 nodes = g.vs.select(lambda v: v['event'] in next_events)
                 if len(nodes) != 1:
                     raise IndexError("invalid number of nodes returned")
-                print("got single-executor node: {} {}".format(nodes[0].index, nodes[0]['endpoint']))
+                print("  got single-executor node: {} {}".format(nodes[0].index, nodes[0]['endpoint']))
 
             # End of enclosing parallel region
             elif region_type == 'parallel' and endpoint == 'leave' and enclosing_parallel_region in regions:
@@ -560,4 +572,4 @@ if __name__ == "__main__":
         v.update_attributes(label=v['unique_id'])
 
     # plot_graph(g, vertex_size=35, bbox=(1200,800), margin=80, target="graph.svg")
-    to_dot(g, target="graph.dot")
+    # graph_to_dot(g, target="graph.dot")

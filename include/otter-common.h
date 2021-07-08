@@ -17,6 +17,7 @@ typedef struct otter_opt_t {
     char    *hostname;
     char    *tracename;
     char    *tracepath;
+    char    *archive_name;
     bool     append_hostname;
 } otter_opt_t;
 

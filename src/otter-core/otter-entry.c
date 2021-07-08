@@ -53,7 +53,7 @@ ompt_initialise(
         FOREACH_OMPT_EVENT(init_member_null)
     };
 
-    tool_setup(&callbacks, lookup);
+    tool_data->ptr = (ompt_data_t *) tool_setup(&callbacks, lookup);
    
     ompt_set_callback_t ompt_set_callback = 
         (ompt_set_callback_t) lookup("ompt_set_callback");
@@ -76,7 +76,7 @@ static void
 ompt_finalise(
     ompt_data_t *tool_data)
 {
-    tool_finalise();
+    tool_finalise(tool_data);
     return;
 }
 

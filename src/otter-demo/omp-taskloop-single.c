@@ -13,21 +13,17 @@ int main(void)
         #pragma omp single nowait
         {
             #pragma omp taskloop
+            for (j=0; j<LEN; j++)
             {
-                for (j=0; j<LEN; j++)
-                {
-                    usleep(50);
-                }
+                usleep(50);
             }
             // #pragma omp taskwait
         }
 
             #pragma omp taskloop nogroup
+            for (j=0; j<LEN; j++)
             {
-                for (j=0; j<LEN; j++)
-                {
-                    usleep(50);
-                }
+                usleep(50);
             }
             #pragma omp taskwait
         // }

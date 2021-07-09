@@ -1,4 +1,5 @@
-$(info Compiler: $(CC) [$(shell which $(CC))])
+$(info CC=$(shell which $(CC)))
+$(info CXX=$(shell which $(CXX)))
 
 # Global options
 #C         = clang <- pass in as environment variable instead
@@ -60,7 +61,7 @@ $(OMPEXE_CPP): $(OMPSRC_CPP)
 
 ### Otter as a dynamic tool to be loaded by the runtime
 $(OTTER): $(OTTERSRC) $(OTTERHEAD) $(LIBTRACE)
-	@printf "COMPILING %-12s (debug=%s, OTTER_DEFS=%s)" $@ $(DEBUG_OTTER) $(OTTER_DEFS)
+	@printf "COMPILING %-12s (debug=%s, OTTER_DEFS=%s)\n" $@ $(DEBUG_OTTER) $(OTTER_DEFS)
 	@$(CC) $(CFLAGS) $(OTTER_DEFS) $(LDFLAGS) $(L_LIBTRACE) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_OTTER) $(OTTERSRC) -shared -fPIC -o $@
 
 ### Event tracing lib

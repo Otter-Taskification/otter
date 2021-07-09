@@ -3,5 +3,3 @@
     - src/otter-datatypes/queue.c
 - Make notes on limitations
 - Update README
-- Add LICENCE
-- Remove/update outdated docs/...

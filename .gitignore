@@ -1,15 +1,19 @@
-/omp-*
 *.csv
 *.txt
+*.log
 *.pdf
 *.gv
 *.ps
 *.png
 *.svg
+*.dot
+*.graphml
 
-trace/*
+/omp-*
+
+/trace/
+/scratch/
+/.vscode/
 
 workspace.code-workspace
 
-!src/
-!src/*

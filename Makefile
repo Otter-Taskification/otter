@@ -12,20 +12,21 @@ DEBUG      = -g
 # MAIN OUTPUT
 OTTER    = lib/libotter.so
 
-# Source & header paths
+# header files
 COMMON_H   = $(wildcard include/*.h)
-OTTERSRC   = $(wildcard src/otter-core/*.c)
 OTTERHEAD  = $(wildcard include/otter-core/*.h)         $(COMMON_H)
-OTTEROBJ   = $(patsubst src/otter-core/%.c, obj/%.o,   $(OTTERSRC))
-TRACESRC   = $(wildcard src/otter-trace/*.c)
 TRACEHEAD  = $(wildcard include/otter-trace/*.h)        $(COMMON_H)
-TRACEOBJ   = $(patsubst src/otter-trace/%.c, obj/%.o,   $(TRACESRC))
-DTYPESRC   = $(wildcard src/otter-datatypes/*.c)
 DTYPEHEAD  = $(wildcard include/otter-datatypes/*.h)    $(COMMON_H)
-DTYPEOBJ   = $(patsubst src/otter-datatypes/%.c, obj/%.o,   $(DTYPESRC))
+
+# source files
+OTTERSRC   = $(wildcard src/otter-core/*.c)
+TRACESRC   = $(wildcard src/otter-trace/*.c)
+DTYPESRC   = $(wildcard src/otter-datatypes/*.c)
 OMPSRC     = $(wildcard src/otter-demo/*c)
-OMPEXE     = $(patsubst src/otter-demo/omp-%.c, omp-%, $(OMPSRC))
 OMPSRC_CPP = $(wildcard src/otter-demo/*.cpp)
+
+# executables
+OMPEXE     = $(patsubst src/otter-demo/omp-%.c, omp-%, $(OMPSRC))
 OMPEXE_CPP = $(patsubst src/otter-demo/omp-%.cpp, omp-%, $(OMPSRC_CPP))
 
 BINS = $(OTTER) $(OMPEXE) $(OMPEXE_CPP)
@@ -36,25 +37,28 @@ otter:     $(OTTER)
 all:       $(BINS)
 exe:       $(OMPEXE) $(OMPEXE_CPP)
 
-# otter obj files
-obj/ot%.o: $(patsubst obj/%.o, src/otter-core/%.c, $@)
-	@printf "==> compiling %s\n" $@
-	$(CC) $(CFLAGS) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_OTTER) $(patsubst obj/%.o, src/otter-core/%.c, $@) -fPIC -c -o $@
-
-# trace obj files
-obj/tr%.o: $(patsubst obj/%.o, src/otter-trace/%.c, $@)
-	@printf "==> compiling %s\n" $@
-	$(CC) $(CFLAGS) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_TRACE) $(patsubst obj/%.o, src/otter-trace/%.c, $@) -fPIC -c -o $@
-
-# dtype obj files
-obj/%.o: $(patsubst obj/%.o, src/otter-datatypes/%.c, $@)
-	@printf "==> compiling %s\n" $@
-	$(CC) $(CFLAGS) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_DATATYPES) $(patsubst obj/%.o, src/otter-datatypes/%.c, $@) -fPIC -c -o $@
-
-# link otter as a dynamic first-party tool to be loaded by the runtime
+# link Otter as a dynamic first-party tool to be loaded by the runtime
+OTTEROBJ   = $(patsubst src/otter-core/otter-%.c,   obj/otter-%.o, $(OTTERSRC))
+TRACEOBJ   = $(patsubst src/otter-trace/trace-%.c,  obj/trace-%.o, $(TRACESRC))
+DTYPEOBJ   = $(patsubst src/otter-datatypes/dt-%.c, obj/dt-%.o,    $(DTYPESRC))
 $(OTTER): $(OTTEROBJ) $(TRACEOBJ) $(DTYPEOBJ)
 	@printf "==> linking %s\n" $@
 	$(CC) $(LDFLAGS) -lpthread -lotf2 -shared $^ -o $@
+
+# otter obj files
+obj/otter-%.o: src/otter-core/otter-%.c
+	@printf "==> compiling %s\n" $@
+	$(CC) $(CFLAGS) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_OTTER) $^ -fPIC -c -o $@
+
+# trace obj files
+obj/trace-%.o: src/otter-trace/trace-%.c
+	@printf "==> compiling %s\n" $@
+	$(CC) $(CFLAGS) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_TRACE) $^ -fPIC -c -o $@
+
+# dtype obj files
+obj/dt-%.o: src/otter-datatypes/dt-%.c
+	@printf "==> compiling %s\n" $@
+	$(CC) $(CFLAGS) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_DATATYPES) $^ -fPIC -c -o $@
 
 # standalone OMP apps
 $(OMPEXE): $(OMPSRC)

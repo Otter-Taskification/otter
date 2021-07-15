@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <macros/general.h>
 #include <macros/debug.h>
 #include <macros/callback.h>
 #include <otter-ompt-header.h>
@@ -21,6 +22,7 @@ ompt_start_tool(
     const char  *runtime_version)
 {
     fprintf(stderr, "%s, OMP v. %u\n", runtime_version, omp_version);
+    fprintf(stderr, "Otter was compiled with %s\n", TO_STRING(CC_VERSION));
 
     static ompt_start_tool_result_t result;
     result.initialize    = &ompt_initialise;

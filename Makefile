@@ -3,9 +3,10 @@ $(info CXX=$(shell which $(CXX)))
 
 # Global options
 #C         = clang <- pass in as environment variable instead
+CC_VERSION = $(shell $(CC)  --version | head -n 1)
 INCLUDE    = -Iinclude -I/opt/otf2/include -I/ddn/data/$(USER)/local/include
 NOWARN     = -Wno-unused-function -Wno-unused-variable 
-CFLAGS     = -Wall -Werror $(NOWARN) $(INCLUDE)
+CFLAGS     = -Wall -Werror $(NOWARN) $(INCLUDE) -DCC_VERSION="$(CC_VERSION)"
 LDFLAGS    = -L/opt/otf2/lib -L/ddn/data/$(USER)/local/lib
 DEBUG      = -g
 

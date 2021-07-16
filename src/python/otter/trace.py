@@ -134,9 +134,15 @@ class LocationEventMap:
         for l, e, a in other:
             self.append(l, e)
 
-    def zip_events(self):
+    def zip_events(self, greedy=None):
         locations = self.locations()
-        return ((locations, events) for events in zip_longest(*[self[l] for l in locations]))
+        if greedy is None:
+            return ((locations, events) for events in zip_longest(*[self[l] for l in locations]))
+        else:
+            print("Greedy iterator created!")
+            event_iter_per_location = [iter(self[l]) for l in locations]
+            for events in zip_longest(*event_iter_per_location):
+                yield (locations, events)
 
     def event_dict(self, event):
         d = dict()

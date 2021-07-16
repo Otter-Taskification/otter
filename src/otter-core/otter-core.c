@@ -268,17 +268,14 @@ on_ompt_callback_task_create(
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
 
     /* Intel runtime seems to give the initial task a task-create event while
-       LLVM just gives it an implicit-task-begin event. If compiling with Intel,
+       LLVM just gives it an implicit-task-begin event. If invoked by Intel,
        defer initial task data creation until the implicit-task-begin event for
        simplicity */
-    #if defined(__INTEL_COMPILER)
     if (flags & ompt_task_initial)
     {
-        LOG_DEBUG("Intel detected: defer intial-task-begin event until "
-                  "implicit-task-begin");
+        LOG_DEBUG("ignored intial-task-create event");
         return;
     }
-    #endif
 
     LOG_DEBUG("[t=%lu] (event) task-create", thread_data->id);
 

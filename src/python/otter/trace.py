@@ -63,8 +63,6 @@ class LocationLookup(DefinitionLookup):
 class RegionLookup(DefinitionLookup):
 
     def __init__(self, regions: otf2.registry._RefRegistry):
-        if not isinstance(regions[0], otf2.definitions.Region):
-            raise TypeError(type(regions[0]))
         self._lookup = dict()
         for r in regions:
             ref = int(re.search(r'\d+', repr(r))[0])
@@ -248,7 +246,17 @@ class Archive:
         Make a graph representing the task creation hierarchy in the trace
         """
         task_attr = self.task_summary()
-        params = {'edges': [(task_attr[k]['parent_task_id'], k) for k in task_attr if k > 0],
-                  'n': len(task_attr.keys()),
-                  'directed': True}
-        return ig.Graph(**params)
+        task_ids = sorted(list(task_attr.keys()))
+        task_parent_ids = [task_attr[k]['parent_task_id'] for k in task_ids]
+        num_tasks = len(task_ids)
+        tg = ig.Graph(n=num_tasks, directed=True)
+        tg.vs['name'] = [str(id) for id in task_ids]
+        tg.vs['unique_id'] = task_ids
+        tg.vs['label'] = tg.vs['name']
+        tg.vs['parent_task_id'] = task_parent_ids
+
+        for v in tg.vs:
+            if v['parent_task_id'] in tg.vs['unique_id']:
+                tg.add_edge(tg.vs.find(v['parent_task_id']), v)
+
+        return tg

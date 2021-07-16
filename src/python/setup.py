@@ -9,4 +9,8 @@ setup(name="otter",
       license="https://github.com/adamtuft/otter/blob/main/LICENSE",
       url="https://github.com/adamtuft/otter",
       packages=find_packages(),
+      install_requires=[
+            'python-igraph'
+      ],
+      dependency_links=['https://perftools.pages.jsc.fz-juelich.de/cicd/otf2/']
       )

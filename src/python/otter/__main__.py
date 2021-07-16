@@ -333,10 +333,10 @@ if __name__ == "__main__":
             try:
                 (endpoint,), (region_type,), (event_type,) = endpoints, region_types, event_types
             except ValueError as V:
-                #print("*** ERROR: Misaligned parallel location map: ***")
-                #print(f"{endpoints=}")
-                #print(f"{region_types=}")
-                #print(f"{event_types=}")
+                print("*** ERROR: Misaligned parallel location map: ***")
+                print(f"{endpoints=}")
+                print(f"{region_types=}")
+                print(f"{event_types=}")
                 raise
 
             #print(f"event {event_num}:\n  {endpoint=}\n  {region_type=}\n  {event_type=}")
@@ -352,7 +352,7 @@ if __name__ == "__main__":
             event_attr = {k: ", ".join(set(str(a[k]) for a in next_events_attr)) for k in attr_keys}
             event_attr['region_type'] = region_type
 
-            # Track matchin enter & leave events using a stack of events
+            # Track matching enter & leave events using a stack of events
             if endpoint == 'enter':
                 event_stack.append(next_events)
                 enter_events = list()

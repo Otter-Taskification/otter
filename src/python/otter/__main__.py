@@ -405,7 +405,7 @@ if __name__ == "__main__":
                         nodes[-1]['event'] = evt
                         #print(f"  added node: {nodes[-1].index} (task {nodes[-1]['unique_id']})")
                 else:
-                    #print(f"Unexpected explicit task event type: {event_type=}")
+                    print(f"Unexpected explicit task event type: {event_type=}")
                     raise ValueError
 
             # Single-executor node should have been created already & updated with event attributes, so lookup node

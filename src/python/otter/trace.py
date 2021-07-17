@@ -134,21 +134,36 @@ class LocationEventMap:
         for l, e, a in other:
             self.append(l, e)
 
-    def zip_events(self, greedy=None):
-        locations = self.locations()
-        if greedy is None:
-            return ((locations, events) for events in zip_longest(*[self[l] for l in locations]))
+    def iter_events(self, location):
+        if location in self._map:
+            return PushBackIterator(e for e in self._map[location])
         else:
-            print("Greedy iterator created!")
-            event_iter_per_location = [iter(self[l]) for l in locations]
-            for events in zip_longest(*event_iter_per_location):
-                yield (locations, events)
+            raise KeyError
 
     def event_dict(self, event):
         d = dict()
         for attr in event.attributes:
             d[attr.name] = event.attributes[attr]
         return d
+
+
+class PushBackIterator(object):
+
+    def __init__(self, iterator: T.Iterable):
+        self.iter = iterator
+        self.saved = deque()
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if len(self.saved) > 0:
+            return self.saved.pop()
+        else:
+            return next(self.iter)
+
+    def push(self, item):
+        self.saved.append(item)
 
 
 def event_defines_new_chunk(e: otf2.events._EventMeta, a: AttributeLookup) -> bool:

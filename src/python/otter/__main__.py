@@ -2,7 +2,7 @@ import argparse
 import re
 import warnings
 import igraph as ig
-from itertools import chain
+from itertools import chain, zip_longest
 from collections import defaultdict, deque
 from . import trace
 from . import filters as ft
@@ -47,6 +47,7 @@ def graph_to_dot(g, **kwargs):
                       'taskwait': 'tw',
                       'taskgroup': 'tg',
                       'taskloop': 'tl',
+                      'loop': 'lp',
                       'barrier_implicit': 'ib',
                       'single_executor': 'sn'}.get(v['region_type'], v['label'])
 
@@ -82,7 +83,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     print(f"Loading OTF2 anchor file: {args.anchorfile}")
-    tr = trace.Archive(args.anchorfile, verbose=True)
+    tr = trace.Archive(args.anchorfile, verbose=False)
 
     # Summary data for all tasks in the trace:
     task_attr = tr.task_summary()
@@ -139,8 +140,8 @@ if __name__ == "__main__":
         try:
             location, = chunk.locations()
         except ValueError:
-            #print("Misaligned non-parallel chunk:")
-            #print(chunk)
+            print("Misaligned non-parallel chunk:")
+            print(chunk)
             raise
         events = iter(chunk[location])
         final_event = chunk[location][-1]
@@ -274,10 +275,11 @@ if __name__ == "__main__":
         #print("{} ({})".format(enclosing_parallel_region.name, enclosing_parallel_region.region_role))
         #print(lmap)
 
-        events_iter = lmap.zip_events()  # yields locations & events in zip-like fashion
+        locations = lmap.locations()
+        event_iterators = [lmap.iter_events(l) for l in locations]
 
         # First event of each location that visited this region
-        locations, prior_events = next(events_iter)
+        prior_events = [next(it) for it in event_iterators]
 
         # Event stack to match up sequences of enter & leave events
         event_stack = deque()
@@ -316,10 +318,13 @@ if __name__ == "__main__":
         prior_nodes = [parallel_begin_node,]
 
         # Process the remaining events in this chunk
-        for event_num, (_, next_events) in enumerate(events_iter):
+        for event_num, next_events in enumerate(zip_longest(*event_iterators)):
 
             # Each event as a dictionary of its attributes
             next_events_attr = list(map(lmap.event_dict, next_events))
+
+            # print(f"{event_num}: {[d['event_type'] for d in next_events_attr]}")
+            # print(f"{event_num}: {all([d['event_type']=='task_create' for d in next_events_attr])}")
 
             endpoints = {d['endpoint'] for d in next_events_attr}
             region_types = {d['region_type'] for d in next_events_attr}
@@ -339,7 +344,7 @@ if __name__ == "__main__":
                 print(f"{event_types=}")
                 raise
 
-            #print(f"event {event_num}:\n  {endpoint=}\n  {region_type=}\n  {event_type=}")
+            print(f"event {event_num}:\n  {endpoint}\n  {region_type}\n  {event_type}")
 
             # Don't create nodes for implicit tasks
             if region_type == 'implicit_task':
@@ -400,10 +405,18 @@ if __name__ == "__main__":
             # If a task-create occurs in a parallel region, all threads created tasks - add task-create nodes
             elif region_type == 'explicit_task':
                 if event_type == 'task_create':
+                    # Create nodes for these events
                     for evt, attr in zip(next_events, next_events_attr):
-                        nodes.append(g.add_vertex(**attr))
-                        nodes[-1]['event'] = evt
-                        #print(f"  added node: {nodes[-1].index} (task {nodes[-1]['unique_id']})")
+                        nodes.append(g.add_vertex(**attr, event=evt))
+                    # Consume all following task-create events in each event iterator:
+                    for event_iterator in event_iterators:
+                        for evt in event_iterator:
+                            attr = lmap.event_dict(evt)
+                            if attr['event_type'] == 'task_create':
+                                nodes.append(g.add_vertex(**attr, event=evt))
+                            else:
+                                event_iterator.push(evt)
+                                break
                 else:
                     print(f"Unexpected explicit task event type: {event_type=}")
                     raise ValueError

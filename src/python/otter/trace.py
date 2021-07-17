@@ -116,6 +116,9 @@ class LocationEventMap:
         else:
             raise KeyError(location)
 
+    def __len__(self):
+        return sum([len(k) for k in self.values()])
+
     def locations(self):
         return sorted(self._map.keys(), key=lambda q: int(q.name.split()[1])) # "Thread x"
 
@@ -190,9 +193,13 @@ class Archive:
         with otf2.reader.open(path) as tr:
             self.definitions = tr.definitions
             self.attr = AttributeLookup(self.definitions.attributes)
+            print(f"  got {len(self.attr.keys())} attributes")
             self.locations = LocationLookup(self.definitions.locations)
+            print(f"  got {len(self.locations.keys())} locations")
             self.regions = RegionLookup(self.definitions.regions)
+            print(f"  got {len(self.regions.keys())} regions")
             self.events = LocationEventMap(tr.events, self.attr)
+            print(f"  got {len(self.events)} events")
         if verbose:
             print("\n" + ">"*30)
             print("BEGIN TRACE SUMMARY")

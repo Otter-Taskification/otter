@@ -4,8 +4,8 @@
 /* Define the environment variables OTTER looks for durng setup */
 
 #define ENV_VAR_APPEND_HOST     "OTTER_APPEND_HOSTNAME"
-#define ENV_VAR_TRACE_OUTPUT    "OTTER_OTF2_TRACE_NAME"
-#define ENV_VAR_TRACE_PATH      "OTTER_OTF2_TRACE_PATH"
+#define ENV_VAR_TRACE_OUTPUT    "OTTER_TRACE_NAME"
+#define ENV_VAR_TRACE_PATH      "OTTER_TRACE_PATH"
 #define ENV_VAR_REPORT_CBK      "OTTER_REPORT_CALLBACKS"
 
 /* Default values */

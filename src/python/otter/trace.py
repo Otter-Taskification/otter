@@ -5,6 +5,7 @@ import typing as T
 from itertools import zip_longest
 from collections import deque, defaultdict
 from sys import maxsize as MAXINT
+from sys import stdout
 
 class DefinitionLookup:
 
@@ -192,14 +193,18 @@ class Archive:
         self.path = path
         with otf2.reader.open(path) as tr:
             self.definitions = tr.definitions
+            print("  loading attributes... ", end="", flush=True)
             self.attr = AttributeLookup(self.definitions.attributes)
-            print(f"  got {len(self.attr.keys())} attributes")
+            print(f"got {len(self.attr.keys())}")
+            print("  loading locations... ", end="", flush=True)
             self.locations = LocationLookup(self.definitions.locations)
-            print(f"  got {len(self.locations.keys())} locations")
+            print(f"got {len(self.locations.keys())}")
+            print("  loading regions... ", end="", flush=True)
             self.regions = RegionLookup(self.definitions.regions)
-            print(f"  got {len(self.regions.keys())} regions")
+            print(f"got {len(self.regions.keys())}")
+            print("  loading events... ", end="", flush=True)
             self.events = LocationEventMap(tr.events, self.attr)
-            print(f"  got {len(self.events)} events")
+            print(f"got {len(self.events)} events")
         if verbose:
             print("\n" + ">"*30)
             print("BEGIN TRACE SUMMARY")

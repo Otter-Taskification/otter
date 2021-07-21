@@ -266,6 +266,7 @@ on_ompt_callback_task_create(
     const void          *codeptr_ra)
 {
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
+    LOG_DEBUG("[t=%lu] BEGIN EVENT", thread_data->id);
 
     /* Intel runtime seems to give the initial task a task-create event while
        LLVM just gives it an implicit-task-begin event. If invoked by Intel,
@@ -294,8 +295,9 @@ on_ompt_callback_task_create(
     new_task->ptr = task_data;
 
     LOG_DEBUG_TASK_TYPE(thread_data->id, 
-        parent_task_data ? 0L : parent_task_data->id, task_data->id, flags);
+        parent_task_data ? parent_task_data->id : 0L, task_data->id, flags);
     
+    LOG_DEBUG("[t=%lu] END EVENT", thread_data->id);
     return;
 }
 
@@ -310,8 +312,6 @@ on_ompt_callback_task_schedule(
 
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
 
-    LOG_DEBUG("[t=%lu] (event) task-schedule", thread_data->id);
-
     if (prior_task_status == ompt_task_early_fulfill 
         || prior_task_status == ompt_task_late_fulfill)
     {
@@ -325,6 +325,13 @@ on_ompt_callback_task_schedule(
 
     prior_task_data = (task_data_t*) prior_task->ptr;
     next_task_data  = (task_data_t*) next_task->ptr;
+
+    LOG_DEBUG("[t=%lu] (event) task-schedule %lu (%d) -> %lu",
+        thread_data->id,
+        prior_task_data->id,
+        prior_task_status,
+        next_task_data->id
+    );
 
     if (prior_task_data->type == ompt_task_explicit 
         || prior_task_data->type == ompt_task_target)

@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <stdio.h>
 
-#define THREADS 2
+#define THREADS 4
 
 int main(void)
 {

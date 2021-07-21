@@ -184,8 +184,8 @@ trace_new_task_region(
     };
     new->encountering_task_id = new->attr.task.parent_id;
 
-    LOG_DEBUG("[t=%lu] created task region %u at %p",
-        loc->id, new->ref, new);
+    LOG_DEBUG("[t=%lu] created region %u for task %lu at %p",
+        loc->id, new->ref, new->attr.task.id, new);
 
     /* Add region definition to location's region definition queue */
     queue_push(loc->rgn_defs, (data_item_t) {.ptr = new});

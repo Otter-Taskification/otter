@@ -101,59 +101,114 @@ def yield_chunks(tr):
             lmap_dict[location].append(location, event)
 
 
-def process_chunk(chunk, color_map: dict=dict()):
-    """Return a tuple of chunk type, root nodes, task-create links, taskwait-enter nodes, taskgroup-enter nodes and the chunk's graph"""
+def process_chunk(chunk, color_map=None):
+    """Return a tuple of chunk type, task-create links and the chunk's graph"""
+    print(chunk)
+    if color_map is None:
+        color_map = defaultdict(lambda: 'gray')
     location, = chunk.locations()
-    events_iter = iter(chunk[location])
-    first_event = next(events_iter)
+    first_event, *events, last_event = chunk[location]
     chunk_type = first_event.attributes[chunk.attr['region_type']]
     g = ig.Graph(directed=True)
     prior_node = g.add_vertex(event=first_event)
     prior_node['color'] = color_map[first_event.attributes[chunk.attr['region_type']]]
     if chunk_type == 'parallel':
         parallel_id = first_event.attributes[chunk.attr['unique_id']]
-        prior_node['cluster_id'] = (parallel_id, 0)
-    first_node = prior_node
+        prior_node["parallel_sequence_id"] = (parallel_id, first_event.attributes[chunk.attr['endpoint']])
     task_create_nodes = deque()
     task_links = deque()
-    tw_node_pairs = deque()
-    tg_node_pairs = deque()
     k = 1
-    for event in events_iter:
+    for event in chain(events, (last_event,)):
+
         node = g.add_vertex(event=event)
-        node['color'] = color_map[event.attributes[chunk.attr['region_type']]]
+
+        # Label nodes in a parallel chunk by their position for easier merging
         if chunk_type == 'parallel' and event.attributes[chunk.attr['event_type']] != "task_create":
-            node['parallel_cluster_id'] = (parallel_id, k)
+            node["parallel_sequence_id"] = (parallel_id, k)
             k += 1
+
+        if node['event'].attributes[chunk.attr['region_type']]=='parallel':
+            # Label nested parallel regions for easier merging...
+            if event is not last_event:
+                node["parallel_sequence_id"] = (node['event'].attributes[chunk.attr['unique_id']], node['event'].attributes[chunk.attr['endpoint']])
+            # ... but distinguish from a parallel chunks's final parallel-end event
+            else:
+                node["parallel_sequence_id"] = (parallel_id, node['event'].attributes[chunk.attr['endpoint']])
+
+        # Add edge except for (single begin -> single end) and (parallel begin -> parallel end)
         if not(prior_node['event'].attributes[chunk.attr['region_type']] in ['single_executor', 'single_other'] \
-               and node['event'].attributes[chunk.attr['region_type']] in ['single_executor', 'single_other'])\
-            and not(prior_node['event'].attributes[chunk.attr['region_type']] in ['parallel'] \
-               and node['event'].attributes[chunk.attr['region_type']] in ['parallel']):
+                and node['event'].attributes[chunk.attr['region_type']] in ['single_executor', 'single_other'])\
+            and not(prior_node['event'].attributes[chunk.attr['endpoint']]=='enter' \
+                and prior_node['event'].attributes[chunk.attr['region_type']]=='parallel'\
+                and node['event'].attributes[chunk.attr['endpoint']]=='leave' \
+                and node['event'].attributes[chunk.attr['region_type']]=='parallel'\
+                and node['event'].attributes[chunk.attr['unique_id']]==prior_node['event'].attributes[chunk.attr['unique_id']]):
             g.add_edge(prior_node, node)
+
         # Add task links
         if event.attributes[chunk.attr['event_type']] in ["task_create", "task_enter"]:
             task_links.append((event.attributes[chunk.attr['encountering_task_id']], event.attributes[chunk.attr['unique_id']]))
-        # Add task_create nodes
+
+        # For task_create add dummy nodes for easier merging
         if event.attributes[chunk.attr['event_type']] == "task_create":
-            task_create_nodes.append(node)
+            node['task_cluster_id'] = (event.attributes[chunk.attr['unique_id']], 'enter')
+            dummy_node = g.add_vertex(event=event, task_cluster_id=(event.attributes[chunk.attr['unique_id']], 'leave'))
+            g.add_edge(node, dummy_node)
+            task_create_nodes.append(dummy_node)
             continue
         elif len(task_create_nodes) > 0:
             num_tc_nodes = len(task_create_nodes)
             for _ in range(num_tc_nodes):
                 g.add_edge(task_create_nodes.pop(), node)
-        # Save taskwait and taskgroup nodes
-        if event.attributes[chunk.attr['region_type']] == "taskwait":
-            if event.attributes[chunk.attr['endpoint']] == "enter":
-                tw_enter_node = node
-            else:
-                tw_node_pairs.append((tw_enter_node, node))
-        if event.attributes[chunk.attr['region_type']] == "taskgroup":
-            if event.attributes[chunk.attr['endpoint']] == "enter":
-                tg_enter_node = node
-            else:
-                tg_node_pairs.append((tg_enter_node, node))
+
         prior_node = node
-    return chunk_type, first_node, task_links, tw_node_pairs, tg_node_pairs, g
+
+    return chunk_type, task_links, g
+
+
+def chain_lists(lists):
+    return list(chain(*lists))
+
+
+def pass_args(args):
+    return args
+
+
+def pass_single_executor(events, **kw):
+    region_types = {e.attributes[kw['attr']['region_type']] for e in events}
+    if region_types == {'single_other', 'single_executor'}:
+        single_executor, = filter(lambda e: e.attributes[attr['region_type'] ]=='single_executor', events)
+        return single_executor
+    else:
+        return events
+
+
+def reject_task_create(events, **kw):
+    event_types = {type(e) for e in events}
+    events = [e for e in events if type(e) is not ThreadTaskCreate]
+    print(events)
+    if len(events) == 1:
+        return events[0]
+    else:
+        return events
+
+
+def attr_handler(events=pass_single_executor, ints=min, lists=chain_lists, tuples=set, **kw):
+    def attr_combiner(args):
+        if len(args) == 1:
+            return args[0]
+        else:
+            if all([isinstance(obj, int) for obj in args]):
+                return ints(args)
+            elif all([isinstance(obj, list) for obj in args]):
+                return lists(args)
+            elif all([isinstance(obj, tuple) for obj in args]):
+                return tuples(args)
+            elif all([type(obj) in [Enter, Leave, ThreadTaskCreate] for obj in args]):
+                return events(args, **kw)
+            else:
+                return args[0]
+    return attr_combiner
 
 
 if __name__ == "__main__":
@@ -176,7 +231,17 @@ if __name__ == "__main__":
         'single_other':      'orange',
         'taskwait':          'pink',
         'taskgroup':         'purple',
-        'barrier_implicit':  'grey'
+        'barrier_implicit':  'darkgreen',
+
+        # For colouring by endpoint
+        'enter':             'green',
+        'leave':             'red'
+    })
+
+    cmap_event_type = defaultdict(lambda: 'white', **{
+        str(Enter):               'green',
+        str(Leave):               'red',
+        str(ThreadTaskCreate):    'orange',
     })
 
     # Convert event stream into graph chunks
@@ -184,13 +249,10 @@ if __name__ == "__main__":
     print("reading chunks")
     with otf2.reader.open(anchorfile) as tr:
         attr = trace.AttributeLookup(tr.definitions.attributes)
-        results = (process_chunk(chunk, cmap) for chunk in yield_chunks(tr))
+        results = (process_chunk(chunk) for chunk in yield_chunks(tr))
         items = zip(*(results))
         chunk_types = next(items)
-        first_nodes = next(items)
         task_links = next(items)
-        tw_node_pairs = next(items)
-        tg_node_pairs = next(items)
         g_list = next(items)
 
     # Task tree showing parent-child links
@@ -212,6 +274,88 @@ if __name__ == "__main__":
     # Collect all chunks
     g = ig.disjoint_union(g_list)
 
+    # Collapse by parallel sequence ID
+    vertex_counter = count()
+    condition = lambda v: v['parallel_sequence_id'] is not None
+    parallel_cluster_counter = count(start=sum([not(condition(v)) for v in g.vs]))
+    relabel = defaultdict(lambda: next(parallel_cluster_counter))
+    g.vs['cluster'] = [relabel[v['parallel_sequence_id']] if condition(v) else next(vertex_counter) for v in g.vs]
+    g.contract_vertices(g.vs['cluster'], combine_attrs=attr_handler(attr=attr))
+
+    # Collapse by single-begin/end event
+    vertex_counter = count()
+    condition = lambda v: v['event'].attributes[attr['region_type']]=='single_executor' if type(v['event']) in [Enter, Leave] else False
+    single_cluster_counter = count(start=sum([not(condition(v)) for v in g.vs]))
+    relabel = defaultdict(lambda: next(single_cluster_counter))
+    g.vs['cluster'] = [relabel[v['event']] if condition(v) else next(vertex_counter) for v in g.vs]
+    g.contract_vertices(g.vs['cluster'], combine_attrs=attr_handler(attr=attr))
+
+    # Search for all explicit-task-enter nodes
+    is_task_enter_leave = lambda v: v['event'].attributes[attr['region_type']]=='explicit_task' if type(v['event']) in [Enter, Leave] else False
+    task_nodes = list(g.vs.select(is_task_enter_leave))
+
+    num_chunks = defaultdict(int)
+    for n in task_nodes:
+        if n['event'].attributes[attr['endpoint']] == 'enter':
+            num_chunks[n['event'].attributes[attr['unique_id']]] += 1
+
+    task_chunk_sequences = defaultdict(deque)
+    for n in task_nodes:
+        task_id = n['event'].attributes[attr['unique_id']]
+        if num_chunks[task_id] > 1:
+            task_chunk_sequences[task_id].append(n)
+
+    for k in task_chunk_sequences:
+        task_chunk_sequences[k] = deque(sorted(task_chunk_sequences[k], key=lambda v: v['event'].time))
+
+    # Collapse by task-enter/leave event
+    # vertex_counter = count()
+    # condition = lambda v: v['task_cluster_id'] is not None
+    # for v in g.vs:
+    #     if type(v['event']) in [Enter, Leave] and v['event'].attributes[attr['region_type']]=='explicit_task':
+    #         v['task_cluster_id'] = (v['event'].attributes[attr['unique_id']], v['event'].attributes[attr['endpoint']])
+    # task_cluster_counter = count(start=sum([not(condition(v)) for v in g.vs]))
+    # relabel = defaultdict(lambda: next(task_cluster_counter))
+    # g.vs['cluster'] = [relabel[v['task_cluster_id']] if v['task_cluster_id'] is not None else next(vertex_counter) for v in g.vs]
+    # g.contract_vertices(g.vs['cluster'], combine_attrs=attr_handler(events=reject_task_create, attr=attr))
+
+    ### TO DO ###
+    """
+    - handle multiple sequential chunks for explicit tasks
+    - collapse duplicate nodes for barriers, taskwaits etc
+    - apply task synchronisation edges
+    """
+
+    # Unpack the region_type attribute
+    for v in g.vs:
+        if isinstance(v['event'], list):
+            v['region_type'], = set([e.attributes[attr['region_type']] for e in v['event']])
+            v['endpoint'], = set([e.attributes[attr['endpoint']] for e in v['event']])
+        else:
+            v['region_type'] = v['event'].attributes[attr['region_type']]
+            v['endpoint'] = v['event'].attributes[attr['endpoint']]
+
+    # g.vs['color'] = [cmap[v['region_type']] for v in g.vs]
+    g.vs['color'] = [cmap[v['endpoint']] for v in g.vs]
+    g.vs['style'] = 'filled'
+    g.vs['shape'] = 'circle'
+
+    for n in task_nodes:
+        if num_chunks[n['event'].attributes[attr['unique_id']]] > 1:
+            # n['color'] = 'red'
+            n['label'] = n['event'].attributes[attr['unique_id']]
+
+    for k, v in task_chunk_sequences.items():
+        print(k)
+        for n in v:
+            print(n['event'].time, n['event'].attributes[attr['endpoint']], n['event'].attributes[attr['unique_id']], n['event'].attributes[attr['encountering_task_id']])
+
     g.simplify()
-    g.vs['color'] = [cmap[v['event'].attributes[attr['region_type']]] for v in g.vs]
-    g_layout = g.layout_sugiyama()
+
+    with otf2.reader.open(anchorfile) as tr:
+        attr = trace.AttributeLookup(tr.definitions.attributes)
+        lmap = trace.LocationEventMap(tr.events, attr)
+
+    with otf2.reader.open(anchorfile) as tr:
+        for chunk in yield_chunks(tr):
+            print(chunk)

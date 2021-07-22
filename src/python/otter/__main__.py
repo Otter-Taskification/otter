@@ -102,16 +102,13 @@ def yield_chunks(tr):
             lmap_dict[location].append(location, event)
 
 
-def process_chunk(chunk, color_map=None, print_chunk=None):
+def process_chunk(chunk, print_chunk=None):
     """Return a tuple of chunk type, task-create links and the chunk's graph"""
-    if color_map is None:
-        color_map = defaultdict(lambda: 'gray')
     location, = chunk.locations()
     first_event, *events, last_event = chunk[location]
     chunk_type = first_event.attributes[chunk.attr['region_type']]
     g = ig.Graph(directed=True)
     prior_node = g.add_vertex(event=first_event)
-    prior_node['color'] = color_map[first_event.attributes[chunk.attr['region_type']]]
     if chunk_type == 'parallel':
         parallel_id = first_event.attributes[chunk.attr['unique_id']]
         prior_node["parallel_sequence_id"] = (parallel_id, first_event.attributes[chunk.attr['endpoint']])
@@ -120,7 +117,8 @@ def process_chunk(chunk, color_map=None, print_chunk=None):
     k = 1
     for event in chain(events, (last_event,)):
 
-        if event.attributes[chunk.attr['region_type']] in ['implicit_task']:
+        if isinstance(event, Enter) and event.attributes[chunk.attr['region_type']] in ['implicit_task']:
+            task_links.append((event.attributes[chunk.attr['encountering_task_id']], event.attributes[chunk.attr['unique_id']]))
             continue
 
         node = g.add_vertex(event=event)
@@ -151,7 +149,7 @@ def process_chunk(chunk, color_map=None, print_chunk=None):
             g.add_edge(prior_node, node)
 
         # Add task links
-        if event.attributes[chunk.attr['event_type']] in ["task_create", "task_enter"]:
+        if (isinstance(event, Enter) and event.attributes[chunk.attr['region_type']]=='implicit_task') or (type(event) is ThreadTaskCreate):
             task_links.append((event.attributes[chunk.attr['encountering_task_id']], event.attributes[chunk.attr['unique_id']]))
 
         # For task_create add dummy nodes for easier merging
@@ -245,10 +243,12 @@ def label_clusters(vs: ig.VertexSeq, condition: Callable[[ig.Vertex],bool], key:
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
+        prog="python3 -m otter",
         description='Convert an Otter OTF2 trace archive to its execution graph representation',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('anchorfile', help='OTF2 anchor file')
+    parser.add_argument('--verbose', action='store_true', dest='verbose', help='If specified, print chunks as they are generated')
     args = parser.parse_args()
     anchorfile = args.anchorfile
 
@@ -285,7 +285,7 @@ if __name__ == "__main__":
     with otf2.reader.open(anchorfile) as tr:
         attr = trace.AttributeLookup(tr.definitions.attributes)
         regions = trace.RegionLookup(tr.definitions.regions)
-        results = (process_chunk(chunk) for chunk in yield_chunks(tr))
+        results = (process_chunk(chunk, print_chunk=print if args.verbose else None) for chunk in yield_chunks(tr))
         items = zip(*(results))
         chunk_types = next(items)
         task_links = next(items)

@@ -102,7 +102,7 @@ def yield_chunks(tr):
             lmap_dict[location].append(location, event)
 
 
-def process_chunk(chunk, print_chunk=None):
+def process_chunk(chunk, verbose=False):
     """Return a tuple of chunk type, task-create links and the chunk's graph"""
     location, = chunk.locations()
     first_event, *events, last_event = chunk[location]
@@ -172,8 +172,8 @@ def process_chunk(chunk, print_chunk=None):
     if chunk_type != "explicit_task" and len(events) == 0 and g.ecount() == 0:
         g.add_edge(g.vs[0], g.vs[1])
 
-    if print_chunk is not None and len(events) > 0:
-        print_chunk(chunk)
+    if verbose and len(events) > 0:
+        print(chunk)
 
     return chunk_type, task_links, g
 
@@ -285,7 +285,7 @@ if __name__ == "__main__":
     with otf2.reader.open(anchorfile) as tr:
         attr = trace.AttributeLookup(tr.definitions.attributes)
         regions = trace.RegionLookup(tr.definitions.regions)
-        results = (process_chunk(chunk, print_chunk=print if args.verbose else None) for chunk in yield_chunks(tr))
+        results = (process_chunk(chunk, verbose=args.verbose) for chunk in yield_chunks(tr))
         items = zip(*(results))
         chunk_types = next(items)
         task_links = next(items)

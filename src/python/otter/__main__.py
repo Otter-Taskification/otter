@@ -2,12 +2,11 @@ import argparse
 import warnings
 import igraph as ig
 import otf2
-from itertools import chain, zip_longest, cycle, count
+from itertools import chain, count
 from collections import defaultdict, deque, Counter
 from otf2.events import Enter, Leave, ThreadTaskCreate
-from typing import Callable, Iterable, Any, List, Set, Tuple, AnyStr, Union
+from typing import Callable, Any, List, AnyStr
 from . import trace
-from . import filters as ft
 
 
 def plot_graph(g, layout=None, **kwargs):
@@ -114,12 +113,18 @@ def process_chunk(chunk, verbose=False):
         prior_node["parallel_sequence_id"] = (parallel_id, first_event.attributes[chunk.attr['endpoint']])
     task_create_nodes = deque()
     task_links = deque()
+    task_crt_ts = deque()
+
+    if (isinstance(first_event, Enter) and first_event.attributes[chunk.attr['region_type']] in ['initial_task']):
+        task_crt_ts.append((first_event.attributes[chunk.attr['unique_id']], first_event.time))
+
     k = 1
     for event in chain(events, (last_event,)):
 
         if event.attributes[chunk.attr['region_type']] in ['implicit_task']:
             if isinstance(event, Enter):
                 task_links.append((event.attributes[chunk.attr['encountering_task_id']], event.attributes[chunk.attr['unique_id']]))
+                task_crt_ts.append((event.attributes[chunk.attr['unique_id']], event.time))
             continue
 
         node = g.add_vertex(event=event)
@@ -149,9 +154,10 @@ def process_chunk(chunk, verbose=False):
                 and node['event'].attributes[chunk.attr['unique_id']]==prior_node['event'].attributes[chunk.attr['unique_id']]):
             g.add_edge(prior_node, node)
 
-        # Add task links
-        if (isinstance(event, Enter) and event.attributes[chunk.attr['region_type']]=='implicit_task') or (type(event) is ThreadTaskCreate):
+        # Add task links and task crt ts
+        if (isinstance(event, Enter) and event.attributes[chunk.attr['region_type']] in ['implicit_task']) or (type(event) is ThreadTaskCreate):
             task_links.append((event.attributes[chunk.attr['encountering_task_id']], event.attributes[chunk.attr['unique_id']]))
+            task_crt_ts.append((event.attributes[chunk.attr['unique_id']], event.time))
 
         # For task_create add dummy nodes for easier merging
         if event.attributes[chunk.attr['event_type']] == "task_create":
@@ -176,7 +182,7 @@ def process_chunk(chunk, verbose=False):
     if verbose and len(events) > 0:
         print(chunk)
 
-    return chunk_type, task_links, g
+    return chunk_type, task_links, task_crt_ts, g
 
 
 def chain_lists(lists):
@@ -241,6 +247,23 @@ def label_clusters(vs: ig.VertexSeq, condition: Callable[[ig.Vertex],bool], key:
     return [label[key(v)] if condition(v) else next(vertex_counter) for v in vs]
 
 
+def get_unique_id(event, **kw):
+    if isinstance(event, list):
+        s = set([e.attributes[kw['attr']['unique_id']] for e in event])
+        if len(s) == 1:
+            return s.pop()
+        else:
+            return s
+    elif type(event) in [Enter, Leave, ThreadTaskCreate]:
+        return event.attributes[kw['attr']['unique_id']]
+
+
+def append_history(n, f):
+    newlines = readline.get_current_history_length()
+    readline.set_history_length(1000)
+    readline.append_history_file(newlines - n, f)
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
@@ -249,8 +272,18 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('anchorfile', help='OTF2 anchor file')
-    parser.add_argument('--verbose', action='store_true', dest='verbose', help='If specified, print chunks as they are generated')
+    parser.add_argument('-o', '--output', dest='output', help='output file')
+    parser.add_argument('-v', '--verbose', action='store_true', dest='verbose', help='print chunks as they are generated')
+    parser.add_argument('-i', '--interact', action='store_true', dest='interact', help='drop to an interactive shell upon completion')
+    parser.add_argument('-ns', '--no-style', action='store_true', default=False, dest='nostyle', help='do not apply any styling to the graph nodes')
     args = parser.parse_args()
+
+    if args.output is None and not args.interact:
+        parser.error("must select at least one of -[o|i]")
+
+    if args.interact:
+        print("Otter launched interactively")
+
     anchorfile = args.anchorfile
 
     # Map region type to node color
@@ -306,14 +339,20 @@ if __name__ == "__main__":
         results = (process_chunk(chunk, verbose=args.verbose) for chunk in yield_chunks(tr))
         items = zip(*(results))
         chunk_types = next(items)
-        task_links = next(items)
+        task_links = sorted(list(chain(*next(items))), key=lambda t: t[0])  # (parent, child)
+        task_crt_ts = sorted(list(chain(*next(items))), key=lambda t: t[0]) # (task, crt_ts)
         g_list = next(items)
 
+    task_types, *_, task_ids = zip(*[r.name.split() for r in regions.values() if r.region_role == otf2.RegionRole.TASK])
+    task_ids = list(map(int, task_ids))
+    task_types, task_ids = (zip(*sorted(zip(task_types, task_ids), key=lambda t: t[1])))
+
     # Task tree showing parent-child links
-    task_tree = ig.Graph(edges=chain(*task_links), directed=True)
-    task_tree.vs['color'] = 'green'
-    task_tree.vs['shape'] = 'square'
-    task_tree.vs['label'] = [v.index for v in task_tree.vs]
+    task_tree = ig.Graph(edges=task_links, directed=True)
+    task_tree.vs['unique_id'] = task_ids
+    task_tree.vs['crt_ts'] = [t[1] for t in task_crt_ts]
+    task_tree.vs['parent_index'] = list(chain((None,), list(zip(*sorted(task_links, key=lambda t: t[1])))[0]))
+    task_tree.vs['task_type'] = task_types
     tt_layout = task_tree.layout_reingold_tilford()
 
     # Count chunks by type
@@ -412,9 +451,61 @@ if __name__ == "__main__":
             v['region_type'] = v['event'].attributes[attr['region_type']]
             v['endpoint'] = v['event'].attributes[attr['endpoint']]
 
-    g.vs['color'] = [cmap[v['region_type']] for v in g.vs]
-    g.vs['style'] = 'filled'
-    g.vs['shape'] = [shapemap[v['region_type']] for v in g.vs]
-    g.vs['label'] = " "
+    # Apply styling if desired
+    if not args.nostyle:
+        g.vs['color'] = [cmap[v['region_type']] for v in g.vs]
+        g.vs['style'] = 'filled'
+        g.vs['shape'] = [shapemap[v['region_type']] for v in g.vs]
+    g.vs['label'] = [str(get_unique_id(v['event'], attr=attr)) if any(s in v['region_type'] for s in ['explicit', 'initial']) else " " for v in g.vs]
 
     g.simplify()
+
+    # Clean up redundant attributes
+    for item in ['task_cluster_id', 'parallel_sequence_id', 'cluster', 'sync_cluster_id']:
+        if item in g.vs.attribute_names():
+            print(f"deleting vertex attribute '{item}'")
+            del g.vs[item]
+
+    if args.output:
+        print(f"writing graph to '{args.output}'")
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            try:
+                g.write(args.output)
+            except OSError as oserr:
+                print(f"igraph error: {oserr}")
+                print(f"failed to write to file '{args.output}'")
+
+    if args.interact:
+        import atexit
+        import code
+        import os
+        import readline
+        import rlcompleter
+        readline.parse_and_bind("tab: complete")
+
+        hfile = os.path.join(os.path.expanduser("~"), ".otter_history")
+
+        try:
+            readline.read_history_file(hfile)
+            numlines = readline.get_current_history_length()
+        except FileNotFoundError:
+            open(hfile, 'wb').close()
+            numlines = 0
+
+        atexit.register(append_history, numlines, hfile)
+
+        for k, v in locals().items():
+            if g is v:
+                break
+
+        banner = \
+f"""
+Graph '{k}' has {g.vcount()} nodes and {g.ecount()} edges
+
+Entering interactive mode, use:
+    ig.plot({k}, [target="..."], ...)   to view or plot to file
+    {k}.write_*()                       to save a representation of the graph e.g. {k}.write_dot("graph.dot")     
+"""
+        Console = code.InteractiveConsole(locals=locals())
+        Console.interact(banner=banner, exitmsg=f"history saved to {hfile}")

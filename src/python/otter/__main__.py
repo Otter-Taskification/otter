@@ -117,8 +117,9 @@ def process_chunk(chunk, verbose=False):
     k = 1
     for event in chain(events, (last_event,)):
 
-        if isinstance(event, Enter) and event.attributes[chunk.attr['region_type']] in ['implicit_task']:
-            task_links.append((event.attributes[chunk.attr['encountering_task_id']], event.attributes[chunk.attr['unique_id']]))
+        if event.attributes[chunk.attr['region_type']] in ['implicit_task']:
+            if isinstance(event, Enter):
+                task_links.append((event.attributes[chunk.attr['encountering_task_id']], event.attributes[chunk.attr['unique_id']]))
             continue
 
         node = g.add_vertex(event=event)
@@ -260,7 +261,7 @@ if __name__ == "__main__":
         'parallel':          'yellow',
         'single_executor':   'blue',
         'single_other':      'orange',
-        'taskwait':          'pink',
+        'taskwait':          'red',
         'taskgroup':         'purple',
         'barrier_implicit':  'darkgreen',
 
@@ -277,6 +278,23 @@ if __name__ == "__main__":
         str(Enter):               'green',
         str(Leave):               'red',
         str(ThreadTaskCreate):    'orange',
+    })
+
+    shapemap = defaultdict(lambda: 'circle', **{
+        'initial_task':      'square',
+        'implicit_task':     'square',
+        'explicit_task':     'square',
+        'parallel':          'parallelogram',
+
+        # Sync regions
+        'taskwait':          'octagon',
+        'taskgroup':         'octagon',
+        'barrier_implicit':  'octagon',
+
+        # Workshare regions
+        'loop':              'diamond',
+        'taskloop':          'diamond',
+        'single_executor':   'diamond',
     })
 
     # Convert event stream into graph chunks
@@ -396,7 +414,7 @@ if __name__ == "__main__":
 
     g.vs['color'] = [cmap[v['region_type']] for v in g.vs]
     g.vs['style'] = 'filled'
-    g.vs['shape'] = 'circle'
+    g.vs['shape'] = [shapemap[v['region_type']] for v in g.vs]
     g.vs['label'] = " "
 
     g.simplify()

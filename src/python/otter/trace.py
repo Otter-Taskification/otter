@@ -5,7 +5,7 @@ import otf2
 from itertools import chain
 from collections import defaultdict, deque
 from otf2.events import Enter, Leave, ThreadTaskCreate
-from otter.helpers import get_uid
+from otter.helpers import attr_getter, events_bridge_region
 
 class DefinitionLookup:
 
@@ -120,6 +120,11 @@ class LocationEventMap:
     def append(self, l, e):
         self._map[l].append(e)
 
+    @property
+    def kind(self):
+        _, (event, *ignore) = next(self.items())
+        return event.attributes[self.attr['region_type']]
+
 
 def yield_chunks(tr):
     attr = AttributeLookup(tr.definitions.attributes)
@@ -155,40 +160,57 @@ def event_defines_new_chunk(e: otf2.events._EventMeta, a: AttributeLookup) -> bo
 
 
 def process_chunk(chunk, verbose=False):
-    """Return a tuple of chunk type, task-create links and the chunk's graph"""
-    location, = chunk.locations()
-    first_event, *events, last_event = chunk[location]
-    chunk_type = first_event.attributes[chunk.attr['region_type']]
+    """Return a tuple of chunk kind, task-create links, task-create times, task-leave times and the chunk's graph"""
+
+    # Make function for looking up event attributes
+    get_attr = attr_getter(chunk.attr)
+
+    # Unpack events from chunk
+    (_, (first_event, *events, last_event)), = chunk.items()
+
+    # Make the graph representing this chunk
     g = ig.Graph(directed=True)
     prior_node = g.add_vertex(event=first_event)
+
+    # Used to save taskgroup-enter event to match to taskgroup-leave event
     taskgroup_enter_event = None
-    if chunk_type == 'parallel':
-        parallel_id = first_event.attributes[chunk.attr['unique_id']]
-        prior_node["parallel_sequence_id"] = (parallel_id, first_event.attributes[chunk.attr['endpoint']])
+
+    if chunk.kind == 'parallel':
+        parallel_id = get_attr(first_event, 'unique_id')
+        prior_node["parallel_sequence_id"] = (parallel_id, get_attr(first_event, 'endpoint'))
+
     task_create_nodes = deque()
     task_links = deque()
     task_crt_ts = deque()
     task_leave_ts = deque()
 
-    if type(first_event) is Enter and first_event.attributes[chunk.attr['region_type']] in ['initial_task']:
-        task_crt_ts.append((first_event.attributes[chunk.attr['unique_id']], first_event.time))
+    if type(first_event) is Enter and get_attr(first_event, 'region_type') in ['initial_task']:
+        task_crt_ts.append((get_attr(first_event, 'unique_id'), first_event.time))
 
     k = 1
     for event in chain(events, (last_event,)):
 
-        if event.attributes[chunk.attr['region_type']] in ['implicit_task']:
+        if get_attr(event, 'region_type') in ['implicit_task']:
             if type(event) is Enter:
-                task_links.append((event.attributes[chunk.attr['encountering_task_id']], event.attributes[chunk.attr['unique_id']]))
-                task_crt_ts.append((event.attributes[chunk.attr['unique_id']], event.time))
+                task_links.append((get_attr(event, 'encountering_task_id'), get_attr(event, 'unique_id')))
+                task_crt_ts.append((get_attr(event, 'unique_id'), event.time))
             continue
 
-        # Add task-leave time
-        if type(event) in [Leave] and event.attributes[chunk.attr['region_type']] in ['explicit_task']:
-            task_leave_ts.append((get_uid(event, attr=chunk.attr), event.time))
-
+        # The node representing this event
         node = g.add_vertex(event=event)
 
-        if event.attributes[chunk.attr['region_type']] in ['taskgroup']:
+        # Add task-leave time
+        if type(event) is Leave and get_attr(event, 'region_type') == 'explicit_task':
+            task_leave_ts.append((get_attr(event, 'unique_id'), event.time))
+
+        # Add task links and task crt ts
+        if (type(event) is Enter and get_attr(event, 'region_type') == 'implicit_task') \
+                or (type(event) is ThreadTaskCreate):
+            task_links.append((get_attr(event, 'encountering_task_id'), get_attr(event, 'unique_id')))
+            task_crt_ts.append((get_attr(event, 'unique_id'), event.time))
+
+        # Match taskgroup-enter/-leave events
+        if get_attr(event, 'region_type') in ['taskgroup']:
             if type(event) is Enter:
                 taskgroup_enter_event = event
             elif type(event) is Leave:
@@ -198,57 +220,46 @@ def process_chunk(chunk, verbose=False):
                 taskgroup_enter_event = None
 
         # Label nodes in a parallel chunk by their position for easier merging
-        if chunk_type == 'parallel' and event.attributes[chunk.attr['event_type']] != "task_create":
+        if chunk.kind == 'parallel' and type(event) is not ThreadTaskCreate:
             node["parallel_sequence_id"] = (parallel_id, k)
             k += 1
 
-        if node['event'].attributes[chunk.attr['region_type']]=='parallel':
+        if get_attr(event, 'region_type') == 'parallel':
             # Label nested parallel regions for easier merging...
             if event is not last_event:
-                node["parallel_sequence_id"] = (node['event'].attributes[chunk.attr['unique_id']], node['event'].attributes[chunk.attr['endpoint']])
-            # ... but distinguish from a parallel chunks's final parallel-end event
+                node["parallel_sequence_id"] = (get_attr(event, 'unique_id'), get_attr(event, 'endpoint'))
+            # ... but distinguish from a parallel chunk's terminating parallel-end event
             else:
-                node["parallel_sequence_id"] = (parallel_id, node['event'].attributes[chunk.attr['endpoint']])
+                node["parallel_sequence_id"] = (parallel_id, get_attr(event, 'endpoint'))
 
-        # Add edge except for (single begin -> single end) and (parallel begin -> parallel end)
-        if not(prior_node['event'].attributes[chunk.attr['region_type']] in ['single_executor', 'single_other'] \
-                and prior_node['event'].attributes[chunk.attr['endpoint']]=='enter' \
-                and node['event'].attributes[chunk.attr['region_type']] in ['single_executor', 'single_other']\
-                and node['event'].attributes[chunk.attr['endpoint']]=='leave')\
-            and not(prior_node['event'].attributes[chunk.attr['endpoint']]=='enter' \
-                and prior_node['event'].attributes[chunk.attr['region_type']]=='parallel'\
-                and node['event'].attributes[chunk.attr['endpoint']]=='leave' \
-                and node['event'].attributes[chunk.attr['region_type']]=='parallel'\
-                and node['event'].attributes[chunk.attr['unique_id']]==prior_node['event'].attributes[chunk.attr['unique_id']]):
+        # Add edge except for (single begin -> single end) and (parallel N begin -> parallel N end)
+        if events_bridge_region(prior_node['event'], node['event'], ['single_executor', 'single_other'], get_attr) \
+            or (events_bridge_region(prior_node['event'], node['event'], ['parallel'], get_attr)
+                and get_attr(node['event'], 'unique_id') == get_attr(prior_node['event'], 'unique_id')):
+            pass
+        else:
             g.add_edge(prior_node, node)
 
-        # Add task links and task crt ts
-        if (isinstance(event, Enter) and event.attributes[chunk.attr['region_type']] in ['implicit_task']) or (type(event) is ThreadTaskCreate):
-            task_links.append((event.attributes[chunk.attr['encountering_task_id']], event.attributes[chunk.attr['unique_id']]))
-            task_crt_ts.append((event.attributes[chunk.attr['unique_id']], event.time))
-
         # For task_create add dummy nodes for easier merging
-        if event.attributes[chunk.attr['event_type']] == "task_create":
-            node['task_cluster_id'] = (event.attributes[chunk.attr['unique_id']], 'enter')
-            dummy_node = g.add_vertex(event=event, task_cluster_id=(event.attributes[chunk.attr['unique_id']], 'leave'))
+        if type(event) is ThreadTaskCreate:
+            node['task_cluster_id'] = (get_attr(event, 'unique_id'), 'enter')
+            dummy_node = g.add_vertex(event=event, task_cluster_id=(get_attr(event, 'unique_id'), 'leave'))
             task_create_nodes.append(dummy_node)
             continue
         elif len(task_create_nodes) > 0:
-            # num_tc_nodes = len(task_create_nodes)
-            # for _ in range(num_tc_nodes):
-            #     g.add_edge(task_create_nodes.pop(), node)
             task_create_nodes = deque()
 
         prior_node = node
 
-    if chunk_type == 'explicit_task' and len(events) == 0:
+    if chunk.kind == 'explicit_task' and len(events) == 0:
         g.delete_edges([0])
 
-    # Require at least 1 edge between start and end nodes if there are no internal nodes, except for empty explicit task chunks
-    if chunk_type != "explicit_task" and len(events) == 0 and g.ecount() == 0:
+    # Require at least 1 edge between start and end nodes if there are no internal nodes, except for empty explicit
+    # task chunks
+    if chunk.kind != "explicit_task" and len(events) == 0 and g.ecount() == 0:
         g.add_edge(g.vs[0], g.vs[1])
 
     if verbose and len(events) > 0:
         print(chunk)
 
-    return chunk_type, task_links, task_crt_ts, task_leave_ts, g
+    return chunk.kind, task_links, task_crt_ts, task_leave_ts, g

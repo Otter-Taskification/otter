@@ -7,8 +7,7 @@ from collections import Counter
 from otf2.events import Enter, Leave
 from otter.trace import AttributeLookup, RegionLookup, yield_chunks, process_chunk
 from otter.styling import colormap_region_type, colormap_edge_type, shapemap_region_type
-from otter.helpers import set_tuples, reject_task_create, attr_handler, label_clusters, get_uid, get_etid, \
-    descendants_if
+from otter.helpers import set_tuples, reject_task_create, attr_handler, label_clusters, descendants_if, attr_getter
 
 
 def main():
@@ -19,9 +18,12 @@ def main():
 
     parser.add_argument('anchorfile', help='OTF2 anchor file')
     parser.add_argument('-o', '--output', dest='output', help='output file')
-    parser.add_argument('-v', '--verbose', action='store_true', dest='verbose', help='print chunks as they are generated')
-    parser.add_argument('-i', '--interact', action='store_true', dest='interact', help='drop to an interactive shell upon completion')
-    parser.add_argument('-ns', '--no-style', action='store_true', default=False, dest='nostyle', help='do not apply any styling to the graph nodes')
+    parser.add_argument('-v', '--verbose', action='store_true', dest='verbose',
+                        help='print chunks as they are generated')
+    parser.add_argument('-i', '--interact', action='store_true', dest='interact',
+                        help='drop to an interactive shell upon completion')
+    parser.add_argument('-ns', '--no-style', action='store_true', default=False, dest='nostyle',
+                        help='do not apply any styling to the graph nodes')
     args = parser.parse_args()
 
     if args.output is None and not args.interact:
@@ -44,6 +46,9 @@ def main():
         chain_sort_next = lambda x: sorted(chain(*next(x)), key=lambda t: t[0])
         task_links, task_crt_ts, task_leave_ts = (chain_sort_next(items) for _ in range(3))
         g_list = next(items)
+
+    # Make function for looking up event attributes
+    event_attr = attr_getter(attr)
 
     task_types, *_, task_ids = zip(*[r.name.split() for r in regions.values() if r.region_role == otf2.RegionRole.TASK])
     task_types, task_ids = (zip(*sorted(zip(task_types, map(int, task_ids)), key=lambda t: t[1])))
@@ -87,7 +92,7 @@ def main():
 
     # Collapse by single-begin/end event
     def is_single_executor(v):
-        return type(v['event']) in [Enter, Leave] and v['event'].attributes[attr['region_type']] == 'single_executor'
+        return type(v['event']) in [Enter, Leave] and event_attr(v['event'], 'region_type') == 'single_executor'
     g.vs['cluster'] = label_clusters(g.vs, is_single_executor, 'event')
     nodes_before = num_nodes
     print("contracting by single-begin/end event")
@@ -97,8 +102,8 @@ def main():
 
     # Collapse by (task-ID, endpoint) to get 1 subgraph per task
     for v in g.vs:
-        if type(v['event']) in [Enter, Leave] and v['event'].attributes[attr['region_type']] == 'explicit_task':
-            v['task_cluster_id'] = (get_uid(v['event'], attr=attr), v['event'].attributes[attr['endpoint']])
+        if type(v['event']) in [Enter, Leave] and event_attr(v['event'], 'region_type') == 'explicit_task':
+            v['task_cluster_id'] = (event_attr(v['event'], 'unique_id'), event_attr(v['event'], 'endpoint'))
     g.vs['cluster'] = label_clusters(g.vs, lambda v: v['task_cluster_id'] is not None, 'task_cluster_id')
     nodes_before = num_nodes
     print("contracting by task ID & endpoint")
@@ -114,7 +119,7 @@ def main():
         if type(v['event']) in [Enter, Leave]:
             return (type(v['event']) is Leave and v.indegree() == 0) or \
                    (type(v['event']) is Enter and v.outdegree() == 0)
-        if isinstance(v['event'], list) and set(map(type, v['event'])) in [{Enter}, {Leave}]:
+        if type(v['event']) is list and set(map(type, v['event'])) in [{Enter}, {Leave}]:
             return (set(map(type, v['event'])) == {Leave} and v.indegree() == 0) or \
                    (set(map(type, v['event'])) == {Enter} and v.outdegree() == 0)
     g.vs['cluster'] = label_clusters(g.vs, is_empty_task_region, lambda v: v['task_cluster_id'][0])
@@ -130,10 +135,10 @@ def main():
         node_types = set()
         for v in (e.source_vertex, e.target_vertex):
             if type(v['event']) is not list:
-                node_types.add(v['event'].attributes[attr['region_type']])
+                node_types.add(event_attr(v['event'], 'region_type'))
             else:
-                for item in v['event']:
-                    node_types.add(item.attributes[attr['region_type']])
+                for event in v['event']:
+                    node_types.add(event_attr(event, 'region_type'))
         if node_types in [{'barrier_implicit'}, {'barrier_explicit'}, {'taskwait'}] and \
                 e.source_vertex.attributes().get('sync_cluster_id', None) is None and \
                 e.target_vertex.attributes().get('sync_cluster_id', None) is None:
@@ -154,23 +159,23 @@ def main():
 
     # Unpack the region_type attribute
     for v in g.vs:
-        if isinstance(v['event'], list):
-            v['region_type'], = set([e.attributes[attr['region_type']] for e in v['event']])
-            v['endpoint'] = set([e.attributes[attr['endpoint']] for e in v['event']])
+        if type(v['event']) is list:
+            v['region_type'], = set([event_attr(e, 'region_type') for e in v['event']])
+            v['endpoint'] = set([event_attr(e, 'endpoint') for e in v['event']])
         else:
-            v['region_type'] = v['event'].attributes[attr['region_type']]
-            v['endpoint'] = v['event'].attributes[attr['endpoint']]
-        if isinstance(v['endpoint'], set) and len(v['endpoint']) == 1:
+            v['region_type'] = event_attr(v['event'], 'region_type')
+            v['endpoint'] = event_attr(v['event'], 'endpoint')
+        if type(v['endpoint']) is set and len(v['endpoint']) == 1:
             v['endpoint'], = v['endpoint']
 
     # Apply taskwait synchronisation
     for twnode in g.vs.select(lambda v: v['region_type'] == 'taskwait'):
-        tw_encounter_ts = {get_etid(e, attr=attr): e.time for e in twnode['event'] if type(e) is Enter}
-        parents = set(task_tree.vs[get_etid(e, attr=attr)] for e in twnode['event'])
+        parents = set(task_tree.vs[event_attr(e, 'encountering_task_id')] for e in twnode['event'])
+        tw_encounter_ts = {event_attr(e, 'encountering_task_id'): e.time for e in twnode['event'] if type(e) is Enter}
         children = [c.index for c in chain(*[p.neighbors(mode='out') for p in parents])
                     if c['crt_ts'] < tw_encounter_ts[c['parent_index']] < c['end_ts']]
         nodes = [v for v in g.vs if v['region_type'] == 'explicit_task'
-                                 and get_uid(v['event'], attr=attr) in children
+                                 and event_attr(v['event'], 'unique_id') in children
                                  and v['endpoint'] != 'enter']
         ecount = g.ecount()
         g.add_edges([(v.index, twnode.index) for v in nodes])
@@ -179,8 +184,8 @@ def main():
     def event_time_per_task(event):
         """Return the map: encountering task id -> event time for all encountering tasks in the event"""
         if type(event) is list:
-            return {get_etid(e, attr=attr): e.time for e in event}
-        return {get_etid(event, attr=attr): event.time}
+            return {event_attr(e, 'encountering_task_id'): e.time for e in event}
+        return {event_attr(event, 'encountering_task_id'): event.time}
 
     # Apply taskgroup synchronisation
     for tgnode in g.vs.select(lambda v: v['region_type'] == 'taskgroup' and v['endpoint'] == 'leave'):
@@ -191,7 +196,7 @@ def main():
                     if tg_enter_ts[c['parent_index']] < c['crt_ts'] < tg_leave_ts[c['parent_index']]]
         descendants = list(chain(*[descendants_if(c, cond=lambda x: x['task_type'] != 'implicit') for c in children]))
         nodes = [v for v in g.vs if v['region_type'] == 'explicit_task'
-                                 and get_uid(v['event'], attr=attr) in descendants
+                                 and event_attr(v['event'], 'unique_id') in descendants
                                  and v['endpoint'] != 'enter']
         ecount = g.ecount()
         g.add_edges([(v.index, tgnode.index) for v in nodes])
@@ -203,7 +208,8 @@ def main():
         g.vs['style'] = 'filled'
         g.vs['shape'] = [shapemap_region_type[v['region_type']] for v in g.vs]
         g.es['color'] = [colormap_edge_type[e.attributes().get('type', None)] for e in g.es]
-    g.vs['label'] = [str(get_uid(v['event'], attr=attr)) if any(s in v['region_type'] for s in ['explicit', 'initial']) else " " for v in g.vs]
+    g.vs['label'] = [str(event_attr(v['event'], 'unique_id'))
+                     if any(s in v['region_type'] for s in ['explicit', 'initial']) else " " for v in g.vs]
 
     g.simplify(combine_edges='first')
 
@@ -261,6 +267,7 @@ Entering interactive mode, use:
 """
         Console = code.InteractiveConsole(locals=locals())
         Console.interact(banner=banner, exitmsg=f"history saved to {hfile}")
+
 
 if __name__ == "__main__":
     main()

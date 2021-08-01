@@ -105,69 +105,20 @@ class LocationEventMap:
                     e.attributes[self.attr['cpu']])
         return s
 
-    def __iter__(self):
-        return ((l, e, self.attr) for l, q in self._map.items() for e in q)
-
-    def __call__(self, *args, **kwargs):
-        return LocationEventMap(kwargs.get('events', list()), self.attr)
-
     def __getitem__(self, location):
         if location in self._map:
             return self._map[location]
         else:
             raise KeyError(location)
 
-    def __len__(self):
-        return sum([len(k) for k in self.values()])
-
     def locations(self):
         return sorted(self._map.keys(), key=lambda q: int(q.name.split()[1])) # "Thread x"
-
-    def values(self):
-        return self._map.values()
 
     def items(self):
         return ((l, self[l]) for l in self.locations())
 
     def append(self, l, e):
         self._map[l].append(e)
-
-    def update(self, other):
-        if not isinstance(other, LocationEventMap):
-            raise TypeError
-        for l, e, a in other:
-            self.append(l, e)
-
-    def iter_events(self, location):
-        if location in self._map:
-            return PushBackIterator(e for e in self._map[location])
-        else:
-            raise KeyError
-
-    def event_dict(self, event):
-        d = dict()
-        for attr in event.attributes:
-            d[attr.name] = event.attributes[attr]
-        return d
-
-
-class PushBackIterator(object):
-
-    def __init__(self, iterator: T.Iterable):
-        self.iter = iterator
-        self.saved = deque()
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if len(self.saved) > 0:
-            return self.saved.pop()
-        else:
-            return next(self.iter)
-
-    def push(self, item):
-        self.saved.append(item)
 
 
 def event_defines_new_chunk(e: otf2.events._EventMeta, a: AttributeLookup) -> bool:

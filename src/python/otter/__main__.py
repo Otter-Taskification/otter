@@ -6,7 +6,7 @@ from itertools import chain, count, groupby
 from collections import defaultdict, deque, Counter
 from otf2.events import Enter, Leave, ThreadTaskCreate
 from typing import Callable, Any, List, AnyStr
-from . import trace
+from otter.trace import AttributeLookup, RegionLookup, LocationEventMap, event_defines_new_chunk
 
 
 def plot_graph(g, layout=None, **kwargs):
@@ -73,20 +73,20 @@ def graph_to_graphml(g, **kwargs):
 
 
 def yield_chunks(tr):
-    attr = trace.AttributeLookup(tr.definitions.attributes)
-    lmap_dict = defaultdict(lambda : trace.LocationEventMap(list(), attr))
+    attr = AttributeLookup(tr.definitions.attributes)
+    lmap_dict = defaultdict(lambda : LocationEventMap(list(), attr))
     stack_dict = defaultdict(deque)
     for location, event in tr.events:
         if type(event) in [otf2.events.ThreadBegin, otf2.events.ThreadEnd]:
             continue
-        if trace.event_defines_new_chunk(event, attr):
+        if event_defines_new_chunk(event, attr):
             # Event marks transition from one chunk to another
             if isinstance(event, Enter):
                 if event.attributes.get(attr['region_type'], "") != 'explicit_task':
                     lmap_dict[location].append(location, event)
                 stack_dict[location].append(lmap_dict[location])
                 # New location map for new chunk
-                lmap_dict[location] = trace.LocationEventMap([(location, event)], attr)
+                lmap_dict[location] = LocationEventMap([(location, event)], attr)
             elif isinstance(event, Leave):
                 lmap_dict[location].append(location, event)
                 yield lmap_dict[location]
@@ -368,8 +368,8 @@ if __name__ == "__main__":
     print(f"loading OTF2 anchor file: {anchorfile}")
     print("generating chunks from event stream...")
     with otf2.reader.open(anchorfile) as tr:
-        attr = trace.AttributeLookup(tr.definitions.attributes)
-        regions = trace.RegionLookup(tr.definitions.regions)
+        attr = AttributeLookup(tr.definitions.attributes)
+        regions = RegionLookup(tr.definitions.regions)
         results = (process_chunk(chunk, verbose=args.verbose) for chunk in yield_chunks(tr))
         items = zip(*results)
         chunk_types = next(items)

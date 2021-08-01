@@ -3,298 +3,15 @@ import warnings
 import igraph as ig
 import otf2
 from itertools import chain, count, groupby
-from collections import defaultdict, deque, Counter
-from otf2.events import Enter, Leave, ThreadTaskCreate
-from typing import Callable, Any, List, AnyStr
-from otter.trace import AttributeLookup, RegionLookup, LocationEventMap, event_defines_new_chunk
+from collections import Counter
+from otf2.events import Enter, Leave
+from otter.trace import AttributeLookup, RegionLookup, yield_chunks, process_chunk
+from otter.styling import colormap_region_type, colormap_edge_type, shapemap_region_type
+from otter.helpers import set_tuples, reject_task_create, attr_handler, label_clusters, get_uid, get_etid, \
+    descendants_if
 
 
-def plot_graph(g, layout=None, **kwargs):
-    if layout is None:
-        layout = g.layout_sugiyama()
-    ig.plot(g, layout=layout, **kwargs)
-
-
-def graph_to_dot(g, **kwargs):
-
-    g.vs['region_type'] = [r if r != "" else "undefined" for r in g.vs['region_type']]
-    g.vs['sync_type'] = [r if r != "" else "undefined" for r in g.vs['sync_type']]
-
-    for v in g.vs:
-        # Fix some types for dot file format
-        v['parent_task_id'] = str(v['parent_task_id'])
-        if v['parent_task_type'] in [None, ""]:
-            v['parent_task_type'] = 'undefined'
-        if v['prior_task_status'] in [None, ""]:
-            v['prior_task_status'] = 'undefined'
-        if v['event_type'] == 'task_enter':
-            v['color'] = "limegreen"
-        elif v['event_type'] == 'task_leave':
-            v['color'] = "lightblue"
-
-        # Style attributes
-        v['style'] = 'filled'
-        v['shape'] = {'parallel': 'hexagon',
-                      'taskwait': 'octagon',
-                      'taskgroup': 'hexagon',
-                      'taskloop': 'circle',
-                      'single_executor': 'diamond'}.get(v['region_type'], "rectangle")
-
-        # Set label for task-enter and task-leave nodes
-        v['label'] = " " if v['unique_id'] is None else str(v['unique_id'])
-
-        # Set label for all other nodes
-        v['label'] = {'parallel': "{}".format(v['unique_id']),
-                      'taskwait': 'tw',
-                      'taskgroup': 'tg',
-                      'taskloop': 'tl',
-                      'loop': 'lp',
-                      'barrier_implicit': 'ib',
-                      'single_executor': 'sn'}.get(v['region_type'], v['label'])
-
-        # Default edge colour if none set
-        for e in g.es:
-            if e['color'] in [None, ""]:
-                e['color'] = 'black'
-
-    fname = kwargs.get('target', 'graph.dot')
-    print("Writing graph to '{}'".format(fname))
-
-    # Ignore runtime warnings emitted due to types being ignored/changed by igraph
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        g.write_dot(fname)
-
-
-def graph_to_graphml(g, **kwargs):
-    fname = kwargs.get('target', 'graph.graphml')
-    print("Writing graph to '{}'".format(fname))
-    g.write_graphml(fname)
-
-
-def yield_chunks(tr):
-    attr = AttributeLookup(tr.definitions.attributes)
-    lmap_dict = defaultdict(lambda : LocationEventMap(list(), attr))
-    stack_dict = defaultdict(deque)
-    for location, event in tr.events:
-        if type(event) in [otf2.events.ThreadBegin, otf2.events.ThreadEnd]:
-            continue
-        if event_defines_new_chunk(event, attr):
-            # Event marks transition from one chunk to another
-            if isinstance(event, Enter):
-                if event.attributes.get(attr['region_type'], "") != 'explicit_task':
-                    lmap_dict[location].append(location, event)
-                stack_dict[location].append(lmap_dict[location])
-                # New location map for new chunk
-                lmap_dict[location] = LocationEventMap([(location, event)], attr)
-            elif isinstance(event, Leave):
-                lmap_dict[location].append(location, event)
-                yield lmap_dict[location]
-                # Continue with enclosing chunk
-                lmap_dict[location] = stack_dict[location].pop()
-                if event.attributes.get(attr['region_type'], "") != 'explicit_task':
-                    lmap_dict[location].append(location, event)
-            else:
-                lmap_dict[location].append(location, event)
-        else:
-            # Append event to current chunk for this location
-            lmap_dict[location].append(location, event)
-
-
-def process_chunk(chunk, verbose=False):
-    """Return a tuple of chunk type, task-create links and the chunk's graph"""
-    location, = chunk.locations()
-    first_event, *events, last_event = chunk[location]
-    chunk_type = first_event.attributes[chunk.attr['region_type']]
-    g = ig.Graph(directed=True)
-    prior_node = g.add_vertex(event=first_event)
-    taskgroup_enter_event = None
-    if chunk_type == 'parallel':
-        parallel_id = first_event.attributes[chunk.attr['unique_id']]
-        prior_node["parallel_sequence_id"] = (parallel_id, first_event.attributes[chunk.attr['endpoint']])
-    task_create_nodes = deque()
-    task_links = deque()
-    task_crt_ts = deque()
-    task_leave_ts = deque()
-
-    if type(first_event) is Enter and first_event.attributes[chunk.attr['region_type']] in ['initial_task']:
-        task_crt_ts.append((first_event.attributes[chunk.attr['unique_id']], first_event.time))
-
-    k = 1
-    for event in chain(events, (last_event,)):
-
-        if event.attributes[chunk.attr['region_type']] in ['implicit_task']:
-            if type(event) is Enter:
-                task_links.append((event.attributes[chunk.attr['encountering_task_id']], event.attributes[chunk.attr['unique_id']]))
-                task_crt_ts.append((event.attributes[chunk.attr['unique_id']], event.time))
-            continue
-
-        # Add task-leave time
-        if type(event) in [Leave] and event.attributes[chunk.attr['region_type']] in ['explicit_task']:
-            task_leave_ts.append((get_uid(event, attr=chunk.attr), event.time))
-
-        node = g.add_vertex(event=event)
-
-        if event.attributes[chunk.attr['region_type']] in ['taskgroup']:
-            if type(event) is Enter:
-                taskgroup_enter_event = event
-            elif type(event) is Leave:
-                if taskgroup_enter_event is None:
-                    raise ValueError("taskgroup-enter event was None")
-                node['taskgroup_enter_event'] = taskgroup_enter_event
-                taskgroup_enter_event = None
-
-        # Label nodes in a parallel chunk by their position for easier merging
-        if chunk_type == 'parallel' and event.attributes[chunk.attr['event_type']] != "task_create":
-            node["parallel_sequence_id"] = (parallel_id, k)
-            k += 1
-
-        if node['event'].attributes[chunk.attr['region_type']]=='parallel':
-            # Label nested parallel regions for easier merging...
-            if event is not last_event:
-                node["parallel_sequence_id"] = (node['event'].attributes[chunk.attr['unique_id']], node['event'].attributes[chunk.attr['endpoint']])
-            # ... but distinguish from a parallel chunks's final parallel-end event
-            else:
-                node["parallel_sequence_id"] = (parallel_id, node['event'].attributes[chunk.attr['endpoint']])
-
-        # Add edge except for (single begin -> single end) and (parallel begin -> parallel end)
-        if not(prior_node['event'].attributes[chunk.attr['region_type']] in ['single_executor', 'single_other'] \
-                and prior_node['event'].attributes[chunk.attr['endpoint']]=='enter' \
-                and node['event'].attributes[chunk.attr['region_type']] in ['single_executor', 'single_other']\
-                and node['event'].attributes[chunk.attr['endpoint']]=='leave')\
-            and not(prior_node['event'].attributes[chunk.attr['endpoint']]=='enter' \
-                and prior_node['event'].attributes[chunk.attr['region_type']]=='parallel'\
-                and node['event'].attributes[chunk.attr['endpoint']]=='leave' \
-                and node['event'].attributes[chunk.attr['region_type']]=='parallel'\
-                and node['event'].attributes[chunk.attr['unique_id']]==prior_node['event'].attributes[chunk.attr['unique_id']]):
-            g.add_edge(prior_node, node)
-
-        # Add task links and task crt ts
-        if (isinstance(event, Enter) and event.attributes[chunk.attr['region_type']] in ['implicit_task']) or (type(event) is ThreadTaskCreate):
-            task_links.append((event.attributes[chunk.attr['encountering_task_id']], event.attributes[chunk.attr['unique_id']]))
-            task_crt_ts.append((event.attributes[chunk.attr['unique_id']], event.time))
-
-        # For task_create add dummy nodes for easier merging
-        if event.attributes[chunk.attr['event_type']] == "task_create":
-            node['task_cluster_id'] = (event.attributes[chunk.attr['unique_id']], 'enter')
-            dummy_node = g.add_vertex(event=event, task_cluster_id=(event.attributes[chunk.attr['unique_id']], 'leave'))
-            task_create_nodes.append(dummy_node)
-            continue
-        elif len(task_create_nodes) > 0:
-            # num_tc_nodes = len(task_create_nodes)
-            # for _ in range(num_tc_nodes):
-            #     g.add_edge(task_create_nodes.pop(), node)
-            task_create_nodes = deque()
-
-        prior_node = node
-
-    if chunk_type == 'explicit_task' and len(events) == 0:
-        g.delete_edges([0])
-
-    # Require at least 1 edge between start and end nodes if there are no internal nodes, except for empty explicit task chunks
-    if chunk_type != "explicit_task" and len(events) == 0 and g.ecount() == 0:
-        g.add_edge(g.vs[0], g.vs[1])
-
-    if verbose and len(events) > 0:
-        print(chunk)
-
-    return chunk_type, task_links, task_crt_ts, task_leave_ts, g
-
-
-def chain_lists(lists):
-    return list(chain(*lists))
-
-
-def set_tuples(tuples):
-    s = set(tuples)
-    if len(s) == 1:
-        return s.pop()
-    else:
-        return s
-
-
-def pass_args(args):
-    return args
-
-
-def pass_single_executor(events, **kw):
-    region_types = {e.attributes[kw['attr']['region_type']] for e in events}
-    if region_types == {'single_other', 'single_executor'}:
-        single_executor, = filter(lambda e: e.attributes[attr['region_type'] ]=='single_executor', events)
-        return single_executor
-    else:
-        return events
-
-
-def reject_task_create(events, **kw):
-    events = [e for e in events if type(e) is not ThreadTaskCreate]
-    if len(events) == 1:
-        return events[0]
-    else:
-        return events
-
-
-def attr_handler(events=pass_single_executor, ints=min, lists=chain_lists, tuples=set, **kw):
-    def attr_combiner(args):
-        if len(args) == 1:
-            return args[0]
-        else:
-            if all([isinstance(obj, int) for obj in args]):
-                return ints(args)
-            elif all([isinstance(obj, list) for obj in args]):
-                return lists(args)
-            elif all([isinstance(obj, tuple) for obj in args]):
-                return tuples(args)
-            elif all([type(obj) in [Enter, Leave, ThreadTaskCreate] for obj in args]):
-                return events(args, **kw)
-            else:
-                return args[0]
-    return attr_combiner
-
-
-def label_clusters(vs: ig.VertexSeq, condition: Callable[[ig.Vertex],bool], key: [AnyStr, Callable[[ig.Vertex], Any]]) -> List[int]:
-    """Return cluster labels where condition is true (and a unique vertex label otherwise), with cluster handle supplied via key"""
-    if isinstance(key, str):
-        s = key
-        key = lambda v: v[s]
-    vertex_counter = count()
-    cluster_counter = count(start=sum(not condition(v) for v in vs))
-    label = defaultdict(lambda: next(cluster_counter))
-    return [label[key(v)] if condition(v) else next(vertex_counter) for v in vs]
-
-
-def get_uid(event, **kw):
-    if isinstance(event, list):
-        s, = set([e.attributes[kw['attr']['unique_id']] for e in event])
-        return s
-    elif type(event) in [Enter, Leave, ThreadTaskCreate]:
-        return event.attributes[kw['attr']['unique_id']]
-
-
-def get_etid(event, **kw):
-    if isinstance(event, list):
-        s, = set([e.attributes[kw['attr']['encountering_task_id']] for e in event])
-        return s
-    elif type(event) in [Enter, Leave, ThreadTaskCreate]:
-        return event.attributes[kw['attr']['encountering_task_id']]
-
-
-def append_history(n, f):
-    newlines = readline.get_current_history_length()
-    readline.set_history_length(1000)
-    readline.append_history_file(newlines - n, f)
-
-
-def descendants_if(node, cond=lambda x: True):
-    """Yield all descendants D of node, skipping E & its descendants if cond(E) is False."""
-    for child in node.successors():
-        if cond(child):
-            yield from descendants_if(child, cond=cond)
-    yield node.index
-
-
-if __name__ == "__main__":
-
+def main():
     parser = argparse.ArgumentParser(
         prog="python3 -m otter",
         description='Convert an Otter OTF2 trace archive to its execution graph representation',
@@ -314,55 +31,6 @@ if __name__ == "__main__":
         print("Otter launched interactively")
 
     anchorfile = args.anchorfile
-
-    # Map region type to node color
-    cmap = defaultdict(lambda: 'white', **{
-        'initial_task':      'green',
-        'implicit_task':     'fuchsia',
-        'explicit_task':     'cyan',
-        'parallel':          'yellow',
-        'single_executor':   'blue',
-        'single_other':      'orange',
-        'taskwait':          'red',
-        'taskgroup':         'purple',
-        'barrier_implicit':  'darkgreen',
-
-        # Workshare regions
-        'loop':              'brown',
-        'taskloop':          'orange',
-
-        # For colouring by endpoint
-        'enter':             'green',
-        'leave':             'red'
-    })
-
-    cmap_event_type = defaultdict(lambda: 'white', **{
-        str(Enter):               'green',
-        str(Leave):               'red',
-        str(ThreadTaskCreate):    'orange',
-    })
-
-    cmap_edge_type = defaultdict(lambda: 'black', **{
-        'taskwait':               'red',
-        'taskgroup':              'red',
-    })
-
-    shapemap = defaultdict(lambda: 'circle', **{
-        'initial_task':      'square',
-        'implicit_task':     'square',
-        'explicit_task':     'square',
-        'parallel':          'parallelogram',
-
-        # Sync regions
-        'taskwait':          'octagon',
-        'taskgroup':         'octagon',
-        'barrier_implicit':  'octagon',
-
-        # Workshare regions
-        'loop':              'diamond',
-        'taskloop':          'diamond',
-        'single_executor':   'diamond',
-    })
 
     # Convert event stream into graph chunks
     print(f"loading OTF2 anchor file: {anchorfile}")
@@ -531,10 +199,10 @@ if __name__ == "__main__":
 
     # Apply styling if desired
     if not args.nostyle:
-        g.vs['color'] = [cmap[v['region_type']] for v in g.vs]
+        g.vs['color'] = [colormap_region_type[v['region_type']] for v in g.vs]
         g.vs['style'] = 'filled'
-        g.vs['shape'] = [shapemap[v['region_type']] for v in g.vs]
-        g.es['color'] = [cmap_edge_type[e.attributes().get('type', None)] for e in g.es]
+        g.vs['shape'] = [shapemap_region_type[v['region_type']] for v in g.vs]
+        g.es['color'] = [colormap_edge_type[e.attributes().get('type', None)] for e in g.es]
     g.vs['label'] = [str(get_uid(v['event'], attr=attr)) if any(s in v['region_type'] for s in ['explicit', 'initial']) else " " for v in g.vs]
 
     g.simplify(combine_edges='first')
@@ -571,8 +239,14 @@ if __name__ == "__main__":
             open(hfile, 'wb').close()
             numlines = 0
 
+        def append_history(n, f):
+            newlines = readline.get_current_history_length()
+            readline.set_history_length(1000)
+            readline.append_history_file(newlines - n, f)
+
         atexit.register(append_history, numlines, hfile)
 
+        k = ""
         for k, v in locals().items():
             if g is v:
                 break
@@ -587,3 +261,6 @@ Entering interactive mode, use:
 """
         Console = code.InteractiveConsole(locals=locals())
         Console.interact(banner=banner, exitmsg=f"history saved to {hfile}")
+
+if __name__ == "__main__":
+    main()

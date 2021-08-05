@@ -32,6 +32,7 @@ static void trace_add_thread_attributes(trace_location_def_t *self);
 static void trace_add_common_event_attributes(trace_region_def_t *rgn);
 static void trace_add_parallel_attributes(trace_region_def_t *rgn);
 static void trace_add_workshare_attributes(trace_region_def_t *rgn);
+static void trace_add_master_attributes(trace_region_def_t *rgn);
 static void trace_add_sync_attributes(trace_region_def_t *rgn);
 static void trace_add_task_attributes(trace_region_def_t *rgn);
 
@@ -335,6 +336,18 @@ trace_write_region_definition(trace_region_def_t *rgn)
                 0, 0, 0); /* source file, begin line no., end line no. */
             break;
         }
+        case trace_region_master:
+        {
+            OTF2_GlobalDefWriter_WriteRegion(Defs,
+                rgn->ref,
+                attr_label_ref[attr_region_type_master],
+                0, 0,
+                rgn->role,
+                OTF2_PARADIGM_OPENMP,
+                OTF2_REGION_FLAG_NONE,
+                0, 0, 0); /* source file, begin line no., end line no. */
+            break;
+        }
         case trace_region_synchronise:
         {
             OTF2_GlobalDefWriter_WriteRegion(Defs,
@@ -407,6 +420,8 @@ trace_add_common_event_attributes(trace_region_def_t *rgn)
             SYNC_TYPE_TO_STR_REF(rgn->attr.sync.type) :
         rgn->type == trace_region_task ? 
             TASK_TYPE_TO_STR_REF(rgn->attr.task.type) :
+        rgn->type == trace_region_master ? 
+            attr_label_ref[attr_region_type_master]   :
         attr_label_ref[attr_region_type_task]
     );
     CHECK_OTF2_ERROR_CODE(r);
@@ -457,6 +472,16 @@ trace_add_workshare_attributes(trace_region_def_t *rgn)
     CHECK_OTF2_ERROR_CODE(r);
     r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_workshare_count,
         rgn->attr.wshare.count);
+    CHECK_OTF2_ERROR_CODE(r);
+    return;
+}
+
+static void
+trace_add_master_attributes(trace_region_def_t *rgn)
+{
+    OTF2_ErrorCode r = OTF2_SUCCESS;
+    r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_unique_id,
+        rgn->attr.master.thread);
     CHECK_OTF2_ERROR_CODE(r);
     return;
 }
@@ -609,6 +634,8 @@ trace_event_enter(
             attr_label_ref[attr_event_type_workshare_begin] :
         region->type == trace_region_synchronise ?
             attr_label_ref[attr_event_type_sync_begin] :
+        region->type == trace_region_master ?
+            attr_label_ref[attr_event_type_master_begin] :
         attr_label_ref[attr_event_type_task_enter]
     );
 
@@ -622,6 +649,7 @@ trace_event_enter(
     case trace_region_workshare: trace_add_workshare_attributes(region); break;
     case trace_region_synchronise: trace_add_sync_attributes(region); break;
     case trace_region_task: trace_add_task_attributes(region); break;
+    case trace_region_master: trace_add_master_attributes(region); break;
     default:
         LOG_ERROR("unhandled region type %d", region->type);
         abort();
@@ -692,6 +720,8 @@ trace_event_leave(trace_location_def_t *self)
             attr_label_ref[attr_event_type_workshare_end] :
         region->type == trace_region_synchronise ?
             attr_label_ref[attr_event_type_sync_end] :
+        region->type == trace_region_master ?
+            attr_label_ref[attr_event_type_master_end] :
         attr_label_ref[attr_event_type_task_leave]
     );
 
@@ -705,6 +735,7 @@ trace_event_leave(trace_location_def_t *self)
     case trace_region_workshare: trace_add_workshare_attributes(region); break;
     case trace_region_synchronise: trace_add_sync_attributes(region); break;
     case trace_region_task: trace_add_task_attributes(region); break;
+    case trace_region_master: trace_add_master_attributes(region); break;
     default:
         LOG_ERROR("unhandled region type %d", region->type);
         abort();

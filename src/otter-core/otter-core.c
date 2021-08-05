@@ -42,7 +42,11 @@ tool_setup(
     include_callback(callbacks, ompt_callback_implicit_task);
     include_callback(callbacks, ompt_callback_work);
     include_callback(callbacks, ompt_callback_sync_region);
+    #if defined(USE_OMPT_MASKED)
+    include_callback(callbacks, ompt_callback_masked);
+    #else
     include_callback(callbacks, ompt_callback_master);
+    #endif
 
     get_thread_data = (ompt_get_thread_data_t) lookup("ompt_get_thread_data");
     get_parallel_info = 
@@ -477,7 +481,11 @@ on_ompt_callback_work(
     NOTE: deprecated in 5.1 and replaced with ompt_callback_masked
  */
 static void
+#if defined(USE_OMPT_MASKED)
+on_ompt_callback_masked(
+#else
 on_ompt_callback_master(
+#endif
     ompt_scope_endpoint_t    endpoint,
     ompt_data_t             *parallel,
     ompt_data_t             *task,

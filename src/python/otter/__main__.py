@@ -7,7 +7,7 @@ from collections import Counter
 from otf2.events import Enter, Leave
 from otter.trace import AttributeLookup, RegionLookup, yield_chunks, process_chunk
 from otter.styling import colormap_region_type, colormap_edge_type, shapemap_region_type
-from otter.helpers import set_tuples, reject_task_create, attr_handler, label_clusters, descendants_if, attr_getter
+from otter.helpers import set_tuples, reject_task_create, attr_handler, label_clusters, descendants_if, attr_getter, pass_master_event
 
 
 def main():
@@ -99,6 +99,31 @@ def main():
     g.contract_vertices(g.vs['cluster'], combine_attrs=attr_handler(attr=attr))
     num_nodes = g.vcount()
     print("{:20s} {:6d} -> {:6d} ({:6d})".format("nodes updated", nodes_before, num_nodes, num_nodes-nodes_before))
+
+    # Collapse by master-begin/end event
+    def is_master(v):
+        return type(v['event']) in [Enter, Leave] and event_attr(v['event'], 'region_type') == 'master'
+    g.vs['cluster'] = label_clusters(g.vs, is_master, 'event')
+    nodes_before = num_nodes
+    print("contracting by master-begin/end event")
+    g.contract_vertices(g.vs['cluster'], combine_attrs=attr_handler(events=pass_master_event, attr=attr))
+    num_nodes = g.vcount()
+    print("{:20s} {:6d} -> {:6d} ({:6d})".format("nodes updated", nodes_before, num_nodes, num_nodes-nodes_before))
+
+    # Itermediate clean-up: for each master region, remove edges that connect 
+    # the same nodes as the master region
+    master_enter = filter(lambda v: event_attr(v['event'], 'region_type') == 'master' and event_attr(v['event'], 'endpoint') == 'enter', g.vs)
+    master_enter_nodes = {v['event']: v for v in master_enter}
+    master_leave = filter(lambda v: event_attr(v['event'], 'region_type') == 'master' and event_attr(v['event'], 'endpoint') == 'leave', g.vs)
+    master_node_pairs = ((master_enter_nodes[leave_node['master_enter_event']], leave_node) for leave_node in master_leave)
+    def yield_neighbours():
+        for enter_node, leave_node in master_node_pairs:
+            (p,), (s,) = enter_node.predecessors(), leave_node.successors()
+            yield p, s
+    neighbour_set = {(p,s) for p, s in yield_neighbours()}
+    redundant_edges = list(filter(lambda e: (e.source_vertex, e.target_vertex) in neighbour_set, g.es))
+    print(f"deleting redundant edges due to master regions: {len(redundant_edges)}")
+    g.delete_edges(redundant_edges)
 
     # Collapse by (task-ID, endpoint) to get 1 subgraph per task
     for v in g.vs:

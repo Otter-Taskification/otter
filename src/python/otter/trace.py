@@ -156,7 +156,8 @@ def yield_chunks(tr):
 
 
 def event_defines_new_chunk(e: otf2.events._EventMeta, a: AttributeLookup) -> bool:
-    return e.attributes.get(a['region_type'], None) in ['parallel', 'explicit_task', 'initial_task', 'single_executor']
+    return (e.attributes.get(a['region_type'], None) in ['parallel', 
+        'explicit_task', 'initial_task', 'single_executor', 'master'])
 
 
 def process_chunk(chunk, verbose=False):
@@ -177,6 +178,9 @@ def process_chunk(chunk, verbose=False):
 
     # Used to save taskgroup-enter event to match to taskgroup-leave event
     taskgroup_enter_event = None
+
+    # Match master-enter event to corresponding master-leave
+    master_enter_event = first_event if get_attr(first_event, 'region_type') == 'master' else None
 
     if chunk.kind == 'parallel':
         parallel_id = get_attr(first_event, 'unique_id')
@@ -222,8 +226,20 @@ def process_chunk(chunk, verbose=False):
                 node['taskgroup_enter_event'] = taskgroup_enter_event
                 taskgroup_enter_event = None
 
+        # Match master-enter/-leave events
+        if get_attr(event, 'region_type') in ['master']:
+            if type(event) is Enter:
+                master_enter_event = event
+            elif type(event) is Leave:
+                if master_enter_event is None:
+                    raise ValueError("master-enter event was None")
+                node['master_enter_event'] = master_enter_event
+                master_enter_event = None
+
         # Label nodes in a parallel chunk by their position for easier merging
-        if chunk.kind == 'parallel' and type(event) is not ThreadTaskCreate:
+        if (chunk.kind == 'parallel' 
+                and type(event) is not ThreadTaskCreate
+                and get_attr(event, 'region_type') != 'master'):
             node["parallel_sequence_id"] = (parallel_id, k)
             k += 1
 
@@ -236,7 +252,7 @@ def process_chunk(chunk, verbose=False):
                 node["parallel_sequence_id"] = (parallel_id, get_attr(event, 'endpoint'))
 
         # Add edge except for (single begin -> single end) and (parallel N begin -> parallel N end)
-        if events_bridge_region(prior_node['event'], node['event'], ['single_executor', 'single_other'], get_attr) \
+        if events_bridge_region(prior_node['event'], node['event'], ['single_executor', 'single_other', 'master'], get_attr) \
             or (events_bridge_region(prior_node['event'], node['event'], ['parallel'], get_attr)
                 and get_attr(node['event'], 'unique_id') == get_attr(prior_node['event'], 'unique_id')):
             pass

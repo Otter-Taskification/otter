@@ -51,6 +51,14 @@ def pass_single_executor(events, **kw):
     else:
         return events
 
+def pass_master_event(events, **kw):
+    """Possible argument to attr_handler()"""
+    region_types = {e.attributes[kw['attr']['region_type']] for e in events}
+    if region_types == {'master'} and len(set(events)) == 1:
+        return events[0]
+    else:
+        return events
+
 
 def reject_task_create(events, **kw):
     """Possible argument to attr_handler()"""

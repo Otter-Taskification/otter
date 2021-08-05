@@ -42,6 +42,7 @@ tool_setup(
     include_callback(callbacks, ompt_callback_implicit_task);
     include_callback(callbacks, ompt_callback_work);
     include_callback(callbacks, ompt_callback_sync_region);
+    include_callback(callbacks, ompt_callback_master);
 
     get_thread_data = (ompt_get_thread_data_t) lookup("ompt_get_thread_data");
     get_parallel_info = 
@@ -467,6 +468,26 @@ on_ompt_callback_work(
             trace_event_leave(thread_data->location);
         }
     }
+
+    return;
+}
+
+/* Used for callbacks that are dispatched when master regions start and end.
+
+    NOTE: deprecated in 5.1 and replaced with ompt_callback_masked
+ */
+static void
+on_ompt_callback_master(
+    ompt_scope_endpoint_t    endpoint,
+    ompt_data_t             *parallel,
+    ompt_data_t             *task,
+    const void              *codeptr_ra)
+{
+    thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
+    task_data_t *task_data = (task_data_t*) task->ptr;
+
+    LOG_DEBUG("[t=%lu] (event) master-%s", 
+        thread_data->id, endpoint==ompt_scope_begin?"begin":"end");
 
     return;
 }

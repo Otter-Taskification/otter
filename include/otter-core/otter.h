@@ -37,6 +37,7 @@
 #define implements_callback_implicit_task
 #define implements_callback_work
 #define implements_callback_sync_region
+#define implements_callback_master
 #include <otter-core/ompt-callback-prototypes.h>
 
 /* Used as an array index to keep track of unique ids for different entities */

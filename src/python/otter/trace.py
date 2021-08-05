@@ -262,7 +262,4 @@ def process_chunk(chunk, verbose=False):
     if chunk.kind != "explicit_task" and len(events) == 0 and g.ecount() == 0:
         g.add_edge(g.vs[0], g.vs[1])
 
-    if verbose and len(events) > 0:
-        print(chunk)
-
     return chunk.kind, task_links, task_crt_ts, task_leave_ts, g

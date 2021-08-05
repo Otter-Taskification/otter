@@ -168,6 +168,9 @@ def process_chunk(chunk, verbose=False):
     # Unpack events from chunk
     (_, (first_event, *events, last_event)), = chunk.items()
 
+    if verbose and len(events) > 0:
+        print(chunk)
+
     # Make the graph representing this chunk
     g = ig.Graph(directed=True)
     prior_node = g.add_vertex(event=first_event)

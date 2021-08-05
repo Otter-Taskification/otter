@@ -489,6 +489,15 @@ on_ompt_callback_master(
     LOG_DEBUG("[t=%lu] (event) master-%s", 
         thread_data->id, endpoint==ompt_scope_begin?"begin":"end");
 
+    if (endpoint == ompt_scope_begin)
+    {
+        trace_region_def_t *master_rgn = trace_new_master_region(
+            thread_data->location, task_data->id);
+        trace_event_enter(thread_data->location, master_rgn);
+    } else {
+        trace_event_leave(thread_data->location);
+    }
+
     return;
 }
 

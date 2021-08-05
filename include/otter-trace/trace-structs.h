@@ -15,6 +15,7 @@
 typedef struct trace_parallel_region_attr_t trace_parallel_region_attr_t;
 typedef struct trace_region_attr_empty_t    trace_region_attr_empty_t;
 typedef struct trace_wshare_region_attr_t   trace_wshare_region_attr_t;
+typedef struct trace_master_region_attr_t   trace_master_region_attr_t;
 typedef struct trace_sync_region_attr_t     trace_sync_region_attr_t;
 typedef struct trace_task_region_attr_t     trace_task_region_attr_t;
 
@@ -34,6 +35,11 @@ struct trace_parallel_region_attr_t {
 struct trace_wshare_region_attr_t {
     ompt_work_t     type;
     uint64_t        count;
+};
+
+/* Attributes of a master region */
+struct trace_master_region_attr_t {
+    uint64_t        thread;
 };
 
 /* Attributes of a sync region */
@@ -64,6 +70,7 @@ struct trace_region_def_t {
     union {
         trace_parallel_region_attr_t    parallel;
         trace_wshare_region_attr_t      wshare;
+        trace_master_region_attr_t      master;
         trace_sync_region_attr_t        sync;
         trace_task_region_attr_t        task;
     } attr;
@@ -110,6 +117,11 @@ trace_new_workshare_region(
     unique_id_t           encountering_task_id);
 
 trace_region_def_t *
+trace_new_master_region(
+    trace_location_def_t *loc,
+    unique_id_t           encountering_task_id);
+
+trace_region_def_t *
 trace_new_sync_region(
     trace_location_def_t *loc,
     ompt_sync_region_t    stype,
@@ -127,6 +139,7 @@ trace_new_task_region(
 void trace_destroy_location(trace_location_def_t *loc);
 void trace_destroy_parallel_region(trace_region_def_t *rgn);
 void trace_destroy_workshare_region(trace_region_def_t *rgn);
+void trace_destroy_master_region(trace_region_def_t *rgn);
 void trace_destroy_sync_region(trace_region_def_t *rgn);
 void trace_destroy_task_region(trace_region_def_t *rgn);
 

@@ -124,6 +124,32 @@ trace_new_workshare_region(
 }
 
 trace_region_def_t *
+trace_new_master_region(
+    trace_location_def_t *loc,
+    unique_id_t           encountering_task_id)
+{
+    trace_region_def_t *new = malloc(sizeof(*new));
+    *new = (trace_region_def_t) {
+        .ref        = get_unique_rgn_ref(),
+        .role       = OTF2_REGION_ROLE_MASTER,
+        .attributes = OTF2_AttributeList_New(),
+        .type       = trace_region_master,
+        .encountering_task_id = encountering_task_id,
+        .attr.master = {
+            .thread = loc->id
+        }
+    };
+
+    LOG_DEBUG("[t=%lu] created master region %u at %p",
+        loc->id, new->ref, new);
+
+    /* Add region definition to location's region definition queue */
+    queue_push(loc->rgn_defs, (data_item_t) {.ptr = new});
+
+    return new;    
+}
+
+trace_region_def_t *
 trace_new_sync_region(
     trace_location_def_t *loc,
     ompt_sync_region_t    stype, 
@@ -252,6 +278,10 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
         case trace_region_workshare:
             trace_destroy_workshare_region(r);
             break;
+
+        case trace_region_master:
+            trace_destroy_master_region(r);
+            break;
         
         case trace_region_synchronise:
             trace_destroy_sync_region(r);
@@ -281,6 +311,15 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
 
 void 
 trace_destroy_workshare_region(trace_region_def_t *rgn)
+{
+    LOG_DEBUG("region %p destroying attribute list %p", rgn, rgn->attributes);
+    OTF2_AttributeList_Delete(rgn->attributes);
+    LOG_DEBUG("region %p", rgn);
+    free(rgn);
+}
+
+void 
+trace_destroy_master_region(trace_region_def_t *rgn)
 {
     LOG_DEBUG("region %p destroying attribute list %p", rgn, rgn->attributes);
     OTF2_AttributeList_Delete(rgn->attributes);

@@ -233,7 +233,7 @@ def main():
         g.vs['style'] = 'filled'
         g.vs['shape'] = [shapemap_region_type[v['region_type']] for v in g.vs]
         g.es['color'] = [colormap_edge_type[e.attributes().get('type', None)] for e in g.es]
-    g.vs['label'] = ["{} {}".format(event_attr(v['event'], 'unique_id'), event_attr(v['event'], 'endpoint').upper()[0])
+    g.vs['label'] = ["{}".format(event_attr(v['event'], 'unique_id'))
                      if any(s in v['region_type'] for s in ['explicit', 'initial', 'parallel']) else " " for v in g.vs]
 
     g.simplify(combine_edges='first')

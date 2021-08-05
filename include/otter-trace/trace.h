@@ -49,7 +49,8 @@ typedef enum {
     trace_region_parallel,
     trace_region_workshare,
     trace_region_synchronise,
-    trace_region_task
+    trace_region_task,
+    trace_region_master
 } trace_region_type_t;
 
 /* Defined in trace-structs.h */

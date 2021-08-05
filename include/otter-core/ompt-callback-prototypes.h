@@ -1,3 +1,7 @@
+#if !defined(OTTER_OMPT_HEADER_H)
+#include <otter-ompt-header.h>
+#endif
+
 #if defined(implements_callback_thread_begin)
 static void
 on_ompt_callback_thread_begin(
@@ -194,6 +198,15 @@ on_ompt_callback_work(
 #endif
 
 #if defined(implements_callback_master)
+#if defined(USE_OMPT_MASKED)
+static void
+on_ompt_callback_masked(
+    ompt_scope_endpoint_t    endpoint,
+    ompt_data_t             *parallel,
+    ompt_data_t             *task,
+    const void              *codeptr_ra
+);
+#else
 static void
 on_ompt_callback_master(
     ompt_scope_endpoint_t    endpoint,
@@ -201,6 +214,7 @@ on_ompt_callback_master(
     ompt_data_t             *task,
     const void              *codeptr_ra
 );
+#endif
 #endif
 
 #if defined(implements_callback_target_map)

@@ -4,6 +4,7 @@
 #if defined(__clang__) && !(defined(__INTEL_COMPILER) || defined(__INTEL_CLANG_COMPILER))
 #include <ompt.h>
 #else
+#define USE_OMPT_MASKED
 #include <omp-tools.h>
 #endif
 

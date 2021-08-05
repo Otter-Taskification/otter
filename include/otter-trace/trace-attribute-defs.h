@@ -69,6 +69,8 @@ INCLUDE_LABEL(event_type,  task_create    )
 INCLUDE_LABEL(event_type,  task_schedule  )
 INCLUDE_LABEL(event_type,  task_enter     )
 INCLUDE_LABEL(event_type,  task_leave     )
+INCLUDE_LABEL(event_type,  master_begin   )
+INCLUDE_LABEL(event_type,  master_end     )
 
 /* Result of call to sched_getcpu() */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_INT32, cpu, "cpu on which the encountering thread is running")
@@ -118,6 +120,7 @@ INCLUDE_LABEL(region_type, single_other)
 INCLUDE_LABEL(region_type, distribute)
 INCLUDE_LABEL(region_type, loop)
 INCLUDE_LABEL(region_type, taskloop)
+INCLUDE_LABEL(region_type, master)
 /* sync region sub-types */
 INCLUDE_LABEL(region_type, barrier)
 INCLUDE_LABEL(region_type, barrier_implicit)

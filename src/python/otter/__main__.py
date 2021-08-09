@@ -164,7 +164,7 @@ def main():
             else:
                 for event in v['event']:
                     node_types.add(event_attr(event, 'region_type'))
-        if node_types in [{'barrier_implicit'}, {'barrier_explicit'}, {'taskwait'}] and \
+        if node_types in [{'barrier_implicit'}, {'barrier_explicit'}, {'taskwait'}, {'loop'}] and \
                 e.source_vertex.attributes().get('sync_cluster_id', None) is None and \
                 e.target_vertex.attributes().get('sync_cluster_id', None) is None:
             value = next(dummy_counter)

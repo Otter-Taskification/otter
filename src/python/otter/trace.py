@@ -130,6 +130,7 @@ def yield_chunks(tr):
     attr = AttributeLookup(tr.definitions.attributes)
     lmap_dict = defaultdict(lambda : LocationEventMap(list(), attr))
     stack_dict = defaultdict(deque)
+    nChunks = 0
     for location, event in tr.events:
         if type(event) in [otf2.events.ThreadBegin, otf2.events.ThreadEnd]:
             continue
@@ -143,6 +144,13 @@ def yield_chunks(tr):
                 lmap_dict[location] = LocationEventMap([(location, event)], attr)
             elif isinstance(event, Leave):
                 lmap_dict[location].append(location, event)
+                nChunks += 1
+                if nChunks % 100 == 0:
+                    if nChunks % 1000 == 0:
+                        print("Yielding chunks:", end=" ")
+                    print(f"{nChunks}", end=" ")
+                    if (nChunks+1) % 1000 == 0:
+                        print("")
                 yield lmap_dict[location]
                 # Continue with enclosing chunk
                 lmap_dict[location] = stack_dict[location].pop()

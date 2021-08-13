@@ -131,6 +131,7 @@ def yield_chunks(tr):
     lmap_dict = defaultdict(lambda : LocationEventMap(list(), attr))
     stack_dict = defaultdict(deque)
     nChunks = 0
+    print("yielding chunks:", end=" ", flush=True)
     for location, event in tr.events:
         if type(event) in [otf2.events.ThreadBegin, otf2.events.ThreadEnd]:
             continue
@@ -147,10 +148,12 @@ def yield_chunks(tr):
                 nChunks += 1
                 if nChunks % 100 == 0:
                     if nChunks % 1000 == 0:
-                        print("Yielding chunks:", end=" ")
-                    print(f"{nChunks}", end=" ")
-                    if (nChunks+1) % 1000 == 0:
-                        print("")
+                        print("yielding chunks:", end=" ", flush=True)
+                    print(f"{nChunks:4d}", end="", flush=True)
+                elif nChunks % 20 == 0:
+                    print(".", end="", flush=True)
+                if (nChunks+1) % 1000 == 0:
+                    print("", flush=True)
                 yield lmap_dict[location]
                 # Continue with enclosing chunk
                 lmap_dict[location] = stack_dict[location].pop()
@@ -161,6 +164,7 @@ def yield_chunks(tr):
         else:
             # Append event to current chunk for this location
             lmap_dict[location].append(location, event)
+    print("")
 
 
 def event_defines_new_chunk(e: otf2.events._EventMeta, a: AttributeLookup) -> bool:
@@ -209,6 +213,8 @@ def process_chunk(chunk, verbose=False):
             if type(event) is Enter:
                 task_links.append((get_attr(event, 'encountering_task_id'), get_attr(event, 'unique_id')))
                 task_crt_ts.append((get_attr(event, 'unique_id'), event.time))
+            elif type(event) is Leave:
+                task_leave_ts.append((get_attr(event, 'unique_id'), event.time))
             continue
 
         # The node representing this event

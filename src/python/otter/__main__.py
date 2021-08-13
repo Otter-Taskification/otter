@@ -74,6 +74,7 @@ def main():
         print(f"  {k:18s} {v:8d}")
 
     # Collect all chunks
+    print("combining chunks")
     g = ig.disjoint_union(g_list)
     num_nodes = g.vcount()
 
@@ -83,9 +84,9 @@ def main():
         g.vs['task_cluster_id'] = None
 
     # Collapse by parallel sequence ID
+    print("contracting by parallel sequence ID")
     g.vs['cluster'] = label_clusters(g.vs, lambda v: v['parallel_sequence_id'] is not None, 'parallel_sequence_id')
     nodes_before = num_nodes
-    print("contracting by parallel sequence ID")
     g.contract_vertices(g.vs['cluster'], combine_attrs=attr_handler(attr=attr))
     num_nodes = g.vcount()
     print("{:20s} {:6d} -> {:6d} ({:6d})".format("nodes updated", nodes_before, num_nodes, num_nodes-nodes_before))
@@ -93,9 +94,9 @@ def main():
     # Collapse by single-begin/end event
     def is_single_executor(v):
         return type(v['event']) in [Enter, Leave] and event_attr(v['event'], 'region_type') == 'single_executor'
+    print("contracting by single-begin/end event")
     g.vs['cluster'] = label_clusters(g.vs, is_single_executor, 'event')
     nodes_before = num_nodes
-    print("contracting by single-begin/end event")
     g.contract_vertices(g.vs['cluster'], combine_attrs=attr_handler(attr=attr))
     num_nodes = g.vcount()
     print("{:20s} {:6d} -> {:6d} ({:6d})".format("nodes updated", nodes_before, num_nodes, num_nodes-nodes_before))
@@ -103,9 +104,9 @@ def main():
     # Collapse by master-begin/end event
     def is_master(v):
         return type(v['event']) in [Enter, Leave] and event_attr(v['event'], 'region_type') == 'master'
+    print("contracting by master-begin/end event")
     g.vs['cluster'] = label_clusters(g.vs, is_master, 'event')
     nodes_before = num_nodes
-    print("contracting by master-begin/end event")
     g.contract_vertices(g.vs['cluster'], combine_attrs=attr_handler(events=pass_master_event, attr=attr))
     num_nodes = g.vcount()
     print("{:20s} {:6d} -> {:6d} ({:6d})".format("nodes updated", nodes_before, num_nodes, num_nodes-nodes_before))
@@ -129,9 +130,9 @@ def main():
     for v in g.vs:
         if type(v['event']) in [Enter, Leave] and event_attr(v['event'], 'region_type') == 'explicit_task':
             v['task_cluster_id'] = (event_attr(v['event'], 'unique_id'), event_attr(v['event'], 'endpoint'))
+    print("contracting by task ID & endpoint")
     g.vs['cluster'] = label_clusters(g.vs, lambda v: v['task_cluster_id'] is not None, 'task_cluster_id')
     nodes_before = num_nodes
-    print("contracting by task ID & endpoint")
     g.contract_vertices(g.vs['cluster'],
                         combine_attrs=attr_handler(events=reject_task_create, tuples=set_tuples, attr=attr))
     num_nodes = g.vcount()
@@ -147,9 +148,9 @@ def main():
         if type(v['event']) is list and set(map(type, v['event'])) in [{Enter}, {Leave}]:
             return (set(map(type, v['event'])) == {Leave} and v.indegree() == 0) or \
                    (set(map(type, v['event'])) == {Enter} and v.outdegree() == 0)
+    print("contracting by task ID where there are no nested nodes")
     g.vs['cluster'] = label_clusters(g.vs, is_empty_task_region, lambda v: v['task_cluster_id'][0])
     nodes_before = num_nodes
-    print("contracting by task ID where there are no nested nodes")
     g.contract_vertices(g.vs['cluster'], combine_attrs=attr_handler(events=reject_task_create, tuples=set_tuples, attr=attr))
     num_nodes = g.vcount()
     print("{:20s} {:6d} -> {:6d} ({:6d})".format("nodes updated", nodes_before, num_nodes, num_nodes-nodes_before))
@@ -169,18 +170,12 @@ def main():
                 e.target_vertex.attributes().get('sync_cluster_id', None) is None:
             value = next(dummy_counter)
             e.source_vertex['sync_cluster_id'] = e.target_vertex['sync_cluster_id'] = value
+    print("contracting redundant sync-enter/leave node pairs")
     g.vs['cluster'] = label_clusters(g.vs, lambda v: v['sync_cluster_id'] is not None, 'sync_cluster_id')
     nodes_before = num_nodes
-    print("contracting redundant sync-enter/leave node pairs")
     g.contract_vertices(g.vs['cluster'], combine_attrs=attr_handler(tuples=set_tuples, attr=attr))
     num_nodes = g.vcount()
     print("{:20s} {:6d} -> {:6d} ({:6d})".format("nodes updated", nodes_before, num_nodes, num_nodes-nodes_before))
-
-    ### TO DO ###
-    """
-    - handle multiple sequential chunks for explicit tasks
-    - apply task synchronisation edges
-    """
 
     # Unpack the region_type attribute
     for v in g.vs:
@@ -194,6 +189,7 @@ def main():
             v['endpoint'], = v['endpoint']
 
     # Apply taskwait synchronisation
+    print("applying taskwait synchronisation")
     for twnode in g.vs.select(lambda v: v['region_type'] == 'taskwait'):
         parents = set(task_tree.vs[event_attr(e, 'encountering_task_id')] for e in twnode['event'])
         tw_encounter_ts = {event_attr(e, 'encountering_task_id'): e.time for e in twnode['event'] if type(e) is Enter}
@@ -213,6 +209,7 @@ def main():
         return {event_attr(event, 'encountering_task_id'): event.time}
 
     # Apply taskgroup synchronisation
+    print("applying taskgroup synchronisation")
     for tgnode in g.vs.select(lambda v: v['region_type'] == 'taskgroup' and v['endpoint'] == 'leave'):
         tg_enter_ts = event_time_per_task(tgnode['taskgroup_enter_event'])
         tg_leave_ts = event_time_per_task(tgnode['event'])
@@ -229,6 +226,7 @@ def main():
 
     # Apply styling if desired
     if not args.nostyle:
+        print("applying node and edge styline")
         g.vs['color'] = [colormap_region_type[v['region_type']] for v in g.vs]
         g.vs['style'] = 'filled'
         g.vs['shape'] = [shapemap_region_type[v['region_type']] for v in g.vs]

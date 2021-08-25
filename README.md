@@ -1,5 +1,4 @@
-# Otter
-> An OMPT Tool for Tracing OpenMP Tasks
+# Otter - An OMPT Tool for Tracing OpenMP Tasks
 
 Otter is a tool for visualising the structure of task-based OpenMP programs allowing developers and researchers to see the true structure of their OpenMP 5.0 programs from the perspective of the OpenMP runtime, without any modification of the target application.
 

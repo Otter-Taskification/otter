@@ -99,6 +99,15 @@ def label_clusters(vs, condition, key):
     return [label[key(v)] if condition(v) else next(vertex_counter) for v in vs]
 
 
+def graph_slices(graph, s, t):
+    """Yield vertex ids in slices of the graph generated from the mincuts from s to t"""
+    mincuts = graph.all_st_mincuts(s, t)
+    vids = [set(c.partition[0]) for c in mincuts]
+    yield list(vids[0])
+    yield from [list(set(p)-set(q)) for p, q in zip(vids[1:], vids[0:-1])]
+    yield list(set(vids[-0]) - set(vids[-1]))
+
+
 # Functions useful in one specific place in the code:
 
 def descendants_if(node, cond=lambda x: True):

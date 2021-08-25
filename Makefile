@@ -72,15 +72,5 @@ $(OMPEXE_CPP): $(OMPSRC_CPP)
 	$(CXX) $(CFLAGS) $(DEBUG) -fopenmp src/otter-demo/$@.cpp -o $@
 	@echo $@ links to `ldd $@ | grep "[lib|libi|libg]omp"`
 
-run: $(BINS) cleanfiles
-	OMP_TOOL_LIBRARIES=`pwd`/$(OTTER) ./$(EXE)
-
-notes: docs/notes.tex
-	cd docs && pdflatex notes.tex && pandoc -s notes.tex -o README.md
-
 clean:
 	-rm -f lib/* obj/* $(BINS)
-
-cleanfiles:
-	@-rm -rf *.gv* *.svg *.pdf *.png *.txt *.csv* *.log *.json* \
-	docs/*.pdf docs/*.aux docs/*.gz docs/*.log

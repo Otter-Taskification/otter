@@ -135,7 +135,7 @@ Please post any of the above here: https://github.com/adamtuft/otter/issues
 
 ## Licensing
 
-Otter is released under the BSD 3-clause license. See LICENSE.md for details.
+Otter is released under the BSD 3-clause license. See [LICENSE.md](LICENSE.md) for details.
 
 Copyright (c) 2021, Adam Tuft
 All rights reserved.

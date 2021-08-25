@@ -26,5 +26,5 @@ We can speculate about the structure of this code in terms of tasks and their sy
 The nodes of this graph represent the different OpenMP constructs that Otter can show:
 
 <p align="center">
-<img src="docs/node-symbol-table.svg" height="150" alt="The node styles representing the OpenMP constructs represented by Otter.">
+<img src="docs/node-symbol-table.svg" height="200" alt="The node styles representing the OpenMP constructs represented by Otter.">
 </p>

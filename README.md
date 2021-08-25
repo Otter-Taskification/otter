@@ -19,4 +19,6 @@ int fibonacci(int n) {
 
 We can speculate about the structure of this code in terms of tasks and their synchronisation, but how can we check that our ideas match reality? This is a challenge even for the simple code above, and soon becomes impossible for complex task-based code. We might try using performance analysis tools to trace or profile an application, providing a thread-centric view of a specific arrangement of tasks. While this gives us insight into the application's runtime performance, we would still struggle to get a clear picture of the application's overall structure. Using Otter we can observe the true structure of a task-based OpenMP application, all without modifying the application's source. Here is the result of applying Otter to a program using the Fibonacci function above:
 
+<p align="center">
 <img src="docs/listing2.svg" height="750" alt="The task-based structure of the Fibonacci function.">
+</p>

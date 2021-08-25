@@ -10,7 +10,7 @@ setup(name="otter",
       url="https://github.com/adamtuft/otter",
       packages=find_packages(),
       install_requires=[
-            'python-igraph'
+            'python-igraph==0.9.1'
       ],
       dependency_links=['https://perftools.pages.jsc.fz-juelich.de/cicd/otf2/']
       )

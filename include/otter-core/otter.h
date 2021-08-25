@@ -55,45 +55,4 @@ typedef enum unique_id_type_t {
 
 unique_id_t get_unique_id(unique_id_type_t id_type);
 
-/* Label the various kinds of scopes that a thread can encounter */
-typedef enum {
-
-    scope_unknown,
-
-    scope_parallel,
-
-    /* Worksharing scopes */
-    scope_sections,
-    scope_single,
-
-    /* Worksharing-loop scopes */
-    scope_loop,
-    scope_taskloop,
-
-    /* Synchronisation scopes */
-
-    scope_sync_taskgroup,
-
-    /* Standalone (i.e. no nested scopes) synchronisation scopes */
-    scope_sync_barrier,
-    scope_sync_barrier_implicit,
-    scope_sync_barrier_explicit,
-    scope_sync_barrier_implementation,
-    scope_sync_taskwait,
-
-    /* not needed for now, but may be later:
-        scope_distribute,
-        scope_sync_reduction
-    */
-
-} scope_type_t;
-
-/* ancestor level for innermost parallel region */
-#define INNER 0
-
-/* return values from ompt_get_parallel_info_t */
-#define PARALLEL_INFO_AVAIL     2
-#define PARALLEL_INFO_UNAVAIL   1
-#define PARALLEL_INFO_NONE      0
-
 #endif // OTTER_H

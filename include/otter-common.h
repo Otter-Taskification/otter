@@ -8,8 +8,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// Task tree use 9 bits to mask task type (extends ompt_task_flag_t)
-#define OMPT_TASK_TYPE_BITS 0xFF
+// Bits used by ompt_task_flag_t to indicate task type
+#define OMPT_TASK_TYPE_BITS 0x0F
 
 typedef uint64_t unique_id_t;
 

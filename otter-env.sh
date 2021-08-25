@@ -8,12 +8,13 @@ unset OTTER_APPEND_HOSTNAME
 # export OTTER_APPEND_HOSTNAME=
 
 # OTF2 trace directory
-export OTTER_OTF2_TRACE_PATH="scratch/trace"
+export OTTER_TRACE_PATH="scratch/trace"
 
 # OTF2 trace name
-export OTTER_OTF2_TRACE_NAME="Otter-OTF2-Archive"
+export OTTER_TRACE_NAME="archive"
 
-printf "%-25s %s\n" "OTTER_OTF2_TRACE:" $OTTER_OTF2_TRACE
+printf "%-25s %s\n" "OTTER_TRACE_PATH:" $OTTER_TRACE_PATH
+printf "%-25s %s\n" "OTTER_TRACE_NAME:" $OTTER_TRACE_NAME
 
 if [ -z "${OTTER_APPEND_HOSTNAME+x}" ];
 then
@@ -21,5 +22,3 @@ then
 else
 	printf "%-25s %s\n" "OTTER_APPEND_HOSTNAME:" "Yes"
 fi
-
-

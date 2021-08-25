@@ -33,9 +33,9 @@ The nodes of this graph represent the different OpenMP constructs that Otter can
 <img src="docs/node-symbol-table.svg" height="200" alt="The node styles representing the OpenMP constructs represented by Otter.">
 </p>
 
-# Getting Started
+## Getting Started
 
-## Prerequisites
+### Prerequisites
 
 The following dependencies should be installed before building Otter:
 
@@ -43,7 +43,7 @@ The following dependencies should be installed before building Otter:
 - [OTF2 v2.3](https://zenodo.org/record/4682684)
 - [`python-igraph` v0.9.1](https://pypi.org/project/python-igraph/0.9.1/)
 
-## Building Otter
+### Building Otter
 
 To build the runtime tool and install post-processing python components:
 
@@ -56,7 +56,7 @@ pip install src/python/
 
 You can also run `make all` to build several simple OpenMP programs which can be useful to check everything works as expected.
 
-## Using Otter
+### Using Otter
 
 There is no need to `make install` Otter - tracing a target application `omp-demo` is as simple as:
 
@@ -107,7 +107,7 @@ python3 -m otter trace/otter_trace.[pid]/otter_trace.[pid].otf2 -o graph.dot
 
 The graph, saved to `graph.dot`, can then be visualised using the `dot` command line tool included with [Graphviz](https://graphviz.org/) or a graph visualisation tool such as [yEd-Desktop or yEd-Live](https://www.yworks.com/\#products).
 
-# Features
+## Features
 
 - Trace the task creation and synchronisation constructs of an OpenMP 5.0 program without any modification of the source - no need to add any instrumentation to the target application.
 - Supports synchronisation due to taskwait and taskgroup constructs.
@@ -115,7 +115,7 @@ The graph, saved to `graph.dot`, can then be visualised using the `dot` command 
 - No additional thread synchronisation - won't accidentally serialise the target application.
 - Low runtime overhead.
 
-# Future Work
+## Future Work
 
 The future direction of development may include, in no particular order:
 
@@ -125,21 +125,21 @@ The future direction of development may include, in no particular order:
 - [ ] Support for GPU-offloaded tasks.
 - [ ] Stronger graph visualisation capabilities.
 
-# Contributing
+## Contributing
 
 Contributions are welcome! If you would like to contribute, please fork the repository and use the `contributions` branch. There is no specific style guide, although I would be grateful if you could code in a style consistent with that of the main project.
 
-# Issues, Questions and Feature Requests
+## Issues, Questions and Feature Requests
 
 Please post any of the above here: https://github.com/adamtuft/otter/issues
 
-# Licensing
+## Licensing
 
 Otter is released under the BSD 3-clause license. See LICENSE.md for details.
 
 Copyright (c) 2021, Adam Tuft
 All rights reserved.
 
-# Acknowledgements
+## Acknowledgements
 
 Otter was conceived and developed as the subject of a final project and dissertation for the the [Scientific Computing and Data Analysis MSc](https://miscada.phyip3.dur.ac.uk/) (MISCADA) at Durham University, UK. The author is grateful for the guidance and support of his supervisor Prof. Tobias Weinzierl and for the invaluable assistance provided by Dr. Holger Schulz.

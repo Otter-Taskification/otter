@@ -115,7 +115,7 @@ The graph, saved to `graph.dot`, can then be visualised using the `dot` command 
 - Supports synchronisation due to taskwait and taskgroup constructs.
 - Supports nested tasks and nested parallelism.
 - No additional thread synchronisation - won't accidentally serialise the target application.
-- Low runtime overhead.
+<!-- - Low runtime overhead. -->
 
 ## Future Work
 

@@ -15,6 +15,6 @@
 /scratch/
 /.vscode/
 
-workspace.code-workspace
+/workspace.code-workspace
 
 !/docs/*.svg

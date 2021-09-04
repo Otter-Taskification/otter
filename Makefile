@@ -9,6 +9,7 @@ NOWARN     = -Wno-unused-function -Wno-unused-variable
 CFLAGS     = -Wall -Werror $(NOWARN) $(INCLUDE) -DCC_VERSION="$(CC_VERSION)"
 LDFLAGS    = -L/opt/otf2/lib -L/ddn/data/$(USER)/local/lib
 DEBUG      = -g
+NDEBUG     = -DNDEBUG
 
 # MAIN OUTPUT
 OTTER    = lib/libotter.so
@@ -49,17 +50,17 @@ $(OTTER): $(OTTEROBJ) $(TRACEOBJ) $(DTYPEOBJ)
 # otter obj files
 obj/otter-%.o: src/otter-core/otter-%.c
 	@printf "==> compiling %s\n" $@
-	$(CC) $(CFLAGS) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_OTTER) $^ -fPIC -c -o $@
+	$(CC) $(CFLAGS) $(DEBUG) $(NDEBUG) -DDEBUG_LEVEL=$(DEBUG_OTTER) $^ -fPIC -c -o $@
 
 # trace obj files
 obj/trace-%.o: src/otter-trace/trace-%.c
 	@printf "==> compiling %s\n" $@
-	$(CC) $(CFLAGS) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_TRACE) $^ -fPIC -c -o $@
+	$(CC) $(CFLAGS) $(DEBUG) $(NDEBUG) -DDEBUG_LEVEL=$(DEBUG_TRACE) $^ -fPIC -c -o $@
 
 # dtype obj files
 obj/dt-%.o: src/otter-datatypes/dt-%.c
 	@printf "==> compiling %s\n" $@
-	$(CC) $(CFLAGS) $(DEBUG) -DDEBUG_LEVEL=$(DEBUG_DATATYPES) $^ -fPIC -c -o $@
+	$(CC) $(CFLAGS) $(DEBUG) $(NDEBUG) -DDEBUG_LEVEL=$(DEBUG_DATATYPES) $^ -fPIC -c -o $@
 
 # standalone OMP apps
 $(OMPEXE): $(OMPSRC)
@@ -74,3 +75,6 @@ $(OMPEXE_CPP): $(OMPSRC_CPP)
 
 clean:
 	-rm -f lib/* obj/* $(BINS)
+
+cleanlib:
+	-rm -f lib/* obj/*

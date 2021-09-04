@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <assert.h>
+
 // Bits used by ompt_task_flag_t to indicate task type
 #define OMPT_TASK_TYPE_BITS 0x0F
 

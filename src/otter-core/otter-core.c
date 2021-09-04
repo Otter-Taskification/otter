@@ -213,6 +213,15 @@ on_ompt_callback_parallel_end(
         LOG_ERROR("parallel end: null pointer");
     } else {
         parallel_data_t *parallel_data = parallel->ptr;
+
+#if !defined(NDEBUG)
+        {
+            trace_region_def_t *_rgn = NULL;
+            stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
+            assert((_rgn->type == trace_region_parallel));
+        }
+#endif
+
         trace_event_leave(thread_data->location);
         /* reset flag */
         thread_data->is_master_thread = false;
@@ -338,6 +347,14 @@ on_ompt_callback_task_schedule(
         next_task_data->id
     );
 
+#if !defined(NDEBUG)
+    {
+        trace_region_def_t *_rgn = NULL;
+        stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
+        assert((_rgn->type == trace_region_task));
+    }
+#endif
+
     if (prior_task_data->type == ompt_task_explicit 
         || prior_task_data->type == ompt_task_target)
     {
@@ -408,6 +425,15 @@ on_ompt_callback_implicit_task(
 
     } else {
 
+#if !defined(NDEBUG)
+        {
+            trace_region_def_t *_rgn = NULL;
+            stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
+            assert((_rgn->type == trace_region_task));
+            assert((_rgn->attr.task.type == ompt_task_initial) || (_rgn->attr.task.type == ompt_task_implicit));
+        }
+#endif
+
         task_data_t *implicit_task_data = (task_data_t*)task->ptr;
 
         /* Update implicit task status */
@@ -469,6 +495,18 @@ on_ompt_callback_work(
                 thread_data->location, wstype, count, task_data->id);
             trace_event_enter(thread_data->location, wshare_rgn);
         } else {
+
+        /* Assert that the region definition we are about to pop is a workshare
+           region */
+#if !defined(NDEBUG)
+        {
+            trace_region_def_t *_rgn = NULL;
+            stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
+            assert((_rgn->type == trace_region_workshare));
+        }
+#endif
+
+
             trace_event_leave(thread_data->location);
         }
     }
@@ -544,6 +582,15 @@ on_ompt_callback_sync_region(
             thread_data->location, kind, task_data->id);
         trace_event_enter(thread_data->location, sync_rgn);
     } else {
+
+#if !defined(NDEBUG)
+        {
+            trace_region_def_t *_rgn = NULL;
+            stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
+            assert((_rgn->type == trace_region_synchronise));
+        }
+#endif
+
         trace_event_leave(thread_data->location);
     }
     return;

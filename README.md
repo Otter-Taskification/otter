@@ -6,6 +6,14 @@ Otter is a tool for visualising the structure of task-based OpenMP programs allo
 
 Otter uses the OpenMP Tools interface in [OpenMP 5.0](https://www.openmp.org/spec-html/5.0/openmpch4.html) to observe task creation and synchronisation events, extracting from this data the structure of a target application independent of the particular scheduling of tasks at runtime.
 
+## Features
+
+- Trace the task creation and synchronisation constructs of an OpenMP 5.0 program without any modification of the source - no need to add any instrumentation to the target application.
+- Supports synchronisation due to taskwait and taskgroup constructs.
+- Supports nested tasks and nested parallelism.
+- No additional thread synchronisation - won't accidentally serialise the target application.
+<!-- - Low runtime overhead. -->
+
 ## Example
 
 Take this example code which uses nested tasks synchronised by a taskwait barrier to calculate the n<sup>th</sup> Fibonacci number:
@@ -23,7 +31,7 @@ int fibonacci(int n) {
 }
 ```
 
-We can speculate about the structure of this code in terms of tasks and their synchronisation, but how can we check that our ideas match reality? This is a challenge even for the simple code above, and soon becomes impossible for complex task-based code. We might try using performance analysis tools to trace or profile an application, providing a thread-centric view of a specific arrangement of tasks. While this gives us insight into the application's runtime performance, we would still struggle to get a clear picture of the application's overall structure. Using Otter we can observe the true structure of a task-based OpenMP application, all without modifying the application's source. Here is the result of applying Otter to a program using the Fibonacci function above:
+We can speculate about the structure of this code in terms of tasks and their synchronisation, but how can we check that our ideas match reality? This is a challenge even for the simple code above, and soon becomes impossible for complex task-based code. We might try using performance analysis tools to trace or profile an application, providing a thread-centric view of a specific arrangement of tasks. While this gives us insight into the application's runtime performance, we would still struggle to get a clear picture of the application's overall structure. Using Otter we can observe the true structure of a task-based OpenMP application, all without modifying the application's source. Here is the result of applying Otter to a program using the Fibonacci function above to calculate `fibonacci(5)`:
 
 <p align="center">
 <img src="docs/listing2.svg" height="750" alt="The task-based structure of the Fibonacci function.">
@@ -108,14 +116,6 @@ python3 -m otter trace/otter_trace.[pid]/otter_trace.[pid].otf2 -o graph.dot
 ```
 
 The graph, saved to `graph.dot`, can then be visualised using the `dot` command line tool included with [Graphviz](https://graphviz.org/) or a graph visualisation tool such as [yEd-Desktop or yEd-Live](https://www.yworks.com/\#products).
-
-## Features
-
-- Trace the task creation and synchronisation constructs of an OpenMP 5.0 program without any modification of the source - no need to add any instrumentation to the target application.
-- Supports synchronisation due to taskwait and taskgroup constructs.
-- Supports nested tasks and nested parallelism.
-- No additional thread synchronisation - won't accidentally serialise the target application.
-<!-- - Low runtime overhead. -->
 
 ## Future Work
 

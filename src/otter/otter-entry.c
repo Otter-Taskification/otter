@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <macros/general.h>
-#include <macros/debug.h>
-#include <macros/callback.h>
-#include <otter-ompt-header.h>
-#include <otter-core/otter-entry.h>
-#include <otter-core/otter-environment-variables.h>
+#include "otter/otter-version.h"
+#include "otter/general.h"
+#include "otter/debug.h"
+#include "otter/callback.h"
+#include "otter/otter-ompt-header.h"
+#include "otter/otter-entry.h"
+#include "otter/otter-environment-variables.h"
 
 /* Entry & exit functions passed back to the OMP runtime */
 static int ompt_initialise(ompt_function_lookup_t, int, ompt_data_t *);
@@ -22,7 +23,12 @@ ompt_start_tool(
     const char  *runtime_version)
 {
     fprintf(stderr, "%s, OMP v. %u\n", runtime_version, omp_version);
-    fprintf(stderr, "Otter was compiled with %s\n", TO_STRING(CC_VERSION));
+    fprintf(stderr, "Otter v%s.%s.%s was compiled with %s\n",
+        OTTER_VERSION_MAJOR,
+        OTTER_VERSION_MINOR,
+        OTTER_VERSION_PATCH,
+        TO_STRING(CC_VERSION)
+    );
 
     static ompt_start_tool_result_t result;
     result.initialize    = &ompt_initialise;

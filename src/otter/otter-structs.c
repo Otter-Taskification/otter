@@ -1,10 +1,10 @@
 #include <stdint.h>
 #include <stdlib.h>
-#include <otter-ompt-header.h>
-#include <otter-core/otter.h>
-#include <otter-core/otter-structs.h>
-#include <otter-trace/trace.h>
-#include <otter-trace/trace-structs.h>
+#include "otter/otter-ompt-header.h"
+#include "otter/otter.h"
+#include "otter/otter-structs.h"
+#include "otter/trace.h"
+#include "otter/trace-structs.h"
 
 parallel_data_t *
 new_parallel_data(

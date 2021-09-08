@@ -14,16 +14,16 @@
 #include <otf2/otf2.h>
 #include <otf2/OTF2_Pthread_Locks.h>
 
-#include <macros/debug.h>
-#include <otter-common.h>
-#include <otter-core/otter-environment-variables.h>
-#include <otter-trace/trace.h>
-#include <otter-trace/trace-structs.h>
-#include <otter-trace/trace-attributes.h>
-#include <otter-trace/trace-lookup-macros.h>
+#include "otter/debug.h"
+#include "otter/otter-common.h"
+#include "otter/otter-environment-variables.h"
+#include "otter/trace.h"
+#include "otter/trace-structs.h"
+#include "otter/trace-attributes.h"
+#include "otter/trace-lookup-macros.h"
 
-#include <otter-datatypes/queue.h>
-#include <otter-datatypes/stack.h>
+#include "otter/queue.h"
+#include "otter/stack.h"
 
 static uint64_t get_timestamp(void);
 
@@ -213,7 +213,7 @@ trace_initialise_archive(otter_opt_t *opt)
     #define INCLUDE_LABEL(Name, Label)                                         \
         OTF2_GlobalDefWriter_WriteString(                                      \
             Defs, attr_label_ref[attr_##Name##_##Label], #Label);
-    #include <otter-trace/trace-attribute-defs.h>
+    #include "otter/trace-attribute-defs.h"
 
     /* define attributes which can be referred to later by the enum 
        attr_name_enum_t */
@@ -222,7 +222,7 @@ trace_initialise_archive(otter_opt_t *opt)
             attr_name_ref[attr_##Name][0],                                     \
             attr_name_ref[attr_##Name][1],                                     \
             Type);
-    #include <otter-trace/trace-attribute-defs.h>
+    #include "otter/trace-attribute-defs.h"
 
     return true;
 }
@@ -336,7 +336,11 @@ trace_write_region_definition(trace_region_def_t *rgn)
                 0, 0, 0); /* source file, begin line no., end line no. */
             break;
         }
+#if defined(USE_OMPT_MASKED)
+        case trace_region_masked:
+#else
         case trace_region_master:
+#endif
         {
             OTF2_GlobalDefWriter_WriteRegion(Defs,
                 rgn->ref,
@@ -420,8 +424,13 @@ trace_add_common_event_attributes(trace_region_def_t *rgn)
             SYNC_TYPE_TO_STR_REF(rgn->attr.sync.type) :
         rgn->type == trace_region_task ? 
             TASK_TYPE_TO_STR_REF(rgn->attr.task.type) :
-        rgn->type == trace_region_master ? 
-            attr_label_ref[attr_region_type_master]   :
+        rgn->type == 
+#if defined(USE_OMPT_MASKED)
+            trace_region_masked 
+#else
+            trace_region_master
+#endif
+        ? attr_label_ref[attr_region_type_master]   :
         attr_label_ref[attr_region_type_task]
     );
     CHECK_OTF2_ERROR_CODE(r);
@@ -638,8 +647,13 @@ trace_event_enter(
             attr_label_ref[attr_event_type_workshare_begin] :
         region->type == trace_region_synchronise ?
             attr_label_ref[attr_event_type_sync_begin] :
-        region->type == trace_region_master ?
-            attr_label_ref[attr_event_type_master_begin] :
+        region->type == 
+#if defined(USE_OMPT_MASKED)
+            trace_region_masked 
+#else
+            trace_region_master
+#endif        
+         ? attr_label_ref[attr_event_type_master_begin] :
         attr_label_ref[attr_event_type_task_enter]
     );
 
@@ -653,7 +667,11 @@ trace_event_enter(
     case trace_region_workshare: trace_add_workshare_attributes(region); break;
     case trace_region_synchronise: trace_add_sync_attributes(region); break;
     case trace_region_task: trace_add_task_attributes(region); break;
+#if defined(USE_OMPT_MASKED)
+    case trace_region_masked: trace_add_master_attributes(region); break;
+#else
     case trace_region_master: trace_add_master_attributes(region); break;
+#endif
     default:
         LOG_ERROR("unhandled region type %d", region->type);
         abort();
@@ -728,8 +746,13 @@ trace_event_leave(trace_location_def_t *self)
             attr_label_ref[attr_event_type_workshare_end] :
         region->type == trace_region_synchronise ?
             attr_label_ref[attr_event_type_sync_end] :
-        region->type == trace_region_master ?
-            attr_label_ref[attr_event_type_master_end] :
+        region->type == 
+#if defined(USE_OMPT_MASKED)
+            trace_region_masked 
+#else
+            trace_region_master
+#endif        
+          ? attr_label_ref[attr_event_type_master_end] :
         attr_label_ref[attr_event_type_task_leave]
     );
 
@@ -743,7 +766,11 @@ trace_event_leave(trace_location_def_t *self)
     case trace_region_workshare: trace_add_workshare_attributes(region); break;
     case trace_region_synchronise: trace_add_sync_attributes(region); break;
     case trace_region_task: trace_add_task_attributes(region); break;
+#if defined(USE_OMPT_MASKED)
+    case trace_region_masked: trace_add_master_attributes(region); break;
+#else
     case trace_region_master: trace_add_master_attributes(region); break;
+#endif       
     default:
         LOG_ERROR("unhandled region type %d", region->type);
         abort();

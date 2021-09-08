@@ -11,6 +11,7 @@
 
 /omp-*
 
+/build*/
 /trace/
 /scratch/
 /.vscode/
@@ -18,3 +19,5 @@
 /workspace.code-workspace
 
 !/docs/*.svg
+
+/include/otter/otter-version.h

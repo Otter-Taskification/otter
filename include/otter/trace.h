@@ -6,8 +6,8 @@
 #include <stdbool.h>
 #include <otf2/otf2.h>
 
-#include <otter-ompt-header.h>
-#include <otter-common.h>
+#include "otter/otter-ompt-header.h"
+#include "otter/otter-common.h"
 
 #define DEFAULT_LOCATION_GRP 0 // OTF2_UNDEFINED_LOCATION_GROUP
 #define DEFAULT_SYSTEM_TREE  0
@@ -51,7 +51,11 @@ typedef enum {
     trace_region_workshare,
     trace_region_synchronise,
     trace_region_task,
+#if defined(USE_OMPT_MASKED)
+    trace_region_masked
+#else
     trace_region_master
+#endif
 } trace_region_type_t;
 
 /* Defined in trace-structs.h */

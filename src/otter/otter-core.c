@@ -7,18 +7,18 @@
 
 #include <otf2/otf2.h>
 
-#include <macros/debug.h>
-#include <macros/callback.h>
+#include "otter/debug.h"
+#include "otter/callback.h"
 
-#include <otter-ompt-header.h>
+#include "otter/otter-ompt-header.h"
 
-#include <otter-common.h>
-#include <otter-core/otter.h>
-#include <otter-core/otter-structs.h>
-#include <otter-core/otter-entry.h>
-#include <otter-core/otter-environment-variables.h>
-#include <otter-trace/trace.h>
-#include <otter-trace/trace-structs.h>
+#include "otter/otter-common.h"
+#include "otter/otter.h"
+#include "otter/otter-structs.h"
+#include "otter/otter-entry.h"
+#include "otter/otter-environment-variables.h"
+#include "otter/trace.h"
+#include "otter/trace-structs.h"
 
 /* Static function prototypes */
 static void print_resource_usage(void);

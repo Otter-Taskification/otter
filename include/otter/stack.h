@@ -6,8 +6,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
-#include <macros/debug.h>
-#include <otter-datatypes/datatypes-common.h>
+#include "otter/debug.h"
+#include "otter/datatypes-common.h"
 
 typedef struct stack_t stack_t;
 

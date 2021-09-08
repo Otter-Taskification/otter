@@ -9,16 +9,16 @@
 #include <otf2/otf2.h>
 #include <otf2/OTF2_Pthread_Locks.h>
 
-#include <macros/general.h>
-#include <macros/debug.h>
-#include <otter-ompt-header.h>
-#include <otter-common.h>
-#include <otter-trace/trace.h>
-#include <otter-trace/trace-lookup-macros.h>
-#include <otter-trace/trace-structs.h>
+#include "otter/general.h"
+#include "otter/debug.h"
+#include "otter/otter-ompt-header.h"
+#include "otter/otter-common.h"
+#include "otter/trace.h"
+#include "otter/trace-lookup-macros.h"
+#include "otter/trace-structs.h"
 
-#include <otter-datatypes/queue.h>
-#include <otter-datatypes/stack.h>
+#include "otter/queue.h"
+#include "otter/stack.h"
 
 /* Defined in trace.c */
 extern OTF2_Archive *Archive;
@@ -134,7 +134,11 @@ trace_new_master_region(
         .ref        = get_unique_rgn_ref(),
         .role       = OTF2_REGION_ROLE_MASTER,
         .attributes = OTF2_AttributeList_New(),
+#if defined(USE_OMPT_MASKED)
+        .type       = trace_region_masked,
+#else
         .type       = trace_region_master,
+#endif
         .encountering_task_id = encountering_task_id,
         .attr.master = {
             .thread = loc->id
@@ -280,7 +284,11 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
             trace_destroy_workshare_region(r);
             break;
 
+#if defined(USE_OMPT_MASKED)
+        case trace_region_masked:
+#else
         case trace_region_master:
+#endif
             trace_destroy_master_region(r);
             break;
         

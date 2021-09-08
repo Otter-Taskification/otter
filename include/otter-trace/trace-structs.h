@@ -143,4 +143,7 @@ void trace_destroy_master_region(trace_region_def_t *rgn);
 void trace_destroy_sync_region(trace_region_def_t *rgn);
 void trace_destroy_task_region(trace_region_def_t *rgn);
 
+/* pretty-print region definitions */
+void trace_region_pprint(FILE *fp, trace_region_def_t *r, const char func[], const int line);
+
 #endif // OTTER_TRACE_STRUCTS_H

@@ -1,6 +1,7 @@
 #if !defined(OTTER_TRACE_H)
 #define OTTER_TRACE_H
 
+#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <otf2/otf2.h>

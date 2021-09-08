@@ -9,6 +9,8 @@
 *.dot
 *.graphml
 
+!CMakeLists.txt
+
 /omp-*
 
 /build*/

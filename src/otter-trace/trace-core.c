@@ -602,6 +602,10 @@ trace_event_enter(
 
     LOG_DEBUG("[t=%lu] enter region %p", self->id, region);
 
+#if !defined(NDEBUG)
+    trace_region_pprint(stderr, region, __func__, __LINE__);
+#endif
+
     #if DEBUG_LEVEL >= 4
     stack_print(self->rgn_stack);
     #endif
@@ -697,6 +701,10 @@ trace_event_leave(trace_location_def_t *self)
     stack_pop(self->rgn_stack, (data_item_t*) &region);
 
     LOG_DEBUG("[t=%lu] leave region %p", self->id, region);
+
+#if !defined(NDEBUG)
+    trace_region_pprint(stderr, region, __func__, __LINE__);
+#endif
 
     if (region->type == trace_region_parallel)
     {

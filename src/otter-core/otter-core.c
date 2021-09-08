@@ -218,6 +218,7 @@ on_ompt_callback_parallel_end(
         {
             trace_region_def_t *_rgn = NULL;
             stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
+            trace_region_pprint(stderr, _rgn, __func__, __LINE__);
             assert((_rgn->type == trace_region_parallel));
         }
 #endif
@@ -347,10 +348,11 @@ on_ompt_callback_task_schedule(
         next_task_data->id
     );
 
-#if !defined(NDEBUG)
+#if !defined(NDEBUG) && 0
     {
         trace_region_def_t *_rgn = NULL;
         stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
+        trace_region_pprint(stderr, _rgn, __func__, __LINE__);
         assert((_rgn->type == trace_region_task));
     }
 #endif
@@ -429,6 +431,8 @@ on_ompt_callback_implicit_task(
         {
             trace_region_def_t *_rgn = NULL;
             stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
+            if (_rgn->type != trace_region_task)
+                trace_region_pprint(stderr, _rgn, __func__, __LINE__);
             assert((_rgn->type == trace_region_task));
             assert((_rgn->attr.task.type == ompt_task_initial) || (_rgn->attr.task.type == ompt_task_implicit));
         }
@@ -502,6 +506,8 @@ on_ompt_callback_work(
         {
             trace_region_def_t *_rgn = NULL;
             stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
+            if (_rgn->type != trace_region_workshare)
+                trace_region_pprint(stderr, _rgn, __func__, __LINE__);
             assert((_rgn->type == trace_region_workshare));
         }
 #endif
@@ -587,6 +593,8 @@ on_ompt_callback_sync_region(
         {
             trace_region_def_t *_rgn = NULL;
             stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
+            if (_rgn->type != trace_region_synchronise)
+                trace_region_pprint(stderr, _rgn, __func__, __LINE__);
             assert((_rgn->type == trace_region_synchronise));
         }
 #endif

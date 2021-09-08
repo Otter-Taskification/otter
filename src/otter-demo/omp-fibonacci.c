@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
 
     int n = atoi(argv[1]);
 
-    #pragma omp parallel shared(n) num_threads(4)
+    #pragma omp parallel shared(n)
     {
         #pragma omp single
         printf("f(%d) = %d\n", n, f(n));

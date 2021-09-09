@@ -1,17 +1,20 @@
 # Main CMakeLists.txt for Otter
 
+execute_process (
+    COMMAND bash -c "${CMAKE_C_COMPILER} --version | head -n 1" 
+    OUTPUT_VARIABLE CC_VERSION)
+message("CC_VERSION=${CC_VERSION}")
+
+include(CheckSymbolExists)
+include(CheckIncludeFile)
+
 cmake_minimum_required(VERSION 3.10)
 
 project(Otter VERSION 0.1.0)
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
-configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/otter-version.h.in
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/otter-version.h
-)
-
-# Define the library's name (mylib) and its source files
+# Define target library and source files
 add_library(otter 
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/dt-queue.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/dt-stack.c
@@ -40,54 +43,56 @@ add_library(otter
     ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/trace-structs.h
 )
 
-target_include_directories(otter PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-
 # Specify Otter install location
 install(TARGETS otter DESTINATION lib)
 
+# Configure version header
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/otter-version.h.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/otter-version.h
+)
+
+# Headers required to compile Otter
+target_include_directories(otter PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 # Link to dependencies
 target_link_libraries(otter pthread)
+
+# # # OMPT # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Check for omp-tools.h
+CHECK_INCLUDE_FILE(omp-tools.h HAVE_OMP_TOOLS_H)
+if(NOT HAVE_OMP_TOOLS_H)
+    message(FATAL_ERROR "\tCan't find omp-tools.h - did you specify an OMPT-supporting compiler?")
+endif()
+# Check for symbol in omp-tools.h - more recent compilers come with 5.1 versions
+# of some OMPT constructs e.g. master -> masked.
+check_symbol_exists(DEPRECATED_51 omp-tools.h HAVE_DEPRECATED_51)
+if(HAVE_DEPRECATED_51)
+    message("++ Using 5.1")
+    add_compile_definitions(USE_OMPT_MASKED)
+else()
+    message("++ Not using 5.1")
+endif()
+
+# # # OTF2 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Add OTF2 include directory if it was specified
+set(HAVE_OTF2_INCLUDE_DIR FALSE)
+if(DEFINED OTF2_INCLUDE_DIR)
+    target_include_directories(otter PRIVATE ${OTF2_INCLUDE_DIR})
+    set(HAVE_OTF2_INCLUDE_DIR TRUE)
+    message("++ OTF2 include dir was specified")
+endif()
+
 target_link_libraries(otter otf2)
 # Add library directory for OTF2 if it was specified
 if(DEFINED OTF2_LIB_DIR)
     target_link_libraries(otter -L${OTF2_LIB_DIR})
 endif()
 
-# Add OTF2 include directory if it was specified
-if(DEFINED OTF2_INCLUDE_DIR)
-    target_include_directories(otter PUBLIC 
-        ${OTF2_INCLUDE_DIR}
-    )
-    set(HAVE_OTF2_INCLUDE_DIR TRUE)
-    message("OTF2 include dir was specified")
-else()
-    set(HAVE_OTF2_INCLUDE_DIR FALSE)
-    message("OTF2 include dir was NOT specified")
-endif()
-
-include(CheckSymbolExists)
-check_symbol_exists(DEPRECATED_51 omp-tools.h HAVE_DEPRECATED_51)
-if(HAVE_DEPRECATED_51)
-    message("Using 5.1")
-    add_compile_definitions(USE_OMPT_MASKED)
-else()
-    message("Not using 5.1")
-endif()
-
-# Check that we can find otf2.h
-include(CheckIncludeFile)
+# Check for otf2.h
 set(CMAKE_REQUIRED_INCLUDES $<$<BOOL:HAVE_OTF2_INCLUDE_DIR>:${OTF2_INCLUDE_DIR}>)
 CHECK_INCLUDE_FILE(otf2/otf2.h HAVE_OTF2_H)
 if(NOT HAVE_OTF2_H)
-    message(FATAL_ERROR "Can't find otf2.h - did you specify OTF2_INCLUDE_DIR correctly?")
+    message(FATAL_ERROR "Can't find otf2.h - did you specify OTF2_INCLUDE_DIR?")
 endif()
-
-
-
-# Check which ompt header we can find
-CHECK_INCLUDE_FILE(omp-tools.h HAVE_OMP_TOOLS_H)
-if(NOT HAVE_OMP_TOOLS_H)
-    message(FATAL_ERROR "Can't find omp-tools.h - did you specify an OMPT-supporting compiler?")
-endif()
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

@@ -27,7 +27,7 @@ ompt_start_tool(
         OTTER_VERSION_MAJOR,
         OTTER_VERSION_MINOR,
         OTTER_VERSION_PATCH,
-        TO_STRING(CC_VERSION)
+        CC_VERSION
     );
 
     static ompt_start_tool_result_t result;

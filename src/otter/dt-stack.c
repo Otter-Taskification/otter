@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include <macros/debug.h>
-#include <otter-datatypes/stack.h>
+#include "otter/debug.h"
+#include "otter/stack.h"
 
 typedef struct node_t node_t;
 

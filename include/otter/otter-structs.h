@@ -3,9 +3,9 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <otter-ompt-header.h>
-#include <otter-core/otter.h>
-#include <otter-trace/trace.h>
+#include "otter/otter-ompt-header.h"
+#include "otter/otter.h"
+#include "otter/trace.h"
 
 /* forward declarations */
 typedef struct parallel_data_t parallel_data_t;

@@ -11,12 +11,12 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#include <otter-ompt-header.h>
+#include "otter/otter-ompt-header.h"
 
-#include <otter-common.h>
-#include <otter-core/otter-entry.h>
-#include <otter-datatypes/stack.h>
-#include <otter-trace/trace.h>
+#include "otter/otter-common.h"
+#include "otter/otter-entry.h"
+#include "otter/stack.h"
+#include "otter/trace.h"
 
 /* A naming convention was chosen for the callbacks so that each callback is 
    named after the event in ompt.h which it handles. The struct passed to the
@@ -38,7 +38,7 @@
 #define implements_callback_work
 #define implements_callback_sync_region
 #define implements_callback_master
-#include <otter-core/ompt-callback-prototypes.h>
+#include "otter/ompt-callback-prototypes.h"
 
 /* Used as an array index to keep track of unique ids for different entities */
 typedef enum unique_id_type_t {

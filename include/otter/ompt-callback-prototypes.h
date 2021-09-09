@@ -1,5 +1,5 @@
 #if !defined(OTTER_OMPT_HEADER_H)
-#include <otter-ompt-header.h>
+#include "otter/otter-ompt-header.h"
 #endif
 
 #if defined(implements_callback_thread_begin)

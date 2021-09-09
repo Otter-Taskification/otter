@@ -5,11 +5,11 @@
 #include <stdbool.h>
 #include <otf2/otf2.h>
 
-#include <otter-ompt-header.h>
-#include <otter-common.h>
-#include <otter-datatypes/queue.h>
-#include <otter-datatypes/stack.h>
-#include <otter-trace/trace.h>
+#include "otter/otter-ompt-header.h"
+#include "otter/otter-common.h"
+#include "otter/queue.h"
+#include "otter/stack.h"
+#include "otter/trace.h"
 
 /* Forward definitions */
 typedef struct trace_parallel_region_attr_t trace_parallel_region_attr_t;

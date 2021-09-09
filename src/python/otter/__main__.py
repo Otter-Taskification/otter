@@ -82,6 +82,7 @@ def main():
 
     if 'task_cluster_id' not in g.vs.attribute_names():
         g.vs['task_cluster_id'] = None
+    g.vs['sync_cluster_id'] = None
 
     # Collapse by parallel sequence ID
     print("contracting by parallel sequence ID")

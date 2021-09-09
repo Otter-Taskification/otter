@@ -1,7 +1,7 @@
 #if !defined(OTTER_MACROS_CALLBACK_H)
 #define OTTER_MACROS_CALLBACK_H
 
-#include <macros/debug.h>
+#include "otter/debug.h"
 
 /* Apply a macro to each of the possible values returned when setting a callback
    through ompt_set_callback */

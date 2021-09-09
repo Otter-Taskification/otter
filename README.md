@@ -57,7 +57,7 @@ To build the runtime tool and install post-processing python components:
 
 ```bash
 git clone https://github.com/adamtuft/otter.git && cd otter
-git checkout main
+git checkout dev
 mkdir build && cd build
 cmake -DCMAKE_C_COMPILER=clang \
     -DCMAKE_INSTALL_PREFIX=<preferred-install-dir> \

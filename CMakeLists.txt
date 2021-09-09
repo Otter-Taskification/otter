@@ -1,18 +1,30 @@
 # Main CMakeLists.txt for Otter
 
-execute_process (
-    COMMAND bash -c "${CMAKE_C_COMPILER} --version | head -n 1" 
-    OUTPUT_VARIABLE CC_VERSION)
-message("CC_VERSION=${CC_VERSION}")
+cmake_minimum_required(VERSION 3.10)
+
+project(Otter
+    VERSION 0.1.0
+    HOMEPAGE_URL https://github.com/adamtuft/otter
+    LANGUAGES C CXX Fortran
+)
+
+option(OTTER_WITH_EXAMPLES "Generate and build examples for demonstrating Otter" OFF)
+option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+set(OMP_FLAGS "-fopenmp" CACHE STRING "Flags passed when compiling examples")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 include(CheckSymbolExists)
 include(CheckIncludeFile)
 
-cmake_minimum_required(VERSION 3.10)
+if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    message(STATUS "Build type: Debug (default)")
+    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type (default Debug)" FORCE)
+endif()
 
-project(Otter VERSION 0.1.0)
-
-option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+execute_process (
+    COMMAND bash -c "${CMAKE_C_COMPILER} --version | head -n 1 | tr -d '\n'" 
+    OUTPUT_VARIABLE CC_VERSION)
+message("++ Detected C compiler: ${CC_VERSION}")
 
 # Define target library and source files
 add_library(otter 
@@ -96,3 +108,9 @@ if(NOT HAVE_OTF2_H)
     message(FATAL_ERROR "Can't find otf2.h - did you specify OTF2_INCLUDE_DIR?")
 endif()
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# # # Build examples for demonstrating Otter  # # # # # # # # # # # # # # #
+
+if (OTTER_WITH_EXAMPLES)
+    add_subdirectory(src/otter/examples)
+endif()

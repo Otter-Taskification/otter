@@ -10,7 +10,7 @@ Otter uses the OpenMP Tools interface in [OpenMP 5.0](https://www.openmp.org/spe
 - Supports synchronisation due to taskwait and taskgroup constructs.
 - Supports nested tasks and nested parallelism.
 - No additional thread synchronisation - won't accidentally serialise the target application.
-- Low runtime overhead.
+<!-- - Low runtime overhead. -->
 
 ## Example
 

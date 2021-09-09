@@ -12,6 +12,8 @@ option(OTTER_WITH_EXAMPLES "Generate and build examples for demonstrating Otter"
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 set(OMP_FLAGS "-fopenmp" CACHE STRING "Flags passed when compiling examples")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(OTF2_INCLUDE_DIR "/opt/otf2/include" CACHE STRING "OTF2 include directory")
+set(OTF2_LIB_DIR "/opt/otf2/lib" CACHE STRING "OTF2 library directory")
 
 include(CheckSymbolExists)
 include(CheckIncludeFile)
@@ -74,7 +76,7 @@ target_link_libraries(otter pthread)
 # Check for omp-tools.h
 CHECK_INCLUDE_FILE(omp-tools.h HAVE_OMP_TOOLS_H)
 if(NOT HAVE_OMP_TOOLS_H)
-    message(FATAL_ERROR "\tCan't find omp-tools.h - did you specify an OMPT-supporting compiler?")
+    message(FATAL_ERROR "Can't find omp-tools.h - did you specify an OMPT-supporting compiler?")
 endif()
 # Check for symbol in omp-tools.h - more recent compilers come with 5.1 versions
 # of some OMPT constructs e.g. master -> masked.
@@ -107,6 +109,28 @@ CHECK_INCLUDE_FILE(otf2/otf2.h HAVE_OTF2_H)
 if(NOT HAVE_OTF2_H)
     message(FATAL_ERROR "Can't find otf2.h - did you specify OTF2_INCLUDE_DIR?")
 endif()
+
+# Check OTF2 version found
+file(READ "${OTF2_INCLUDE_DIR}/otf2/OTF2_GeneralDefinitions.h" otf2_defs_h)
+
+string(REGEX MATCH "#define OTF2_VERSION_MAJOR[ \t]+[0-9]+" OTF2_VERSION_MAJOR_DEF "${otf2_defs_h}")
+string(REGEX REPLACE "#define OTF2" "" OTF2_VERSION_MAJOR_R "${OTF2_VERSION_MAJOR_DEF}")
+string(REGEX MATCH "[0-9]+" OTF2_VERSION_MAJOR "${OTF2_VERSION_MAJOR_R}")
+
+string(REGEX MATCH "#define OTF2_VERSION_MINOR[ \t]+[0-9]+" OTF2_VERSION_MINOR_DEF "${otf2_defs_h}")
+string(REGEX REPLACE "#define OTF2" "" OTF2_VERSION_MINOR_R "${OTF2_VERSION_MINOR_DEF}")
+string(REGEX MATCH "[0-9]+" OTF2_VERSION_MINOR "${OTF2_VERSION_MINOR_R}")
+
+string(REGEX MATCH "#define OTF2_VERSION_BUGFIX[ \t]+[0-9]+" OTF2_VERSION_BUGFIX_DEF "${otf2_defs_h}")
+string(REGEX REPLACE "#define OTF2" "" OTF2_VERSION_BUGFIX_R "${OTF2_VERSION_BUGFIX_DEF}")
+string(REGEX MATCH "[0-9]+" OTF2_VERSION_BUGFIX "${OTF2_VERSION_BUGFIX_R}")
+
+message("++ Using OTF2 v${OTF2_VERSION_MAJOR}.${OTF2_VERSION_MINOR}.${OTF2_VERSION_BUGFIX}")
+
+if(NOT "${OTF2_VERSION_MAJOR}.${OTF2_VERSION_MINOR}" STREQUAL "2.3")
+    message(FATAL_ERROR "Otter requires OTF2 v2.3")
+endif()
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # # # Build examples for demonstrating Otter  # # # # # # # # # # # # # # #

@@ -23,10 +23,52 @@ if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type (default Debug)" FORCE)
 endif()
 
+# execute_process (
+#     COMMAND bash -c "${CMAKE_C_COMPILER} --version | head -n 1 | tr -d '\n'" 
+#     OUTPUT_VARIABLE CC_VERSION)
+
+# Extract C compiler version as separate components
 execute_process (
-    COMMAND bash -c "${CMAKE_C_COMPILER} --version | head -n 1 | tr -d '\n'" 
-    OUTPUT_VARIABLE CC_VERSION)
-message("++ Detected C compiler: ${CC_VERSION}")
+    COMMAND bash -c "${CMAKE_C_COMPILER} -dumpversion | tr -d '\n'  | sed 's/\\./\\;/g'" 
+    OUTPUT_VARIABLE C_COMPILER_VERSION_LIST
+)
+list(GET C_COMPILER_VERSION_LIST 0 C_COMPILER_VERSION_MAJOR)
+list(GET C_COMPILER_VERSION_LIST 1 C_COMPILER_VERSION_MINOR)
+list(GET C_COMPILER_VERSION_LIST 2 C_COMPILER_VERSION_BUGFIX)
+
+# Build version string component-wise
+set(C_COMPILER_VERSION ${C_COMPILER_VERSION_MAJOR})
+if(NOT "${C_COMPILER_VERSION_MINOR}" STREQUAL "")
+    set(C_COMPILER_VERSION "${C_COMPILER_VERSION}.${C_COMPILER_VERSION_MINOR}")
+    if(NOT "${C_COMPILER_VERSION_BUGFIX}" STREQUAL "")
+        set(C_COMPILER_VERSION "${C_COMPILER_VERSION}.${C_COMPILER_VERSION_BUGFIX}")
+    endif()
+endif()
+
+message(STATUS "C compiler selected: ${CMAKE_C_COMPILER_ID} ${C_COMPILER_VERSION}")
+
+# Detect requirement to use 5.1 features instead of deprecated 5.1 features
+set(USE_OMPT_51 0)
+set(USE_OMPT_51_PARTIAL 0)
+if(CMAKE_C_COMPILER_ID STREQUAL "Intel")
+    if("${C_COMPILER_VERSION}" VERSION_GREATER "2021.2")
+        message(STATUS "Detected Intel >2021.2")
+        set(USE_OMPT_51 1)
+    elseif("${C_COMPILER_VERSION}" VERSION_LESS_EQUAL "2021.2")
+        # icc 2021.2 omp-tools.h isn't consistent with 5.0->5.1 deprecated features
+        message(STATUS "Detected Intel <=2021.2")
+        message(STATUS "Must use OMPT 5.0/5.1 combined")
+        set(USE_OMPT_51 1)
+        set(USE_OMPT_51_PARTIAL 1)
+    endif()
+elseif(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+    if("${C_COMPILER_VERSION}" VERSION_GREATER "11.1")
+        message(STATUS "Detected Clang >11")
+        set(USE_OMPT_51 1)
+    endif()
+else()
+    message(WARN "Selected C compiler may not be supported")
+endif()
 
 # Define target library and source files
 add_library(otter 
@@ -78,14 +120,13 @@ CHECK_INCLUDE_FILE(omp-tools.h HAVE_OMP_TOOLS_H)
 if(NOT HAVE_OMP_TOOLS_H)
     message(FATAL_ERROR "Can't find omp-tools.h - did you specify an OMPT-supporting compiler?")
 endif()
-# Check for symbol in omp-tools.h - more recent compilers come with 5.1 versions
-# of some OMPT constructs e.g. master -> masked.
-check_symbol_exists(DEPRECATED_51 omp-tools.h HAVE_DEPRECATED_51)
-if(HAVE_DEPRECATED_51)
-    message("++ Using 5.1")
-    add_compile_definitions(USE_OMPT_MASKED)
+
+# Flag that we should use OMPT 5.1 features
+if(USE_OMPT_51)
+    message(STATUS "Using OMPT 5.1")
+    target_compile_definitions(otter PRIVATE USE_OMPT_MASKED)
 else()
-    message("++ Not using 5.1")
+    message(STATUS "Not using OMPT 5.1")
 endif()
 
 # # # OTF2 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -94,7 +135,7 @@ set(HAVE_OTF2_INCLUDE_DIR FALSE)
 if(DEFINED OTF2_INCLUDE_DIR)
     target_include_directories(otter PRIVATE ${OTF2_INCLUDE_DIR})
     set(HAVE_OTF2_INCLUDE_DIR TRUE)
-    message("++ OTF2 include dir was specified")
+    message(STATUS "OTF2 include dir was specified")
 endif()
 
 target_link_libraries(otter otf2)
@@ -125,7 +166,7 @@ string(REGEX MATCH "#define OTF2_VERSION_BUGFIX[ \t]+[0-9]+" OTF2_VERSION_BUGFIX
 string(REGEX REPLACE "#define OTF2" "" OTF2_VERSION_BUGFIX_R "${OTF2_VERSION_BUGFIX_DEF}")
 string(REGEX MATCH "[0-9]+" OTF2_VERSION_BUGFIX "${OTF2_VERSION_BUGFIX_R}")
 
-message("++ Using OTF2 v${OTF2_VERSION_MAJOR}.${OTF2_VERSION_MINOR}.${OTF2_VERSION_BUGFIX}")
+message(STATUS "Using OTF2 v${OTF2_VERSION_MAJOR}.${OTF2_VERSION_MINOR}.${OTF2_VERSION_BUGFIX}")
 
 if(NOT "${OTF2_VERSION_MAJOR}.${OTF2_VERSION_MINOR}" STREQUAL "2.3")
     message(FATAL_ERROR "Otter requires OTF2 v2.3")

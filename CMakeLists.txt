@@ -1,6 +1,6 @@
 # Main CMakeLists.txt for Otter
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 
 project(Otter
     VERSION 0.1.0

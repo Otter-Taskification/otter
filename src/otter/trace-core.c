@@ -611,7 +611,7 @@ trace_event_enter(
 
     LOG_DEBUG("[t=%lu] enter region %p", self->id, region);
 
-#if !defined(NDEBUG)
+#if !defined(NDEBUG) && DEBUG_LEVEL>=3
     trace_region_pprint(stderr, region, __func__, __LINE__);
 #endif
 
@@ -720,7 +720,7 @@ trace_event_leave(trace_location_def_t *self)
 
     LOG_DEBUG("[t=%lu] leave region %p", self->id, region);
 
-#if !defined(NDEBUG)
+#if !defined(NDEBUG) && DEBUG_LEVEL>=3
     trace_region_pprint(stderr, region, __func__, __LINE__);
 #endif
 

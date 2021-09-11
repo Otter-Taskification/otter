@@ -5,7 +5,7 @@
 #include <sys/time.h>       // getrusage
 #include <sys/resource.h>   // getrusage
 
-#include <otf2/otf2.h>
+// #include <otf2/otf2.h>
 
 #include "otter/debug.h"
 #include "otter/callback.h"
@@ -218,7 +218,10 @@ on_ompt_callback_parallel_end(
         {
             trace_region_def_t *_rgn = NULL;
             stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
-            trace_region_pprint(stderr, _rgn, __func__, __LINE__);
+#if DEBUG_LEVEL >= 3
+            if (_rgn->type != trace_region_parallel)
+                trace_region_pprint(stderr, _rgn, __func__, __LINE__);
+#endif
             assert((_rgn->type == trace_region_parallel));
         }
 #endif
@@ -348,12 +351,16 @@ on_ompt_callback_task_schedule(
         next_task_data->id
     );
 
+// This debug block currently turned off while there is a known challenge
+// with correctly managing region definitions at a task-schedule event
 #if !defined(NDEBUG) && 0
     {
         trace_region_def_t *_rgn = NULL;
         stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
+#if DEBUG_LEVEL >= 3
         trace_region_pprint(stderr, _rgn, __func__, __LINE__);
         assert((_rgn->type == trace_region_task));
+#endif
     }
 #endif
 
@@ -431,8 +438,10 @@ on_ompt_callback_implicit_task(
         {
             trace_region_def_t *_rgn = NULL;
             stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
+#if DEBUG_LEVEL >= 3
             if (_rgn->type != trace_region_task)
                 trace_region_pprint(stderr, _rgn, __func__, __LINE__);
+#endif
             assert((_rgn->type == trace_region_task));
             assert((_rgn->attr.task.type == ompt_task_initial) || (_rgn->attr.task.type == ompt_task_implicit));
         }
@@ -506,8 +515,10 @@ on_ompt_callback_work(
         {
             trace_region_def_t *_rgn = NULL;
             stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
+#if DEBUG_LEVEL >= 3
             if (_rgn->type != trace_region_workshare)
                 trace_region_pprint(stderr, _rgn, __func__, __LINE__);
+#endif
             assert((_rgn->type == trace_region_workshare));
         }
 #endif
@@ -593,8 +604,10 @@ on_ompt_callback_sync_region(
         {
             trace_region_def_t *_rgn = NULL;
             stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
+#if DEBUG_LEVEL >= 3
             if (_rgn->type != trace_region_synchronise)
                 trace_region_pprint(stderr, _rgn, __func__, __LINE__);
+#endif
             assert((_rgn->type == trace_region_synchronise));
         }
 #endif

@@ -11,8 +11,6 @@ if(CMAKE_C_COMPILER_ID STREQUAL "GNU"
 endif()
 
 # Add -[f|q]openmp flag"
-# add_compile_options(${OMP_FLAGS})
-# add_link_options(${OMP_FLAGS})
 include(FindOpenMP)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")

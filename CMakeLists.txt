@@ -2,30 +2,63 @@
 
 cmake_minimum_required(VERSION 3.12)
 
+include(CheckSymbolExists)
+include(CheckIncludeFile)
+
+### Declare the main project
 project(Otter
     VERSION 0.1.0
     HOMEPAGE_URL https://github.com/adamtuft/otter
     LANGUAGES C CXX Fortran
 )
 
+### Define key settings
 option(OTTER_WITH_EXAMPLES "Generate and build examples for demonstrating Otter" OFF)
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
-set(OMP_FLAGS "-fopenmp" CACHE STRING "Flags passed when compiling examples")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(OTF2_INCLUDE_DIR "/opt/otf2/include" CACHE STRING "OTF2 include directory")
 set(OTF2_LIB_DIR "/opt/otf2/lib" CACHE STRING "OTF2 library directory")
 
-include(CheckSymbolExists)
-include(CheckIncludeFile)
-
+# Select default config type
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     message(STATUS "Build type: Debug (default)")
     set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type (default Debug)" FORCE)
 endif()
 
-# execute_process (
-#     COMMAND bash -c "${CMAKE_C_COMPILER} --version | head -n 1 | tr -d '\n'" 
-#     OUTPUT_VARIABLE CC_VERSION)
+# Get debug levels if specified
+if (NOT OTTER_DEBUG_LEVELS)
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        message(STATUS "Debug levels: 3,0,0 (default)")
+        set(OTTER_DEBUG_LEVELS "3,0,0" CACHE STRING "Debug levels for Otter components (default=3,0,0)" FORCE)
+    else()
+        message(STATUS "Debug levels: 0,0,0 (default)")
+        set(OTTER_DEBUG_LEVELS "0,0,0" CACHE STRING "Debug levels for Otter components (default=0,0,0)" FORCE)
+    endif()
+else()
+    set(OTTER_DEBUG_LEVELS "${OTTER_DEBUG_LEVELS}" CACHE STRING "Debug levels for Otter components" FORCE)
+endif()
+
+# Parse debug levels into individual values
+string(REPLACE "," ";" OTTER_DEBUG_LEVELS_LIST "${OTTER_DEBUG_LEVELS}")
+list(LENGTH OTTER_DEBUG_LEVELS_LIST OTTER_DEBUG_LEVELS_LIST_LEN)
+if(NOT OTTER_DEBUG_LEVELS_LIST_LEN EQUAL "3")
+    message(FATAL_ERROR "Invalid debug level list: ${OTTER_DEBUG_LEVELS}")
+endif()
+
+list(GET OTTER_DEBUG_LEVELS_LIST 0 OTTER_DEBUG_CORE)
+if (NOT OTTER_DEBUG_CORE MATCHES "^[0-9]+$")
+    message(FATAL_ERROR "Invalid debug level: ${OTTER_DEBUG_CORE}")
+endif()
+
+list(GET OTTER_DEBUG_LEVELS_LIST 1 OTTER_DEBUG_TRACE)
+if (NOT OTTER_DEBUG_TRACE MATCHES "^[0-9]+$")
+    message(FATAL_ERROR "Invalid debug level: ${OTTER_DEBUG_TRACE}")
+endif()
+
+list(GET OTTER_DEBUG_LEVELS_LIST 2 OTTER_DEBUG_DTYPE)
+if (NOT OTTER_DEBUG_DTYPE MATCHES "^[0-9]+$")
+    message(FATAL_ERROR "Invalid debug level: ${OTTER_DEBUG_DTYPE}")
+endif()
 
 # Extract C compiler version as separate components
 execute_process (
@@ -70,33 +103,37 @@ else()
     message(WARN "Selected C compiler may not be supported")
 endif()
 
-# Define target library and source files
-add_library(otter 
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/dt-queue.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/dt-stack.c
+# Define library components
+add_library(otter-core OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/otter-core.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/otter-entry.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/otter-structs.c
+)
+target_include_directories(otter-core PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_definitions(otter-core PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_CORE})
+set_property(TARGET otter-core PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+add_library(otter-trace OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace-core.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace-structs.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/callback.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/datatypes-common.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/debug.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/general.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/ompt-callback-prototypes.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/otter-common.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/otter-entry.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/otter-environment-variables.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/otter.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/otter-ompt-header.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/otter-structs.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/queue.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/stack.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/trace-attribute-defs.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/trace-attributes.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/trace.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/trace-lookup-macros.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/trace-structs.h
+)
+target_include_directories(otter-trace PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_definitions(otter-trace PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_TRACE})
+set_property(TARGET otter-trace PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+add_library(otter-dtype OBJECT
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/dt-queue.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/dt-stack.c
+)
+target_include_directories(otter-dtype PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_definitions(otter-dtype PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_DTYPE})
+set_property(TARGET otter-dtype PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+# Link component objects into shared library
+add_library(otter
+    $<TARGET_OBJECTS:otter-core>
+    $<TARGET_OBJECTS:otter-trace>
+    $<TARGET_OBJECTS:otter-dtype>
 )
 
 # Specify Otter install location
@@ -107,9 +144,6 @@ configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/otter-version.h.in
     ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/otter-version.h
 )
-
-# Headers required to compile Otter
-target_include_directories(otter PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Link to dependencies
 target_link_libraries(otter pthread)
@@ -133,7 +167,8 @@ endif()
 # Add OTF2 include directory if it was specified
 set(HAVE_OTF2_INCLUDE_DIR FALSE)
 if(DEFINED OTF2_INCLUDE_DIR)
-    target_include_directories(otter PRIVATE ${OTF2_INCLUDE_DIR})
+    target_include_directories(otter-core PRIVATE ${OTF2_INCLUDE_DIR})
+    target_include_directories(otter-trace PRIVATE ${OTF2_INCLUDE_DIR})
     set(HAVE_OTF2_INCLUDE_DIR TRUE)
     message(STATUS "OTF2 include dir was specified")
 endif()

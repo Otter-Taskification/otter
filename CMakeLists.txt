@@ -13,7 +13,8 @@ project(Otter
 )
 
 ### Define key settings
-option(OTTER_WITH_EXAMPLES "Generate and build examples for demonstrating Otter" OFF)
+option(WITH_EXAMPLES "Generate and build examples for demonstrating Otter" OFF)
+option(WITH_TESTS "Generate and build tests" OFF)
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(OTF2_INCLUDE_DIR "/opt/otf2/include" CACHE STRING "OTF2 include directory")
@@ -212,6 +213,12 @@ endif()
 
 # # # Build examples for demonstrating Otter  # # # # # # # # # # # # # # #
 
-if (OTTER_WITH_EXAMPLES)
-    add_subdirectory(src/otter/examples)
+if (WITH_EXAMPLES)
+add_subdirectory(src/otter/examples)
+endif()
+
+# # # Include testing # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+if (WITH_TESTS)
+    add_subdirectory(test)
 endif()

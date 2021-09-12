@@ -13,7 +13,15 @@ FetchContent_Declare(
   GIT_TAG e2239ee6043f73722e7aa812a459f54a28552929
 )
 
-FetchContent_MakeAvailable(googletest)
+# FetchContent_MakeAvailable(googletest)
+FetchContent_GetProperties(googletest)
+if(NOT googletest_POPULATED)
+  # Fetch the content using previously declared details
+  FetchContent_Populate(googletest)
+
+  # Bring the populated content into the build
+  add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
+endif()
 
 enable_testing()
 

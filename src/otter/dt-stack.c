@@ -12,15 +12,15 @@ struct node_t {
     node_t         *next;
 };
 
-struct stack_t {
+struct otter_stack_t {
     node_t      *head;
     size_t       size;
 };
 
-stack_t *
+otter_stack_t *
 stack_create(void)
 {
-    stack_t *s = malloc(sizeof(*s));
+    otter_stack_t *s = malloc(sizeof(*s));
     if (s == NULL)
     {
         LOG_ERROR("failed to create stack");
@@ -33,7 +33,7 @@ stack_create(void)
 }
 
 bool           
-stack_push(stack_t *s, data_item_t item)
+stack_push(otter_stack_t *s, data_item_t item)
 {
     if (s == NULL)
     {
@@ -60,7 +60,7 @@ stack_push(stack_t *s, data_item_t item)
 }
 
 bool   
-stack_pop(stack_t *s, data_item_t *dest)
+stack_pop(otter_stack_t *s, data_item_t *dest)
 {
     if (s == NULL)
     {
@@ -90,7 +90,7 @@ stack_pop(stack_t *s, data_item_t *dest)
 }
 
 bool
-stack_peek(stack_t *s, data_item_t *dest)
+stack_peek(otter_stack_t *s, data_item_t *dest)
 {
     if ((s == NULL) || (dest == NULL) || ((s->head == NULL)))
         return false;
@@ -99,19 +99,19 @@ stack_peek(stack_t *s, data_item_t *dest)
 }
 
 size_t         
-stack_size(stack_t *s)
+stack_size(otter_stack_t *s)
 {
     return (s == NULL) ? 0 : s->size;
 }
 
 bool           
-stack_is_empty(stack_t *s)
+stack_is_empty(otter_stack_t *s)
 {
     return (s == NULL) ? true : ((s->size == 0) ? true : false) ;
 }
 
 void           
-stack_destroy(stack_t *s, bool items, data_destructor_t destructor)
+stack_destroy(otter_stack_t *s, bool items, data_destructor_t destructor)
 {
     if (s == NULL) return;
     LOG_WARN_IF((s->size != 0 && items == false),
@@ -130,7 +130,7 @@ stack_destroy(stack_t *s, bool items, data_destructor_t destructor)
 
 #if DEBUG_LEVEL >= 4
 void
-stack_print(stack_t *s)
+stack_print(otter_stack_t *s)
 {
     if (s == NULL)
     {

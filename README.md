@@ -70,7 +70,9 @@ pip install ../src/python/
 
 The `OTF2_INCLUDE_DIR` and `OTF2_LIB_DIR` arguments should point to the include and library directories for OTF2. The default values assumed by Otter are `/opt/otf2/include` and `/opt/otf2/lib`.
 
-To build several example OpenMP programs with which you can test Otter, set `OTTER_WITH_EXAMPLES=ON`. You will need to also specify C++ and Fortran compilers which use the LLVM or Intel OpenMP library. **Note:** it is not advised to compile the examples with `gcc`/`gfortran` and then link them to `libomp` or `libiomp5` as this does not give access to the full range of runtime events needed by Otter. Doing this is likely to cause a corrupted trace to be created. For more details, see [this post](https://github.com/adamtuft/otter/issues/14#issuecomment-914156774).
+To build several example OpenMP programs with which you can test Otter, set `WITH_EXAMPLES=ON`. You will need to also specify C++ and Fortran compilers which use the LLVM or Intel OpenMP library. **Note:** it is not advised to compile the examples with `gcc`/`gfortran` and then link them to `libomp` or `libiomp5` as this does not give access to the full range of runtime events needed by Otter. Doing this is likely to cause a corrupted trace to be created. For more details, see [this post](https://github.com/adamtuft/otter/issues/14#issuecomment-914156774).
+
+You can build tests by including `WITH_TESTS=ON`. These can be found in the `test` folder and executed with `ctest`.
 
 ### Using Otter
 

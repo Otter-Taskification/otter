@@ -28,7 +28,7 @@ struct trace_parallel_region_attr_t {
     unsigned int    ref_count;
     unsigned int    enter_count;
     pthread_mutex_t lock_rgn;
-    queue_t        *rgn_defs;
+    otter_queue_t        *rgn_defs;
 };
 
 /* Attributes of a workshare region */
@@ -81,9 +81,9 @@ struct trace_location_def_t {
     unique_id_t             id;
     ompt_thread_t           thread_type;
     uint64_t                events;
-    stack_t                *rgn_stack;
-    queue_t                *rgn_defs;
-    stack_t                *rgn_defs_stack;
+    otter_stack_t                *rgn_stack;
+    otter_queue_t                *rgn_defs;
+    otter_stack_t                *rgn_defs_stack;
     OTF2_LocationRef        ref;
     OTF2_LocationType       type;
     OTF2_LocationGroupRef   location_group;

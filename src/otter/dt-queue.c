@@ -12,16 +12,16 @@ struct node_t {
     node_t         *next;
 };
 
-struct queue_t {
+struct otter_queue_t {
     node_t      *head;
     node_t      *tail;
     size_t       length;
 };
 
-queue_t *
+otter_queue_t *
 queue_create(void)
 {
-    queue_t *q = malloc(sizeof(*q));
+    otter_queue_t *q = malloc(sizeof(*q));
     if (q == NULL)
     {
         LOG_ERROR("failed to create queue");
@@ -34,7 +34,7 @@ queue_create(void)
 }
 
 bool           
-queue_push(queue_t *q, data_item_t item)
+queue_push(otter_queue_t *q, data_item_t item)
 {
     if (q == NULL)
     {
@@ -69,7 +69,7 @@ queue_push(queue_t *q, data_item_t item)
 }
 
 bool   
-queue_pop(queue_t *q, data_item_t *dest)
+queue_pop(otter_queue_t *q, data_item_t *dest)
 {
     if (q == NULL)
     {
@@ -96,19 +96,19 @@ queue_pop(queue_t *q, data_item_t *dest)
 }
 
 size_t         
-queue_length(queue_t *q)
+queue_length(otter_queue_t *q)
 {
     return (q == NULL) ? 0 : q->length;
 }
 
 bool           
-queue_is_empty(queue_t *q)
+queue_is_empty(otter_queue_t *q)
 {
     return (q == NULL) ? true : ((q->length == 0) ? true : false) ;
 }
 
 void           
-queue_destroy(queue_t *q, bool items, data_destructor_t destructor)
+queue_destroy(otter_queue_t *q, bool items, data_destructor_t destructor)
 {
     if (q == NULL) return;
     LOG_WARN_IF((q->length != 0 && items == false),
@@ -128,8 +128,8 @@ queue_destroy(queue_t *q, bool items, data_destructor_t destructor)
 /* transfer items from r to q */
 bool
 queue_append(
-    queue_t *q,
-    queue_t *r)
+    otter_queue_t *q,
+    otter_queue_t *r)
 {
     if ((q == NULL) || (r == NULL)) return false;
 
@@ -166,7 +166,7 @@ queue_append(
 */
 void
 queue_scan(
-    queue_t *q,
+    otter_queue_t *q,
     data_item_t *dest,
     void **next)
 {
@@ -191,7 +191,7 @@ queue_scan(
 
 #if DEBUG_LEVEL >= 4
 void
-queue_print(queue_t *q)
+queue_print(otter_queue_t *q)
 {
     if (q == NULL)
     {

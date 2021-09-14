@@ -43,6 +43,8 @@ add_executable(omp-taskloop-nogroup "omp-taskloop-nogroup.c")
 add_executable(omp-taskloop-nogroup-single "omp-taskloop-nogroup-single.c")
 add_executable(omp-taskloop-single "omp-taskloop-single.c")
 add_executable(omp-taskloop-yield "omp-taskloop-yield.c")
+add_executable(omp-spawn-n-tasks "omp-spawn-n-tasks.c")
+add_executable(omp-spawn-n-tasks-in-explicit-task-with-yield "omp-spawn-n-tasks-in-explicit-task-with-yield.c")
 
 # Add CXX executables
 add_executable(omp-peano-constructs "omp-peano-constructs.cpp")

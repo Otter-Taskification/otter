@@ -887,6 +887,34 @@ trace_event_task_switch(
 
     // TODO: record OTF2_EvtWriter_ThreadTaskSwitch()
 
+    // Record the task that encountered the task-switch event
+    OTF2_AttributeList_AddUint64(
+        prior_task->attributes,
+        attr_encountering_task_id,
+        prior_task->attr.task.id
+    );
+
+    // Record the reason the task-switch event ocurred
+    OTF2_AttributeList_AddStringRef(
+        prior_task->attributes,
+        attr_prior_task_status,
+        TASK_STATUS_TO_STR_REF(prior_status)
+    );
+
+    // Record the task that resumed at the task-switch event
+    OTF2_AttributeList_AddUint64(
+        prior_task->attributes,
+        attr_unique_id,
+        next_task->attr.task.id
+    );
+
+    OTF2_EvtWriter_ThreadTaskSwitch(
+        self->evt_writer,
+        prior_task->attributes,
+        get_timestamp(),
+        OTF2_UNDEFINED_COMM,
+        OTF2_UNDEFINED_UINT32, 0); /* creating thread, generation number */
+
     return;
 }
 

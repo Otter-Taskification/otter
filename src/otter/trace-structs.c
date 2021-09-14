@@ -81,6 +81,7 @@ trace_new_parallel_region(
         .attributes = OTF2_AttributeList_New(),
         .type       = trace_region_parallel,
         .encountering_task_id = encountering_task_id,
+        .active_region_stack = NULL,
         .attr.parallel = {
             .id            = id,
             .master_thread = master,
@@ -109,6 +110,7 @@ trace_new_workshare_region(
         .attributes = OTF2_AttributeList_New(),
         .type       = trace_region_workshare,
         .encountering_task_id = encountering_task_id,
+        .active_region_stack = NULL,
         .attr.wshare = {
             .type       = wstype,
             .count      = count
@@ -140,6 +142,7 @@ trace_new_master_region(
         .type       = trace_region_master,
 #endif
         .encountering_task_id = encountering_task_id,
+        .active_region_stack = NULL,
         .attr.master = {
             .thread = loc->id
         }
@@ -167,6 +170,7 @@ trace_new_sync_region(
         .attributes = OTF2_AttributeList_New(),
         .type       = trace_region_synchronise,
         .encountering_task_id = encountering_task_id,
+        .active_region_stack = NULL,
         .attr.sync = {
             .type = stype,
         }
@@ -192,6 +196,10 @@ trace_new_task_region(
     /* Create a region representing a task. Add to the location's region
        definition queue. */
 
+    /* A task maintains a stack of the active regions encountered during its
+       execution up to a task-switch event, which is restored to the executing
+       thread when the task is resumed */
+
     LOG_INFO_IF((parent_task_region == NULL),
         "[t=%lu] parent task region is null", loc->id);
 
@@ -201,6 +209,7 @@ trace_new_task_region(
         .role = OTF2_REGION_ROLE_TASK,
         .attributes = OTF2_AttributeList_New(),
         .type = trace_region_task,
+        .active_region_stack = stack_create(),
         .attr.task = {
             .id              = id,
             .type            = flags & 0xF,
@@ -354,6 +363,8 @@ trace_destroy_task_region(trace_region_def_t *rgn)
         "destroying task region before task-complete/task-cancel");
     LOG_DEBUG("region %p destroying attribute list %p", rgn, rgn->attributes);
     OTF2_AttributeList_Delete(rgn->attributes);
+    LOG_DEBUG("region %p destroying active regions stack %p", rgn, rgn->active_region_stack);
+    stack_destroy(rgn->active_region_stack, false, NULL);
     LOG_DEBUG("region %p", rgn);
     free(rgn);
 }

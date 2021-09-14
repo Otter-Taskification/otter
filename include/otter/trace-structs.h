@@ -67,6 +67,7 @@ struct trace_region_def_t {
     OTF2_AttributeList  *attributes;
     trace_region_type_t  type;
     unique_id_t          encountering_task_id;
+    otter_stack_t       *active_region_stack;
     union {
         trace_parallel_region_attr_t    parallel;
         trace_wshare_region_attr_t      wshare;

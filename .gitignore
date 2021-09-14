@@ -18,10 +18,6 @@
 /scratch/
 /.vscode/
 
-# The following line is only needed temporarily while we have another branch using a different directory strcuture
-# This line should be deleted once the CMake branch is merged into dev
-/include/otter/
-
 /workspace.code-workspace
 
 !/docs/*.svg

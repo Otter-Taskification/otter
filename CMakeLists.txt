@@ -20,6 +20,10 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(OTF2_INCLUDE_DIR "/opt/otf2/include" CACHE STRING "OTF2 include directory")
 set(OTF2_LIB_DIR "/opt/otf2/lib" CACHE STRING "OTF2 library directory")
 
+if (CMAKE_C_FLAGS)
+    message(STATUS "Flags added: \"${CMAKE_C_FLAGS}\"")
+endif()
+
 # Select default config type
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     message(STATUS "Build type: Debug (default)")
@@ -111,6 +115,7 @@ add_library(otter-core OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/otter-structs.c
 )
 target_include_directories(otter-core PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_options(otter-core BEFORE PRIVATE ${CMAKE_C_FLAGS})
 target_compile_definitions(otter-core PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_CORE})
 set_property(TARGET otter-core PROPERTY POSITION_INDEPENDENT_CODE ON)
 

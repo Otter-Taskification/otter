@@ -855,14 +855,38 @@ trace_event_task_create(
 
 void 
 trace_event_task_schedule(
-    trace_location_def_t *self,
-    trace_region_def_t *prior_task,
-    ompt_task_status_t prior_status)
+    trace_location_def_t    *self,
+    trace_region_def_t      *prior_task,
+    ompt_task_status_t       prior_status)
 {
     /* Update prior task's status before recording task enter/leave events */
     LOG_ERROR_IF((prior_task->type != trace_region_task),
         "invalid region type %d", prior_task->type);
     prior_task->attr.task.task_status = prior_status;
+    return;
+}
+
+void
+trace_event_task_switch(
+    trace_location_def_t *self, 
+    trace_region_def_t   *prior_task, 
+    ompt_task_status_t   prior_status, 
+    trace_region_def_t   *next_task)
+{
+    // Update prior task's status
+    // Transfer thread's active region stack to prior_task->rgn_stack
+    // Transfer next_task->rgn_stack to thread
+    // Record event with details of tasks swapped & prior_status
+
+    prior_task->attr.task.task_status = prior_status;
+    LOG_ERROR_IF((stack_is_empty(prior_task->rgn_stack) == false),
+        "prior task %lu region stack not empty",
+        prior_task->attr.task.id);
+    stack_transfer(prior_task->rgn_stack, self->rgn_stack);
+    stack_transfer(self->rgn_stack, next_task->rgn_stack);
+
+    // TODO: record OTF2_EvtWriter_ThreadTaskSwitch()
+
     return;
 }
 

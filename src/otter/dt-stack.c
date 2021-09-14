@@ -28,7 +28,8 @@ stack_create(void)
         return NULL;
     }
     LOG_DEBUG("%p", s);
-    s->head = s->base = NULL;
+    s->head = NULL;
+    s->base = NULL;
     s->size = 0;
     return s;
 }
@@ -143,6 +144,7 @@ stack_transfer(otter_stack_t *dest, otter_stack_t *src)
 
     src->base->next = dest->head;
     dest->head = src->head;
+    if (dest->size == 0) dest->base = src->base;
     dest->size += src->size;
     src->head = src->base = NULL;
     src->size = 0;

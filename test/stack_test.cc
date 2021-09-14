@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <cstddef>
 #include "otter/stack.h"
 
 void mock_data_destructor(void *ptr);
@@ -184,4 +185,72 @@ TEST_F(StackTestFxt, ItemsReturnedLIFO) {
     ASSERT_EQ(item4.value, 2);
     ASSERT_TRUE(stack_pop(s1, &item4));
     ASSERT_EQ(item4.value, 1);
+}
+
+// Transfer Items
+
+TEST_F(StackTestFxt, TransferToNullStackIsFalse) {
+    ASSERT_FALSE(stack_transfer(nullptr, s1));
+}
+
+TEST_F(StackTestFxt, TransferToNonNullStackFromNullStackIsTrue) {
+    ASSERT_TRUE(stack_transfer(s1, nullptr));
+}
+
+TEST_F(StackTestFxt, TransferToNonNullStackFromNonNullEmptyStackIsTrue) {
+    ASSERT_TRUE(stack_is_empty(s2));
+    ASSERT_TRUE(stack_transfer(s1, s2));
+}
+
+TEST_F(StackTestFxt, TransferToNonNullStackFromNonNullNonEmptyStackIsTrue) {
+    data_item_t item1 {.value = 1};
+    data_item_t item2 {.value = 2};
+    data_item_t item3 {.value = 3};
+    data_item_t item4 {.value = 0};
+    ASSERT_TRUE(stack_push(s2, item1));
+    ASSERT_TRUE(stack_push(s2, item2));
+    ASSERT_TRUE(stack_push(s2, item3));
+    ASSERT_TRUE(stack_push(s1, item4));
+    ASSERT_TRUE(stack_transfer(s1, s2));
+}
+
+TEST_F(StackTestFxt, TransferSrcIsEmptyAfter) {
+    data_item_t item1 {.value = 1};
+    data_item_t item2 {.value = 2};
+    data_item_t item3 {.value = 3};
+    data_item_t item4 {.value = 0};
+    ASSERT_TRUE(stack_push(s2, item1));
+    ASSERT_TRUE(stack_push(s2, item2));
+    ASSERT_TRUE(stack_push(s2, item3));
+    ASSERT_TRUE(stack_push(s1, item4));
+    ASSERT_FALSE(stack_is_empty(s2));
+    ASSERT_TRUE(stack_transfer(s1, s2));
+    ASSERT_TRUE(stack_is_empty(s2));
+}
+
+TEST_F(StackTestFxt, TransferDestNonEmptyAfter) {
+    data_item_t item1 {.value = 1};
+    data_item_t item2 {.value = 2};
+    data_item_t item3 {.value = 3};
+    data_item_t item4 {.value = 0};
+    ASSERT_TRUE(stack_push(s2, item1));
+    ASSERT_TRUE(stack_push(s2, item2));
+    ASSERT_TRUE(stack_push(s2, item3));
+    ASSERT_TRUE(stack_is_empty(s1));
+    ASSERT_TRUE(stack_transfer(s1, s2));
+    ASSERT_FALSE(stack_is_empty(s1));
+}
+
+TEST_F(StackTestFxt, TransferTotalStackSizeConserved) {
+    data_item_t item1 {.value = 1};
+    data_item_t item2 {.value = 2};
+    data_item_t item3 {.value = 3};
+    data_item_t item4 {.value = 0};
+    ASSERT_TRUE(stack_push(s2, item1));
+    ASSERT_TRUE(stack_push(s2, item2));
+    ASSERT_TRUE(stack_push(s2, item3));
+    ASSERT_TRUE(stack_push(s1, item4));
+    std::size_t size1 = stack_size(s1), size2 = stack_size(s2);
+    ASSERT_TRUE(stack_transfer(s1, s2));
+    ASSERT_EQ(stack_size(s1), size1 + size2);
 }

@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#if !defined(__USE_POSIX)
+#define __USE_POSIX // for HOST_NAME_MAX
+#endif
 #include <limits.h>
 #include <unistd.h>         // gethostname
 #include <sys/time.h>       // getrusage

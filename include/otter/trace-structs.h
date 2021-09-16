@@ -59,6 +59,14 @@ struct trace_task_region_attr_t {
     ompt_task_status_t  task_status;
 };
 
+typedef union {
+    trace_parallel_region_attr_t    parallel;
+    trace_wshare_region_attr_t      wshare;
+    trace_master_region_attr_t      master;
+    trace_sync_region_attr_t        sync;
+    trace_task_region_attr_t        task;
+} trace_region_attr_t;
+
 /* Store values needed to register region definition (tasks, parallel regions, 
    workshare constructs etc.) with OTF2 */
 struct trace_region_def_t {
@@ -68,13 +76,7 @@ struct trace_region_def_t {
     trace_region_type_t  type;
     unique_id_t          encountering_task_id;
     otter_stack_t       *rgn_stack;
-    union {
-        trace_parallel_region_attr_t    parallel;
-        trace_wshare_region_attr_t      wshare;
-        trace_master_region_attr_t      master;
-        trace_sync_region_attr_t        sync;
-        trace_task_region_attr_t        task;
-    } attr;
+    trace_region_attr_t  attr;    
 };
 
 /* Store values needed to register location definition (threads) with OTF2 */

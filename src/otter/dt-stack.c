@@ -14,6 +14,7 @@ struct node_t {
 
 struct otter_stack_t {
     node_t      *head;
+    node_t      *base;
     size_t       size;
 };
 
@@ -28,6 +29,7 @@ stack_create(void)
     }
     LOG_DEBUG("%p", s);
     s->head = NULL;
+    s->base = NULL;
     s->size = 0;
     return s;
 }
@@ -53,6 +55,7 @@ stack_push(otter_stack_t *s, data_item_t item)
     node->next = s->head;
     s->head = node;
     s->size += 1;
+    if (s->size == 1) s->base = node;
 
     LOG_DEBUG("%p[0]=%p", s, item.ptr);
 
@@ -82,6 +85,7 @@ stack_pop(otter_stack_t *s, data_item_t *dest)
         s->size -= 1;
         free(node);
     }
+    if (s->size == 0) s->base = NULL;
     LOG_DEBUG_IF((dest != NULL), "%p[0] -> %p", s, dest->ptr);
     LOG_WARN_IF(dest == NULL, "popped item without returning value "
                               "(no destination pointer)");
@@ -126,6 +130,26 @@ stack_destroy(otter_stack_t *s, bool items, data_destructor_t destructor)
     LOG_DEBUG("%p", s);
     free(s);
     return;
+}
+
+bool
+stack_transfer(otter_stack_t *dest, otter_stack_t *src)
+{
+    if (dest == NULL)
+    {
+        LOG_ERROR("Cannot transfer to null stack.");
+        return false;
+    }
+    if (src == NULL || src->size == 0) return true;
+
+    src->base->next = dest->head;
+    dest->head = src->head;
+    if (dest->size == 0) dest->base = src->base;
+    dest->size += src->size;
+    src->head = src->base = NULL;
+    src->size = 0;
+
+    return true;
 }
 
 #if DEBUG_LEVEL >= 4

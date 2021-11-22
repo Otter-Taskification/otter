@@ -23,6 +23,9 @@ size_t   stack_size(otter_stack_t *s);
 bool     stack_is_empty(otter_stack_t *s);
 void     stack_destroy(otter_stack_t *s, bool items, data_destructor_t destructor);
 
+/* transfer the items from src to dest, maintaining the order of items in src */
+bool     stack_transfer(otter_stack_t *dest, otter_stack_t *src);
+
 #if DEBUG_LEVEL >= 4
 void           stack_print(otter_stack_t *s);
 #endif

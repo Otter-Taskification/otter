@@ -37,6 +37,8 @@ INCLUDE_LABEL(flag,  false )
 
 /* Unique ID attributes */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, unique_id, "unique ID of a task, parallel region or thread")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, prior_task_id, "unique ID of a task suspended at a task-scheduling point")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, next_task_id, "unique ID of a task resumed at a task-scheduling point")
 INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, encountering_task_id, "unique ID of the task that encountered this region")
 
 /* Attributes relating to parallel regions */
@@ -66,7 +68,7 @@ INCLUDE_LABEL(event_type,  workshare_end  )
 INCLUDE_LABEL(event_type,  sync_begin     )
 INCLUDE_LABEL(event_type,  sync_end       )
 INCLUDE_LABEL(event_type,  task_create    )
-INCLUDE_LABEL(event_type,  task_schedule  )
+INCLUDE_LABEL(event_type,  task_switch    )
 INCLUDE_LABEL(event_type,  task_enter     )
 INCLUDE_LABEL(event_type,  task_leave     )
 INCLUDE_LABEL(event_type,  master_begin   )

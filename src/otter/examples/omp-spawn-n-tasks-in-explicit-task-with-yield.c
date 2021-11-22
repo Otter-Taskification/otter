@@ -18,14 +18,19 @@ int main(int argc, char *argv[])
         yield = (atoi(argv[2]) ? true : false);
 
     #pragma omp parallel
-    #pragma omp single nowait
-    #pragma omp task
-    #pragma omp taskloop nogroup grainsize(1)
-    for (int i=0; i<nTasks; i++){
-        usleep(1000);
-        if (yield) {
-            #pragma omp taskyield
+    {
+        #pragma omp single nowait
+        #pragma omp task
+        {
+            #pragma omp taskloop grainsize(1)
+            for (int i=0; i<nTasks; i++){
+                usleep(1000);
+                if (yield) {
+                    #pragma omp taskyield
+                }
+            }
         }
+        #pragma omp taskwait
     }
 
     return EXIT_SUCCESS;

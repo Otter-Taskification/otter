@@ -29,7 +29,11 @@ static uint64_t get_timestamp(void);
 
 /* apply a region's attributes to an event */
 static void trace_add_thread_attributes(trace_location_def_t *self);
-static void trace_add_common_event_attributes(trace_region_def_t *rgn);
+static void trace_add_common_event_attributes(
+    OTF2_AttributeList *attributes,
+    unique_id_t encountering_task_id,
+    trace_region_type_t region_type,
+    trace_region_attr_t region_attr);
 static void trace_add_parallel_attributes(trace_region_def_t *rgn);
 static void trace_add_workshare_attributes(trace_region_def_t *rgn);
 static void trace_add_master_attributes(trace_region_def_t *rgn);
@@ -398,33 +402,37 @@ trace_write_region_definition(trace_region_def_t *rgn)
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 static void
-trace_add_common_event_attributes(trace_region_def_t *rgn)
+trace_add_common_event_attributes(
+    OTF2_AttributeList *attributes,
+    unique_id_t encountering_task_id,
+    trace_region_type_t region_type,
+    trace_region_attr_t region_attr)
 {
     OTF2_ErrorCode r = OTF2_SUCCESS;
 
     /* CPU of encountering thread */
-    r = OTF2_AttributeList_AddInt32(rgn->attributes, attr_cpu, sched_getcpu());
+    r = OTF2_AttributeList_AddInt32(attributes, attr_cpu, sched_getcpu());
     CHECK_OTF2_ERROR_CODE(r);
 
     /* Add encountering task ID */
     r = OTF2_AttributeList_AddUint64(
-        rgn->attributes,
+        attributes,
         attr_encountering_task_id,
-        rgn->encountering_task_id
+        encountering_task_id
     );
     CHECK_OTF2_ERROR_CODE(r);
 
     /* Add the region type */
-    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_region_type,
-        rgn->type == trace_region_parallel ?
+    r = OTF2_AttributeList_AddStringRef(attributes, attr_region_type,
+        region_type == trace_region_parallel ?
             attr_label_ref[attr_region_type_parallel] :
-        rgn->type == trace_region_workshare ?
-            WORK_TYPE_TO_STR_REF(rgn->attr.wshare.type) :
-        rgn->type == trace_region_synchronise ?
-            SYNC_TYPE_TO_STR_REF(rgn->attr.sync.type) :
-        rgn->type == trace_region_task ? 
-            TASK_TYPE_TO_STR_REF(rgn->attr.task.type) :
-        rgn->type == 
+        region_type == trace_region_workshare ?
+            WORK_TYPE_TO_STR_REF(region_attr.wshare.type) :
+        region_type == trace_region_synchronise ?
+            SYNC_TYPE_TO_STR_REF(region_attr.sync.type) :
+        region_type == trace_region_task ? 
+            TASK_TYPE_TO_STR_REF(region_attr.task.type) :
+        region_type == 
 #if defined(USE_OMPT_MASKED)
             trace_region_masked 
 #else
@@ -637,7 +645,12 @@ trace_event_enter(
     }
 
     /* Add attributes common to all enter/leave events */
-    trace_add_common_event_attributes(region);
+    trace_add_common_event_attributes(
+        region->attributes,
+        region->encountering_task_id,
+        region->type,
+        region->attr
+    );
 
     /* Add the event type attribute */
     OTF2_AttributeList_AddStringRef(region->attributes, attr_event_type,
@@ -736,7 +749,12 @@ trace_event_leave(trace_location_def_t *self)
     }
 
     /* Add attributes common to all enter/leave events */
-    trace_add_common_event_attributes(region);
+    trace_add_common_event_attributes(
+        region->attributes,
+        region->encountering_task_id,
+        region->type,
+        region->attr
+    );
 
     /* Add the event type attribute */
     OTF2_AttributeList_AddStringRef(region->attributes, attr_event_type,
@@ -828,7 +846,12 @@ trace_event_task_create(
     trace_location_def_t *self, 
     trace_region_def_t   *created_task)
 {
-    trace_add_common_event_attributes(created_task);
+    trace_add_common_event_attributes(
+        created_task->attributes,
+        created_task->encountering_task_id,
+        created_task->type,
+        created_task->attr
+    );
 
     /* task-create */
     OTF2_AttributeList_AddStringRef(created_task->attributes, attr_event_type,
@@ -855,14 +878,91 @@ trace_event_task_create(
 
 void 
 trace_event_task_schedule(
-    trace_location_def_t *self,
-    trace_region_def_t *prior_task,
-    ompt_task_status_t prior_status)
+    trace_location_def_t    *self,
+    trace_region_def_t      *prior_task,
+    ompt_task_status_t       prior_status)
 {
     /* Update prior task's status before recording task enter/leave events */
     LOG_ERROR_IF((prior_task->type != trace_region_task),
         "invalid region type %d", prior_task->type);
     prior_task->attr.task.task_status = prior_status;
+    return;
+}
+
+void
+trace_event_task_switch(
+    trace_location_def_t *self, 
+    trace_region_def_t   *prior_task, 
+    ompt_task_status_t   prior_status, 
+    trace_region_def_t   *next_task)
+{
+    // Update prior task's status
+    // Transfer thread's active region stack to prior_task->rgn_stack
+    // Transfer next_task->rgn_stack to thread
+    // Record event with details of tasks swapped & prior_status
+
+    prior_task->attr.task.task_status = prior_status;
+    LOG_ERROR_IF((stack_is_empty(prior_task->rgn_stack) == false),
+        "prior task %lu region stack not empty",
+        prior_task->attr.task.id);
+    stack_transfer(prior_task->rgn_stack, self->rgn_stack);
+    stack_transfer(self->rgn_stack, next_task->rgn_stack);
+
+    trace_add_common_event_attributes(
+        prior_task->attributes,
+        prior_task->attr.task.id,
+        prior_task->type,
+        prior_task->attr
+    );
+
+    // Record the reason the task-switch event ocurred
+    OTF2_AttributeList_AddStringRef(
+        prior_task->attributes,
+        attr_prior_task_status,
+        TASK_STATUS_TO_STR_REF(prior_status)
+    );
+
+    // The task that was suspended
+    OTF2_AttributeList_AddUint64(
+        prior_task->attributes,
+        attr_prior_task_id,
+        prior_task->attr.task.id
+    );
+
+    // The task that was resumed
+    OTF2_AttributeList_AddUint64(
+        prior_task->attributes,
+        attr_unique_id,
+        next_task->attr.task.id
+    );
+
+    // The task that was resumed
+    OTF2_AttributeList_AddUint64(
+        prior_task->attributes,
+        attr_next_task_id,
+        next_task->attr.task.id
+    );
+
+    // Task-switch is always considered a discrete event
+    OTF2_AttributeList_AddStringRef(
+        prior_task->attributes,
+        attr_endpoint,
+        attr_label_ref[attr_endpoint_discrete]
+    );
+
+    OTF2_AttributeList_AddStringRef(
+        prior_task->attributes,
+        attr_event_type,
+        attr_label_ref[attr_event_type_task_switch]
+    );
+
+    OTF2_EvtWriter_ThreadTaskSwitch(
+        self->evt_writer,
+        prior_task->attributes,
+        get_timestamp(),
+        OTF2_UNDEFINED_COMM,
+        OTF2_UNDEFINED_UINT32, 0); /* creating thread, generation number */
+
     return;
 }
 

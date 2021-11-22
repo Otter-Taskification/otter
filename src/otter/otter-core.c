@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#if !defined(__USE_POSIX)
+#define __USE_POSIX // for HOST_NAME_MAX
+#endif
 #include <limits.h>
 #include <unistd.h>         // gethostname
 #include <sys/time.h>       // getrusage
@@ -364,6 +367,14 @@ on_ompt_callback_task_schedule(
     }
 #endif
 
+#if defined(TASK_SCHEDULE_SWITCH)
+    trace_event_task_switch(
+        thread_data->location,
+        prior_task_data->region,
+        prior_task_status,
+        next_task_data->region
+    );
+#else
     if (prior_task_data->type == ompt_task_explicit 
         || prior_task_data->type == ompt_task_target)
     {
@@ -380,6 +391,7 @@ on_ompt_callback_task_schedule(
             prior_task_data->region, 0); /* no status */
         trace_event_enter(thread_data->location, next_task_data->region);
     }
+#endif
     
     return;
 }

@@ -29,7 +29,6 @@
 static uint64_t get_timestamp(void);
 
 /* apply a region's attributes to an event */
-// static void trace_add_thread_attributes(trace_location_def_t *self);
 static void trace_add_common_event_attributes(
     OTF2_AttributeList *attributes,
     unique_id_t encountering_task_id,
@@ -237,23 +236,6 @@ trace_add_common_event_attributes(
 
     return;
 }
-
-// static void
-// trace_add_thread_attributes(trace_location_def_t *self)
-// {
-//     OTF2_ErrorCode r = OTF2_SUCCESS;
-//     r = OTF2_AttributeList_AddInt32(self->attributes, attr_cpu, sched_getcpu());
-//     CHECK_OTF2_ERROR_CODE(r);
-//     r = OTF2_AttributeList_AddUint64(self->attributes, attr_unique_id, self->id);
-//     CHECK_OTF2_ERROR_CODE(r);
-//     r = OTF2_AttributeList_AddStringRef(self->attributes, attr_thread_type,
-//         self->thread_type == ompt_thread_initial ? 
-//             attr_label_ref[attr_thread_type_initial] :
-//         self->thread_type == ompt_thread_worker ? 
-//             attr_label_ref[attr_thread_type_worker] : 0);
-//     CHECK_OTF2_ERROR_CODE(r);
-//     return;
-// }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /*   WRITE EVENTS                                                            */

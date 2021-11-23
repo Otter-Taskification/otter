@@ -39,4 +39,6 @@ trace_new_location_definition(
 /* Destroy location */
 void trace_destroy_location(trace_location_def_t *loc);
 
+void trace_add_thread_attributes(trace_location_def_t *self);
+
 #endif // OTTER_TRACE_LOCATION_H

@@ -1,10 +1,18 @@
+#define _GNU_SOURCE
+
 #include <stdlib.h>
 #include <pthread.h>
+#include <sched.h>
 #include <otf2/otf2.h>
 #include "otter/trace-lookup-macros.h"
+#include "otter/trace-attributes.h"
 #include "otter/trace-location.h"
 #include "otter/queue.h"
 #include "otter/stack.h"
+
+/* Defined in trace-archive.c */
+extern OTF2_StringRef attr_name_ref[n_attr_defined][2];
+extern OTF2_StringRef attr_label_ref[n_attr_label_defined];
 
 /* Defined in trace.c */
 extern OTF2_Archive *Archive;
@@ -62,5 +70,22 @@ trace_destroy_location(trace_location_def_t *loc)
     // OTF2_AttributeList_Delete(loc->attributes);
     LOG_DEBUG("[t=%lu] destroying location", loc->id);
     free(loc);
+    return;
+}
+
+void
+trace_add_thread_attributes(trace_location_def_t *self)
+{
+    OTF2_ErrorCode r = OTF2_SUCCESS;
+    r = OTF2_AttributeList_AddInt32(self->attributes, attr_cpu, sched_getcpu());
+    CHECK_OTF2_ERROR_CODE(r);
+    r = OTF2_AttributeList_AddUint64(self->attributes, attr_unique_id, self->id);
+    CHECK_OTF2_ERROR_CODE(r);
+    r = OTF2_AttributeList_AddStringRef(self->attributes, attr_thread_type,
+        self->thread_type == ompt_thread_initial ? 
+            attr_label_ref[attr_thread_type_initial] :
+        self->thread_type == ompt_thread_worker ? 
+            attr_label_ref[attr_thread_type_worker] : 0);
+    CHECK_OTF2_ERROR_CODE(r);
     return;
 }

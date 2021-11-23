@@ -35,11 +35,6 @@ static void trace_add_common_event_attributes(
     unique_id_t encountering_task_id,
     trace_region_type_t region_type,
     trace_region_attr_t region_attr);
-// static void trace_add_parallel_attributes(trace_region_def_t *rgn);
-// static void trace_add_workshare_attributes(trace_region_def_t *rgn);
-// static void trace_add_master_attributes(trace_region_def_t *rgn);
-// static void trace_add_sync_attributes(trace_region_def_t *rgn);
-// static void trace_add_task_attributes(trace_region_def_t *rgn);
 
 /* Lookup tables mapping enum value to string ref */
 extern OTF2_StringRef attr_name_ref[n_attr_defined][2];
@@ -259,99 +254,6 @@ trace_add_thread_attributes(trace_location_def_t *self)
     CHECK_OTF2_ERROR_CODE(r);
     return;
 }
-
-// static void
-// trace_add_parallel_attributes(trace_region_def_t *rgn)
-// {
-//     OTF2_ErrorCode r = OTF2_SUCCESS;
-//     r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_unique_id,
-//         rgn->attr.parallel.id);
-//     CHECK_OTF2_ERROR_CODE(r);
-//     r = OTF2_AttributeList_AddUint32(rgn->attributes, attr_requested_parallelism,
-//         rgn->attr.parallel.requested_parallelism);
-//     CHECK_OTF2_ERROR_CODE(r);
-//     r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_is_league,
-//         rgn->attr.parallel.is_league ? 
-//             attr_label_ref[attr_flag_true] : attr_label_ref[attr_flag_false]);
-//     CHECK_OTF2_ERROR_CODE(r);
-//     return;
-// }
-
-// static void
-// trace_add_workshare_attributes(trace_region_def_t *rgn)
-// {
-//     OTF2_ErrorCode r = OTF2_SUCCESS;
-//     r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_workshare_type,
-//         WORK_TYPE_TO_STR_REF(rgn->attr.wshare.type));
-//     CHECK_OTF2_ERROR_CODE(r);
-//     r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_workshare_count,
-//         rgn->attr.wshare.count);
-//     CHECK_OTF2_ERROR_CODE(r);
-//     return;
-// }
-
-// static void
-// trace_add_master_attributes(trace_region_def_t *rgn)
-// {
-//     OTF2_ErrorCode r = OTF2_SUCCESS;
-//     r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_unique_id,
-//         rgn->attr.master.thread);
-//     CHECK_OTF2_ERROR_CODE(r);
-//     return;
-// }
-
-// static void
-// trace_add_sync_attributes(trace_region_def_t *rgn)
-// {
-//     OTF2_ErrorCode r = OTF2_SUCCESS;
-//     r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_sync_type,
-//         SYNC_TYPE_TO_STR_REF(rgn->attr.sync.type));
-//     CHECK_OTF2_ERROR_CODE(r);
-//     return;
-// }
-
-// static void
-// trace_add_task_attributes(trace_region_def_t *rgn)
-// {
-//     OTF2_ErrorCode r = OTF2_SUCCESS;
-//     r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_unique_id,
-//         rgn->attr.task.id);
-//     CHECK_OTF2_ERROR_CODE(r);
-//     r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_task_type,
-//         TASK_TYPE_TO_STR_REF(rgn->attr.task.type));
-//     CHECK_OTF2_ERROR_CODE(r);
-//     r = OTF2_AttributeList_AddUint32(rgn->attributes, attr_task_flags,
-//         rgn->attr.task.flags);
-//     CHECK_OTF2_ERROR_CODE(r);
-//     r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_parent_task_id,
-//         rgn->attr.task.parent_id);
-//     CHECK_OTF2_ERROR_CODE(r);
-//     r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_parent_task_type,
-//         TASK_TYPE_TO_STR_REF(rgn->attr.task.parent_type));
-//     CHECK_OTF2_ERROR_CODE(r);
-//     r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_has_dependences,
-//         rgn->attr.task.has_dependences);
-//     CHECK_OTF2_ERROR_CODE(r);
-//     r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_undeferred,
-//         rgn->attr.task.flags & ompt_task_undeferred);
-//     CHECK_OTF2_ERROR_CODE(r);
-//     r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_untied,
-//         rgn->attr.task.flags & ompt_task_untied);
-//     CHECK_OTF2_ERROR_CODE(r);
-//     r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_final,
-//         rgn->attr.task.flags & ompt_task_final);
-//     CHECK_OTF2_ERROR_CODE(r);
-//     r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_mergeable,
-//         rgn->attr.task.flags & ompt_task_mergeable);
-//     CHECK_OTF2_ERROR_CODE(r);
-//     r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_merged,
-//         rgn->attr.task.flags & ompt_task_merged);
-//     CHECK_OTF2_ERROR_CODE(r);
-//     r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_prior_task_status,
-//         TASK_STATUS_TO_STR_REF(rgn->attr.task.task_status));
-//     CHECK_OTF2_ERROR_CODE(r);
-//     return;
-// }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /*   WRITE EVENTS                                                            */

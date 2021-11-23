@@ -8,9 +8,6 @@
 
 /* Defined in trace.c */
 extern OTF2_Archive *Archive;
-// extern OTF2_GlobalDefWriter *Defs;
-// extern pthread_mutex_t lock_global_def_writer;
-// extern pthread_mutex_t lock_global_archive;
 
 trace_location_def_t *
 trace_new_location_definition(

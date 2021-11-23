@@ -67,8 +67,8 @@ uint64_t get_unique_uint64_ref(trace_ref_type_t ref_type);
 uint32_t get_unique_uint32_ref(trace_ref_type_t ref_type);
 
 /* interface function prototypes */
-bool trace_initialise_archive(otter_opt_t *opt);
-bool trace_finalise_archive(void);
+// bool trace_initialise_archive(otter_opt_t *opt);
+// bool trace_finalise_archive(void);
 
 /* write events */
 void trace_event_thread_begin(trace_location_def_t *self);

@@ -14,7 +14,7 @@ extern OTF2_StringRef attr_label_ref[n_attr_label_defined];
 trace_region_def_t *
 trace_new_workshare_region(
     trace_location_def_t *loc,
-    ompt_work_t           wstype, 
+    otter_work_t          wstype, 
     uint64_t              count,
     unique_id_t           encountering_task_id)
 {

@@ -518,7 +518,15 @@ on_ompt_callback_work(
         if (endpoint == ompt_scope_begin)
         {
             trace_region_def_t *wshare_rgn = trace_new_workshare_region(
-                thread_data->location, wstype, count, task_data->id);
+                thread_data->location,
+                /* Convert the OMPT enum type to a generic Otter enum type */
+                wstype == ompt_work_loop ? otter_work_loop :
+                    wstype == ompt_work_single_executor ? otter_work_single_executor :
+                    wstype == ompt_work_single_other ? otter_work_single_other :
+                    wstype == ompt_work_taskloop ? otter_work_taskloop : 0,
+                count,
+                task_data->id
+            );
             trace_event_enter(thread_data->location, wshare_rgn);
         } else {
 

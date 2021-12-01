@@ -20,7 +20,7 @@ extern OTF2_Archive *Archive;
 trace_location_def_t *
 trace_new_location_definition(
     unique_id_t            id,
-    ompt_thread_t          thread_type,
+    otter_thread_t         thread_type,
     OTF2_LocationType      loc_type,
     OTF2_LocationGroupRef  loc_grp)
 {

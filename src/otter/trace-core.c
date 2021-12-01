@@ -113,7 +113,11 @@ trace_write_region_definition(trace_region_def_t *rgn)
                 region_name_ref,
                 0, 0,   /* canonical name, description */
                 rgn->role,
-                OTF2_PARADIGM_OPENMP,   //TODO: decouple
+#if defined(OTTER_SERIAL_MODE)
+                OTF2_PARADIGM_USER,
+#else
+                OTF2_PARADIGM_OPENMP,
+#endif
                 OTF2_REGION_FLAG_NONE,
                 0, 0, 0); /* source file, begin line no., end line no. */
             break;
@@ -125,7 +129,11 @@ trace_write_region_definition(trace_region_def_t *rgn)
                 WORK_TYPE_TO_STR_REF(rgn->attr.wshare.type),
                 0, 0,
                 rgn->role,
-                OTF2_PARADIGM_OPENMP,   //TODO: decouple
+#if defined(OTTER_SERIAL_MODE)
+                OTF2_PARADIGM_USER,
+#else
+                OTF2_PARADIGM_OPENMP,
+#endif
                 OTF2_REGION_FLAG_NONE,
                 0, 0, 0); /* source file, begin line no., end line no. */
             break;
@@ -141,7 +149,11 @@ trace_write_region_definition(trace_region_def_t *rgn)
                 attr_label_ref[attr_region_type_master],
                 0, 0,
                 rgn->role,
-                OTF2_PARADIGM_OPENMP,   //TODO: decouple
+#if defined(OTTER_SERIAL_MODE)
+                OTF2_PARADIGM_USER,
+#else
+                OTF2_PARADIGM_OPENMP,
+#endif
                 OTF2_REGION_FLAG_NONE,
                 0, 0, 0); /* source file, begin line no., end line no. */
             break;
@@ -153,7 +165,11 @@ trace_write_region_definition(trace_region_def_t *rgn)
                 SYNC_TYPE_TO_STR_REF(rgn->attr.sync.type),
                 0, 0,
                 rgn->role,
-                OTF2_PARADIGM_OPENMP,   //TODO: decouple
+#if defined(OTTER_SERIAL_MODE)
+                OTF2_PARADIGM_USER,
+#else
+                OTF2_PARADIGM_OPENMP,
+#endif
                 OTF2_REGION_FLAG_NONE,
                 0, 0, 0); /* source file, begin line no., end line no. */
             break;
@@ -162,7 +178,6 @@ trace_write_region_definition(trace_region_def_t *rgn)
         {
             char task_name[DEFAULT_NAME_BUF_SZ+1] = {0};
             snprintf(task_name, DEFAULT_NAME_BUF_SZ, "%s task %lu",
-                //TODO: decouple
                 rgn->attr.task.type == ompt_task_initial ? "initial" :
                     rgn->attr.task.type == ompt_task_implicit ? "implicit" :
                     rgn->attr.task.type == ompt_task_explicit ? "explicit" :
@@ -561,7 +576,7 @@ void
 trace_event_task_schedule(
     trace_location_def_t    *self,
     trace_region_def_t      *prior_task,
-    ompt_task_status_t       prior_status)
+    otter_task_status_t      prior_status)
 {
     /* Update prior task's status before recording task enter/leave events */
     LOG_ERROR_IF((prior_task->type != trace_region_task),
@@ -574,7 +589,7 @@ void
 trace_event_task_switch(
     trace_location_def_t *self, 
     trace_region_def_t   *prior_task, 
-    ompt_task_status_t   prior_status, 
+    otter_task_status_t   prior_status, 
     trace_region_def_t   *next_task)
 {
     // Update prior task's status
@@ -671,4 +686,66 @@ get_unique_uint32_ref(trace_ref_type_t ref_type)
 {
     static uint32_t id[NUM_REF_TYPES] = {0};
     return __sync_fetch_and_add(&id[ref_type], 1);
+}
+
+/* pretty-print region definitions */
+void
+trace_region_pprint(
+    FILE                *fp,
+    trace_region_def_t  *r,
+    const char func[],
+    const int line)
+{
+    if (fp == NULL)
+        fp = stderr;
+
+    switch (r->type)
+    {
+    case trace_region_parallel:
+        fprintf(fp, "%s:%d: Parallel(id=%lu, master=%lu, ref_count=%u, enter_count=%u) in %s:%d\n",
+            __func__, __LINE__,
+            r->attr.parallel.id,
+            r->attr.parallel.master_thread,
+            r->attr.parallel.ref_count,
+            r->attr.parallel.enter_count,
+            func, line
+        );
+        break;
+    case trace_region_workshare:
+        fprintf(fp, "%s:%d: Work(type=%s, count=%lu) in %s:%d\n",
+            __func__, __LINE__,
+            OMPT_WORK_TYPE_TO_STR(r->attr.wshare.type),
+            r->attr.wshare.count,
+            func, line
+        );
+        break;
+    case trace_region_synchronise:
+        fprintf(fp, "%s:%d: Sync(type=%s) in %s:%d\n",
+            __func__, __LINE__,
+            OMPT_SYNC_TYPE_TO_STR(r->attr.sync.type),
+            func, line
+        );
+        break;
+    case trace_region_task:
+        fprintf(fp, "%s:%d: Task(id=%lu, type=%s) in %s:%d\n",
+            __func__, __LINE__,
+            r->attr.task.id,
+            OMPT_TASK_TYPE_TO_STR(OMPT_TASK_TYPE_BITS & r->attr.task.type),
+            func, line
+        );
+        break;
+#if defined(USE_OMPT_MASKED)
+    case trace_region_masked:
+        fprintf(fp, "%s:%d: Masked(thread=%lu) in %s:%d\n",
+#else
+    case trace_region_master:
+        fprintf(fp, "%s:%d: Master(thread=%lu) in %s:%d\n",
+#endif
+            __func__, __LINE__,
+            r->attr.master.thread,
+            func, line
+        );
+        break;
+    }
+    return;
 }

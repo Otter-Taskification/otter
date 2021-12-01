@@ -159,7 +159,13 @@ trace_initialise_archive(otter_opt_t *opt)
     /* write global location group */
     OTF2_StringRef g_loc_grp_name = get_unique_str_ref();
     OTF2_LocationGroupRef g_loc_grp_id = DEFAULT_LOCATION_GRP;
-    OTF2_GlobalDefWriter_WriteString(Defs, g_loc_grp_name, "OMP Process"); //TODO: decouple
+    OTF2_GlobalDefWriter_WriteString(Defs, g_loc_grp_name, 
+#if defined(OTTER_SERIAL_MODE)
+    "Serial Process"
+#else
+    "OMP Process"
+#endif
+    );
     OTF2_GlobalDefWriter_WriteLocationGroup(Defs, g_loc_grp_id, g_loc_grp_name,
         OTF2_LOCATION_GROUP_TYPE_PROCESS, g_sys_tree_id);
 

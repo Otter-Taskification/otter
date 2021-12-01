@@ -17,7 +17,7 @@ trace_new_task_region(
     trace_location_def_t *loc,
     trace_region_def_t   *parent_task_region,
     unique_id_t           task_id,
-    ompt_task_flag_t      flags,                    // TODO: decouple
+    otter_task_flag_t     flags,
     int                   has_dependences
 );
 

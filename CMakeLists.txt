@@ -121,7 +121,6 @@ set_property(TARGET otter-core PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_library(otter-trace OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace-core.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace-structs.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace-location.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace-region-parallel.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace-region-workshare.c

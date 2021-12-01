@@ -14,7 +14,7 @@
 /* Store values needed to register location definition (threads) with OTF2 */
 struct trace_location_def_t {
     unique_id_t             id;
-    ompt_thread_t           thread_type;        // TODO: decouple
+    otter_thread_t          thread_type;
     uint64_t                events;
     otter_stack_t          *rgn_stack;
     otter_queue_t          *rgn_defs;
@@ -31,7 +31,7 @@ struct trace_location_def_t {
 trace_location_def_t *
 trace_new_location_definition(
     uint64_t              id,
-    ompt_thread_t         thread_type,          // TODO: decouple
+    otter_thread_t        thread_type,
     OTF2_LocationType     loc_type, 
     OTF2_LocationGroupRef loc_grp
 );

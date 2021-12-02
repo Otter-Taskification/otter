@@ -141,6 +141,14 @@ target_include_directories(otter-dtype PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/inclu
 target_compile_definitions(otter-dtype PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_DTYPE})
 set_property(TARGET otter-dtype PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+add_library(otter-serial-events OBJECT
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/otter-serial.c
+)
+target_include_directories(otter-serial-events PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_options(otter-serial-events BEFORE PRIVATE ${CMAKE_C_FLAGS})
+target_compile_definitions(otter-serial-events PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_CORE})
+set_property(TARGET otter-serial-events PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 # Link component objects into shared library
 add_library(otter
     $<TARGET_OBJECTS:otter-core>
@@ -148,8 +156,15 @@ add_library(otter
     $<TARGET_OBJECTS:otter-dtype>
 )
 
+add_library(otter-serial
+    $<TARGET_OBJECTS:otter-serial-events>
+    $<TARGET_OBJECTS:otter-trace>
+    $<TARGET_OBJECTS:otter-dtype>
+)
+
 # Specify Otter install location
 install(TARGETS otter DESTINATION lib)
+install(TARGETS otter-serial DESTINATION lib)
 
 # Configure version header
 configure_file(
@@ -159,6 +174,7 @@ configure_file(
 
 # Link to dependencies
 target_link_libraries(otter pthread)
+target_link_libraries(otter-serial pthread)
 
 # # # OMPT # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Check for omp-tools.h
@@ -181,15 +197,18 @@ endif()
 set(HAVE_OTF2_INCLUDE_DIR FALSE)
 if(DEFINED OTF2_INCLUDE_DIR)
     target_include_directories(otter-core PRIVATE ${OTF2_INCLUDE_DIR})
+    target_include_directories(otter-serial-events PRIVATE ${OTF2_INCLUDE_DIR})
     target_include_directories(otter-trace PRIVATE ${OTF2_INCLUDE_DIR})
     set(HAVE_OTF2_INCLUDE_DIR TRUE)
     message(STATUS "OTF2 include dir was specified")
 endif()
 
 target_link_libraries(otter otf2)
+target_link_libraries(otter-serial otf2)
 # Add library directory for OTF2 if it was specified
 if(DEFINED OTF2_LIB_DIR)
     target_link_libraries(otter -L${OTF2_LIB_DIR})
+    target_link_libraries(otter-serial -L${OTF2_LIB_DIR})
 endif()
 
 # Check for otf2.h
@@ -224,7 +243,9 @@ endif()
 
 # # # Build examples for demonstrating Otter  # # # # # # # # # # # # # # #
 
+message(STATUS "Detecting examples")
 if (WITH_EXAMPLES)
+    message(STATUS "Adding examples")
     add_subdirectory(src/otter/examples)
 endif()
 

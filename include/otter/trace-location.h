@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <otf2/otf2.h>
 
-#include "otter/otter-ompt-header.h"
+// #include "otter/otter-ompt-header.h"
 #include "otter/otter-common.h"
 #include "otter/queue.h"
 #include "otter/stack.h"

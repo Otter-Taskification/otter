@@ -14,6 +14,10 @@
 #include "otter/trace-archive.h"
 #include "otter/trace-attributes.h"
 
+#define DEFAULT_LOCATION_GRP 0 // OTF2_UNDEFINED_LOCATION_GROUP
+#define DEFAULT_SYSTEM_TREE  0
+#define DEFAULT_NAME_BUF_SZ  256
+
 static uint64_t get_timestamp(void);
 
 /* Lookup tables mapping enum value to string ref */

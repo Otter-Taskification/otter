@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
-#include "otter/otter-ompt-header.h"
+// #include "otter/otter-ompt-header.h"
 #include "otter/otter.h"
 #include "otter/otter-structs.h"
 #include "otter/trace.h"
@@ -38,7 +38,7 @@ void parallel_destroy(parallel_data_t *parallel_data)
 }
 
 thread_data_t *
-new_thread_data(ompt_thread_t type)
+new_thread_data(otter_thread_t type)
 {
     thread_data_t *thread_data = malloc(sizeof(*thread_data));
     *thread_data = (thread_data_t) {
@@ -70,7 +70,7 @@ new_task_data(
     trace_location_def_t *loc,
     trace_region_def_t   *parent_task_region,
     unique_id_t           task_id,
-    ompt_task_flag_t      flags,
+    otter_task_flag_t     flags,
     int                   has_dependences)
 {
     task_data_t *new = malloc(sizeof(*new));
@@ -94,4 +94,11 @@ void task_destroy(task_data_t *task_data)
 {
     free(task_data);
     return;
+}
+
+unique_id_t
+get_unique_id(unique_id_type_t id_type)
+{
+    static unique_id_t id[NUM_ID_TYPES] = {0,0,0,0};
+    return __sync_fetch_and_add(&id[id_type], 1L);
 }

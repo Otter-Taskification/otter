@@ -52,6 +52,11 @@ add_executable(otter-serial-fib
 target_include_directories(otter-serial-fib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../include)
 target_link_libraries(otter-serial-fib otter-serial)
 
+add_executable(otter-serial-loop
+    "otter-serial-loop.c")
+target_include_directories(otter-serial-loop PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../include)
+target_link_libraries(otter-serial-loop otter-serial)
+
 # Add CXX executables
 add_executable(omp-peano-constructs "omp-peano-constructs.cpp")
 

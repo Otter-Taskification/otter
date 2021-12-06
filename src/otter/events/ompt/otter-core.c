@@ -638,9 +638,9 @@ on_ompt_callback_sync_region(
     return;
 }
 
-unique_id_t
-get_unique_id(unique_id_type_t id_type)
-{
-    static unique_id_t id[NUM_ID_TYPES] = {0,0,0,0};
-    return __sync_fetch_and_add(&id[id_type], 1L);
-}
+// unique_id_t
+// get_unique_id(unique_id_type_t id_type)
+// {
+//     static unique_id_t id[NUM_ID_TYPES] = {0,0,0,0};
+//     return __sync_fetch_and_add(&id[id_type], 1L);
+// }

@@ -19,8 +19,11 @@
 #include "otter/otter-environment-variables.h"
 #include "otter/trace.h"
 #include "otter/trace-structs.h"
+#include "otter/trace-location.h"
 #include "otter/trace-attributes.h"
 #include "otter/trace-lookup-macros.h"
+#include "otter/trace-unique-refs.h"
+#include "otter/trace-check-error-code.h"
 
 #include "otter/queue.h"
 #include "otter/stack.h"
@@ -28,272 +31,57 @@
 static uint64_t get_timestamp(void);
 
 /* apply a region's attributes to an event */
-static void trace_add_thread_attributes(trace_location_def_t *self);
 static void trace_add_common_event_attributes(
     OTF2_AttributeList *attributes,
     unique_id_t encountering_task_id,
     trace_region_type_t region_type,
     trace_region_attr_t region_attr);
-static void trace_add_parallel_attributes(trace_region_def_t *rgn);
-static void trace_add_workshare_attributes(trace_region_def_t *rgn);
-static void trace_add_master_attributes(trace_region_def_t *rgn);
-static void trace_add_sync_attributes(trace_region_def_t *rgn);
-static void trace_add_task_attributes(trace_region_def_t *rgn);
 
 /* Lookup tables mapping enum value to string ref */
-static OTF2_StringRef attr_name_ref[n_attr_defined][2] = {0};
-static OTF2_StringRef attr_label_ref[n_attr_label_defined] = {0};
-
-/* References to global archive & def writer */
-OTF2_Archive *Archive = NULL;
-OTF2_GlobalDefWriter *Defs = NULL;
+extern OTF2_StringRef attr_name_ref[n_attr_defined][2];
+extern OTF2_StringRef attr_label_ref[n_attr_label_defined];
 
 /* Mutexes for thread-safe access to Archive and Defs */
-pthread_mutex_t lock_global_def_writer = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t lock_global_archive    = PTHREAD_MUTEX_INITIALIZER;
-
-/* Pre- and post-flush callbacks required by OTF2 */
-static OTF2_FlushType
-pre_flush(
-    void               *userData,
-    OTF2_FileType       fileType,
-    OTF2_LocationRef    location,
-    void               *callerData,
-    bool                final)
-{
-    return OTF2_FLUSH;
-}
-
-static OTF2_TimeStamp
-post_flush(
-    void               *userData,
-    OTF2_FileType       fileType,
-    OTF2_LocationRef    location)
-{
-    return get_timestamp();
-}
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/*   INITIALISE/FINALISE TRACING                                             */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-bool
-trace_initialise_archive(otter_opt_t *opt)
-{
-    /* Determine filename & path from options */
-    char archive_path[DEFAULT_NAME_BUF_SZ+1] = {0};
-    static char archive_name[DEFAULT_NAME_BUF_SZ+1] = {0};
-    char *p = &archive_name[0];
-
-    /* Copy filename */
-    strncpy(p, opt->tracename, DEFAULT_NAME_BUF_SZ - strlen(archive_name));
-    p = &archive_name[0] + strlen(archive_name);
-
-    /* Copy hostname */
-    if (opt->append_hostname)
-    {
-        strncpy(p, ".", DEFAULT_NAME_BUF_SZ - strlen(archive_name));
-        p = &archive_name[0] + strlen(archive_name);
-        strncpy(p, opt->hostname, DEFAULT_NAME_BUF_SZ - strlen(archive_name));
-        p = &archive_name[0] + strlen(archive_name);
-    }
-
-    /* Copy PID */
-    strncpy(p, ".", DEFAULT_NAME_BUF_SZ - strlen(archive_name));
-    p = &archive_name[0] + strlen(archive_name);
-    snprintf(p, DEFAULT_NAME_BUF_SZ - strlen(archive_name), "%u", getpid());
-    p = &archive_name[0] + strlen(archive_name);
-
-    /* Copy path + filename */
-    snprintf(archive_path, DEFAULT_NAME_BUF_SZ, "%s/%s",
-        opt->tracepath, archive_name);
-
-    fprintf(stderr, "%-30s %s/%s\n",
-        "Trace output path:", opt->tracepath, archive_name);
-
-    /* Store archive name in options struct */
-    opt->archive_name = &archive_name[0];
-
-    /* open OTF2 archive */
-    Archive = OTF2_Archive_Open(
-        archive_path,               /* archive path */
-        archive_name,               /* archive name */
-        OTF2_FILEMODE_WRITE,
-        OTF2_CHUNK_SIZE_EVENTS_DEFAULT,     
-        OTF2_CHUNK_SIZE_DEFINITIONS_DEFAULT,
-        OTF2_SUBSTRATE_POSIX,
-        OTF2_COMPRESSION_NONE);
-
-    /* set flush callbacks */
-    static OTF2_FlushCallbacks on_flush = {
-        .otf2_pre_flush = pre_flush,
-        .otf2_post_flush = post_flush
-    };
-    OTF2_Archive_SetFlushCallbacks(Archive, &on_flush, NULL);
-
-    /* set serial (not MPI) collective callbacks */
-    OTF2_Archive_SetSerialCollectiveCallbacks(Archive);
-
-    /* set pthread archive locking callbacks */
-    OTF2_Pthread_Archive_SetLockingCallbacks(Archive, NULL);
-
-    /* open archive event files */
-    OTF2_Archive_OpenEvtFiles(Archive);
-
-    /* open (thread-) local definition files */
-    OTF2_Archive_OpenDefFiles(Archive);
-
-    /* get global definitions writer */
-    Defs = OTF2_Archive_GetGlobalDefWriter(Archive);
-
-    /* get clock resolution & current time for CLOCK_MONOTONIC */
-    struct timespec res, tp;
-    if (clock_getres(CLOCK_MONOTONIC, &res) != 0)
-    {
-        LOG_ERROR("%s", strerror(errno));
-        errno = 0;
-    } else {
-        LOG_DEBUG("Clock resolution: %lu s", res.tv_sec);
-        LOG_DEBUG("Clock resolution: %lu ns", res.tv_nsec);
-        LOG_DEBUG("Clock ticks per second: %lu", 1000000000 / res.tv_nsec);
-    }
-
-    clock_gettime(CLOCK_MONOTONIC, &tp);
-    uint64_t epoch = tp.tv_sec * (uint64_t)1000000000 + tp.tv_nsec;
-    LOG_DEBUG("Epoch: %lu %lu %lu", tp.tv_sec, tp.tv_nsec, epoch);
-
-    /* write global clock properties */
-    OTF2_GlobalDefWriter_WriteClockProperties(Defs,
-        1000000000 / res.tv_nsec,  /* ticks per second */
-        epoch,
-        UINT64_MAX                 /* length */
-    );
-
-    /* write an empty string as the first entry so that string ref 0 is "" */
-    OTF2_GlobalDefWriter_WriteString(Defs, get_unique_str_ref(), "");
-
-    /* write global system tree */
-    OTF2_SystemTreeNodeRef g_sys_tree_id = DEFAULT_SYSTEM_TREE;
-    OTF2_StringRef g_sys_tree_name = get_unique_str_ref();
-    OTF2_StringRef g_sys_tree_class = get_unique_str_ref();
-    OTF2_GlobalDefWriter_WriteString(Defs, g_sys_tree_name, "Sytem Tree");
-    OTF2_GlobalDefWriter_WriteString(Defs, g_sys_tree_class, "node");
-    OTF2_GlobalDefWriter_WriteSystemTreeNode(Defs,
-        g_sys_tree_id,
-        g_sys_tree_name,
-        g_sys_tree_class,
-        OTF2_UNDEFINED_SYSTEM_TREE_NODE);
-
-    /* write global location group */
-    OTF2_StringRef g_loc_grp_name = get_unique_str_ref();
-    OTF2_LocationGroupRef g_loc_grp_id = DEFAULT_LOCATION_GRP;
-    OTF2_GlobalDefWriter_WriteString(Defs, g_loc_grp_name, "OMP Process");
-    OTF2_GlobalDefWriter_WriteLocationGroup(Defs, g_loc_grp_id, g_loc_grp_name,
-        OTF2_LOCATION_GROUP_TYPE_PROCESS, g_sys_tree_id);
-
-    /* define any necessary attributes (their names, descriptions & labels)
-       these are defined in trace-attribute-defs.h and included via macros to
-       reduce code repetition. */
-
-    /* Populate lookup tables with unique string refs */
-    int k=0;
-    for (k=0; k<n_attr_defined; k++)
-    {
-        attr_name_ref[k][0] = get_unique_str_ref();
-        attr_name_ref[k][1] = get_unique_str_ref();
-    }
-
-    for (k=0; k<n_attr_label_defined; k++)
-        attr_label_ref[k] = get_unique_str_ref();
-
-    /* read attributes from header and write name, description & label strings. 
-       lookup the string refs using the enum value for a particular attribute &
-       label */
-    #define INCLUDE_ATTRIBUTE(Type, Name, Desc)                                \
-        OTF2_GlobalDefWriter_WriteString(                                      \
-            Defs, attr_name_ref[attr_##Name][0], #Name);                       \
-        OTF2_GlobalDefWriter_WriteString(                                      \
-            Defs, attr_name_ref[attr_##Name][1],  Desc);
-    #define INCLUDE_LABEL(Name, Label)                                         \
-        OTF2_GlobalDefWriter_WriteString(                                      \
-            Defs, attr_label_ref[attr_##Name##_##Label], #Label);
-    #include "otter/trace-attribute-defs.h"
-
-    /* define attributes which can be referred to later by the enum 
-       attr_name_enum_t */
-    #define INCLUDE_ATTRIBUTE(Type, Name, Desc)                                \
-        OTF2_GlobalDefWriter_WriteAttribute(Defs, attr_##Name,                 \
-            attr_name_ref[attr_##Name][0],                                     \
-            attr_name_ref[attr_##Name][1],                                     \
-            Type);
-    #include "otter/trace-attribute-defs.h"
-
-    return true;
-}
-
-bool
-trace_finalise_archive(void)
-{
-    /* close event files */
-    OTF2_Archive_CloseEvtFiles(Archive);
-
-    /* create 1 definition writer per location & immediately close it - not 
-       currently used
-     */
-    uint64_t nloc = get_unique_loc_ref();
-    int loc = 0;
-    for (loc = 0; loc < nloc; loc++)
-    {
-        OTF2_DefWriter* dw = OTF2_Archive_GetDefWriter(Archive, loc);
-        OTF2_Archive_CloseDefWriter(Archive, dw);
-    }
-
-    /* close local definition files */
-    OTF2_Archive_CloseDefFiles(Archive);
-
-    /* close OTF2 archive */
-    OTF2_Archive_Close(Archive);
-
-    return true;
-}
+// extern pthread_mutex_t lock_global_def_writer;
+// extern pthread_mutex_t lock_global_archive;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /*   WRITE DEFINITIONS                                                       */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-void
-trace_write_location_definition(trace_location_def_t *loc)
-{
-    if (loc == NULL)
-    {
-        LOG_ERROR("null pointer");
-        return;
-    }
+// void
+// trace_write_location_definition(trace_location_def_t *loc)
+// {
+//     if (loc == NULL)
+//     {
+//         LOG_ERROR("null pointer");
+//         return;
+//     }
 
-    char location_name[DEFAULT_NAME_BUF_SZ + 1] = {0};
-    OTF2_StringRef location_name_ref = get_unique_str_ref();
-    snprintf(location_name, DEFAULT_NAME_BUF_SZ, "Thread %lu", loc->id);
+//     char location_name[DEFAULT_NAME_BUF_SZ + 1] = {0};
+//     OTF2_StringRef location_name_ref = get_unique_str_ref();
+//     snprintf(location_name, DEFAULT_NAME_BUF_SZ, "Thread %lu", loc->id);
 
-    LOG_DEBUG("[t=%lu] locking global def writer", loc->id);
-    pthread_mutex_lock(&lock_global_def_writer);
+//     LOG_DEBUG("[t=%lu] locking global def writer", loc->id);
+//     pthread_mutex_lock(&lock_global_def_writer);
 
-    OTF2_GlobalDefWriter_WriteString(Defs,
-        location_name_ref,
-        location_name);
+//     OTF2_GlobalDefWriter_WriteString(Defs,
+//         location_name_ref,
+//         location_name);
 
-    LOG_DEBUG("[t=%lu] writing location definition", loc->id);
-    OTF2_GlobalDefWriter_WriteLocation(Defs,
-        loc->ref,
-        location_name_ref,
-        loc->type,
-        loc->events,
-        loc->location_group);
+//     LOG_DEBUG("[t=%lu] writing location definition", loc->id);
+//     OTF2_GlobalDefWriter_WriteLocation(Defs,
+//         loc->ref,
+//         location_name_ref,
+//         loc->type,
+//         loc->events,
+//         loc->location_group);
 
-    LOG_DEBUG("[t=%lu] unlocking global def writer", loc->id);
-    pthread_mutex_unlock(&lock_global_def_writer);
+//     LOG_DEBUG("[t=%lu] unlocking global def writer", loc->id);
+//     pthread_mutex_unlock(&lock_global_def_writer);
 
-    return;
-}
+//     return;
+// }
 
 void
 trace_write_region_definition(trace_region_def_t *rgn)
@@ -306,6 +94,8 @@ trace_write_region_definition(trace_region_def_t *rgn)
 
     LOG_DEBUG("writing region definition %3u (type=%3d, role=%3u) %p",
         rgn->ref, rgn->type, rgn->role, rgn);
+
+    OTF2_GlobalDefWriter *Defs = get_global_def_writer();
 
     switch (rgn->type)
     {
@@ -323,7 +113,11 @@ trace_write_region_definition(trace_region_def_t *rgn)
                 region_name_ref,
                 0, 0,   /* canonical name, description */
                 rgn->role,
+#if defined(OTTER_SERIAL_MODE)
+                OTF2_PARADIGM_USER,
+#else
                 OTF2_PARADIGM_OPENMP,
+#endif
                 OTF2_REGION_FLAG_NONE,
                 0, 0, 0); /* source file, begin line no., end line no. */
             break;
@@ -335,7 +129,11 @@ trace_write_region_definition(trace_region_def_t *rgn)
                 WORK_TYPE_TO_STR_REF(rgn->attr.wshare.type),
                 0, 0,
                 rgn->role,
+#if defined(OTTER_SERIAL_MODE)
+                OTF2_PARADIGM_USER,
+#else
                 OTF2_PARADIGM_OPENMP,
+#endif
                 OTF2_REGION_FLAG_NONE,
                 0, 0, 0); /* source file, begin line no., end line no. */
             break;
@@ -351,7 +149,11 @@ trace_write_region_definition(trace_region_def_t *rgn)
                 attr_label_ref[attr_region_type_master],
                 0, 0,
                 rgn->role,
+#if defined(OTTER_SERIAL_MODE)
+                OTF2_PARADIGM_USER,
+#else
                 OTF2_PARADIGM_OPENMP,
+#endif
                 OTF2_REGION_FLAG_NONE,
                 0, 0, 0); /* source file, begin line no., end line no. */
             break;
@@ -363,7 +165,11 @@ trace_write_region_definition(trace_region_def_t *rgn)
                 SYNC_TYPE_TO_STR_REF(rgn->attr.sync.type),
                 0, 0,
                 rgn->role,
+#if defined(OTTER_SERIAL_MODE)
+                OTF2_PARADIGM_USER,
+#else
                 OTF2_PARADIGM_OPENMP,
+#endif
                 OTF2_REGION_FLAG_NONE,
                 0, 0, 0); /* source file, begin line no., end line no. */
             break;
@@ -443,116 +249,6 @@ trace_add_common_event_attributes(
     );
     CHECK_OTF2_ERROR_CODE(r);
 
-    return;
-}
-
-static void
-trace_add_thread_attributes(trace_location_def_t *self)
-{
-    OTF2_ErrorCode r = OTF2_SUCCESS;
-    r = OTF2_AttributeList_AddInt32(self->attributes, attr_cpu, sched_getcpu());
-    CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint64(self->attributes, attr_unique_id, self->id);
-    CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddStringRef(self->attributes, attr_thread_type,
-        self->thread_type == ompt_thread_initial ? 
-            attr_label_ref[attr_thread_type_initial] :
-        self->thread_type == ompt_thread_worker ? 
-            attr_label_ref[attr_thread_type_worker] : 0);
-    CHECK_OTF2_ERROR_CODE(r);
-    return;
-}
-
-static void
-trace_add_parallel_attributes(trace_region_def_t *rgn)
-{
-    OTF2_ErrorCode r = OTF2_SUCCESS;
-    r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_unique_id,
-        rgn->attr.parallel.id);
-    CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint32(rgn->attributes, attr_requested_parallelism,
-        rgn->attr.parallel.requested_parallelism);
-    CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_is_league,
-        rgn->attr.parallel.is_league ? 
-            attr_label_ref[attr_flag_true] : attr_label_ref[attr_flag_false]);
-    CHECK_OTF2_ERROR_CODE(r);
-    return;
-}
-
-static void
-trace_add_workshare_attributes(trace_region_def_t *rgn)
-{
-    OTF2_ErrorCode r = OTF2_SUCCESS;
-    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_workshare_type,
-        WORK_TYPE_TO_STR_REF(rgn->attr.wshare.type));
-    CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_workshare_count,
-        rgn->attr.wshare.count);
-    CHECK_OTF2_ERROR_CODE(r);
-    return;
-}
-
-static void
-trace_add_master_attributes(trace_region_def_t *rgn)
-{
-    OTF2_ErrorCode r = OTF2_SUCCESS;
-    r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_unique_id,
-        rgn->attr.master.thread);
-    CHECK_OTF2_ERROR_CODE(r);
-    return;
-}
-
-static void
-trace_add_sync_attributes(trace_region_def_t *rgn)
-{
-    OTF2_ErrorCode r = OTF2_SUCCESS;
-    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_sync_type,
-        SYNC_TYPE_TO_STR_REF(rgn->attr.sync.type));
-    CHECK_OTF2_ERROR_CODE(r);
-    return;
-}
-
-static void
-trace_add_task_attributes(trace_region_def_t *rgn)
-{
-    OTF2_ErrorCode r = OTF2_SUCCESS;
-    r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_unique_id,
-        rgn->attr.task.id);
-    CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_task_type,
-        TASK_TYPE_TO_STR_REF(rgn->attr.task.type));
-    CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint32(rgn->attributes, attr_task_flags,
-        rgn->attr.task.flags);
-    CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_parent_task_id,
-        rgn->attr.task.parent_id);
-    CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_parent_task_type,
-        TASK_TYPE_TO_STR_REF(rgn->attr.task.parent_type));
-    CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_has_dependences,
-        rgn->attr.task.has_dependences);
-    CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_undeferred,
-        rgn->attr.task.flags & ompt_task_undeferred);
-    CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_untied,
-        rgn->attr.task.flags & ompt_task_untied);
-    CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_final,
-        rgn->attr.task.flags & ompt_task_final);
-    CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_mergeable,
-        rgn->attr.task.flags & ompt_task_mergeable);
-    CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_merged,
-        rgn->attr.task.flags & ompt_task_merged);
-    CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_prior_task_status,
-        TASK_STATUS_TO_STR_REF(rgn->attr.task.task_status));
-    CHECK_OTF2_ERROR_CODE(r);
     return;
 }
 
@@ -880,7 +576,7 @@ void
 trace_event_task_schedule(
     trace_location_def_t    *self,
     trace_region_def_t      *prior_task,
-    ompt_task_status_t       prior_status)
+    otter_task_status_t      prior_status)
 {
     /* Update prior task's status before recording task enter/leave events */
     LOG_ERROR_IF((prior_task->type != trace_region_task),
@@ -893,7 +589,7 @@ void
 trace_event_task_switch(
     trace_location_def_t *self, 
     trace_region_def_t   *prior_task, 
-    ompt_task_status_t   prior_status, 
+    otter_task_status_t   prior_status, 
     trace_region_def_t   *next_task)
 {
     // Update prior task's status
@@ -978,16 +674,64 @@ get_timestamp(void)
     return time.tv_sec * (uint64_t)1000000000 + time.tv_nsec;
 }
 
-uint64_t
-get_unique_uint64_ref(trace_ref_type_t ref_type)
+/* pretty-print region definitions */
+void
+trace_region_pprint(
+    FILE                *fp,
+    trace_region_def_t  *r,
+    const char func[],
+    const int line)
 {
-    static uint64_t id[NUM_REF_TYPES] = {0};
-    return __sync_fetch_and_add(&id[ref_type], 1L);
-}
+    if (fp == NULL)
+        fp = stderr;
 
-uint32_t
-get_unique_uint32_ref(trace_ref_type_t ref_type)
-{
-    static uint32_t id[NUM_REF_TYPES] = {0};
-    return __sync_fetch_and_add(&id[ref_type], 1);
+    switch (r->type)
+    {
+    case trace_region_parallel:
+        fprintf(fp, "%s:%d: Parallel(id=%lu, master=%lu, ref_count=%u, enter_count=%u) in %s:%d\n",
+            __func__, __LINE__,
+            r->attr.parallel.id,
+            r->attr.parallel.master_thread,
+            r->attr.parallel.ref_count,
+            r->attr.parallel.enter_count,
+            func, line
+        );
+        break;
+    case trace_region_workshare:
+        fprintf(fp, "%s:%d: Work(type=%s, count=%lu) in %s:%d\n",
+            __func__, __LINE__,
+            OMPT_WORK_TYPE_TO_STR(r->attr.wshare.type),
+            r->attr.wshare.count,
+            func, line
+        );
+        break;
+    case trace_region_synchronise:
+        fprintf(fp, "%s:%d: Sync(type=%s) in %s:%d\n",
+            __func__, __LINE__,
+            OMPT_SYNC_TYPE_TO_STR(r->attr.sync.type),
+            func, line
+        );
+        break;
+    case trace_region_task:
+        fprintf(fp, "%s:%d: Task(id=%lu, type=%s) in %s:%d\n",
+            __func__, __LINE__,
+            r->attr.task.id,
+            OMPT_TASK_TYPE_TO_STR(OMPT_TASK_TYPE_BITS & r->attr.task.type),
+            func, line
+        );
+        break;
+#if defined(USE_OMPT_MASKED)
+    case trace_region_masked:
+        fprintf(fp, "%s:%d: Masked(thread=%lu) in %s:%d\n",
+#else
+    case trace_region_master:
+        fprintf(fp, "%s:%d: Master(thread=%lu) in %s:%d\n",
+#endif
+            __func__, __LINE__,
+            r->attr.master.thread,
+            func, line
+        );
+        break;
+    }
+    return;
 }

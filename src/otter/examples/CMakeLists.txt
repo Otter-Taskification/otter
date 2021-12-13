@@ -46,6 +46,17 @@ add_executable(omp-taskloop-yield "omp-taskloop-yield.c")
 add_executable(omp-spawn-n-tasks "omp-spawn-n-tasks.c")
 add_executable(omp-spawn-n-tasks-in-explicit-task-with-yield "omp-spawn-n-tasks-in-explicit-task-with-yield.c")
 
+add_executable(otter-serial-fib
+    "otter-serial-fib.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../../include/otter/otter-serial.h")
+target_include_directories(otter-serial-fib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../include)
+target_link_libraries(otter-serial-fib otter-serial)
+
+add_executable(otter-serial-loop
+    "otter-serial-loop.c")
+target_include_directories(otter-serial-loop PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../include)
+target_link_libraries(otter-serial-loop otter-serial)
+
 # Add CXX executables
 add_executable(omp-peano-constructs "omp-peano-constructs.cpp")
 

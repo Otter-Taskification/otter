@@ -108,42 +108,86 @@ else()
     message(WARN "Selected C compiler may not be supported")
 endif()
 
-# Define library components
-add_library(otter-core OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/otter-core.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/otter-entry.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/otter-structs.c
+# OMPT event source
+add_library(otter-events-ompt OBJECT
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/ompt/otter-core.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/ompt/otter-entry.c
 )
-target_include_directories(otter-core PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_compile_options(otter-core BEFORE PRIVATE ${CMAKE_C_FLAGS})
-target_compile_definitions(otter-core PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_CORE})
-set_property(TARGET otter-core PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_include_directories(otter-events-ompt PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_options(otter-events-ompt BEFORE PRIVATE ${CMAKE_C_FLAGS})
+target_compile_definitions(otter-events-ompt PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_CORE})
+set_property(TARGET otter-events-ompt PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-add_library(otter-trace OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace-core.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace-structs.c
+# Serial event source
+add_library(otter-events-serial OBJECT
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/serial/otter-serial.c
 )
-target_include_directories(otter-trace PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_compile_definitions(otter-trace PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_TRACE})
-set_property(TARGET otter-trace PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_include_directories(otter-events-serial PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_options(otter-events-serial BEFORE PRIVATE ${CMAKE_C_FLAGS})
+target_compile_definitions(otter-events-serial PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_CORE})
+set_property(TARGET otter-events-serial PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+# Trace component for OMP mode
+add_library(otter-trace-ompt OBJECT
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-core.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-location.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-parallel.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-workshare.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-master.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-sync.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-task.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-archive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-unique-refs.c
+)
+target_include_directories(otter-trace-ompt PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_definitions(otter-trace-ompt PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_TRACE})
+set_property(TARGET otter-trace-ompt PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+# Trace component for serial mode
+add_library(otter-trace-serial OBJECT
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-core.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-location.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-parallel.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-workshare.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-master.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-sync.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-task.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-archive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-unique-refs.c
+)
+target_include_directories(otter-trace-serial PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_definitions(otter-trace-serial PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_TRACE})
+set_property(TARGET otter-trace-serial PROPERTY POSITION_INDEPENDENT_CODE ON)
+# Add define to signify serial tracing mode
+target_compile_definitions(otter-trace-serial PRIVATE OTTER_SERIAL_MODE)
+
+# Datatypes component
 add_library(otter-dtype OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/dt-queue.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/dt-stack.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/dt-queue.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/dt-stack.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/otter-structs.c
 )
 target_include_directories(otter-dtype PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(otter-dtype PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_DTYPE})
 set_property(TARGET otter-dtype PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-# Link component objects into shared library
-add_library(otter
-    $<TARGET_OBJECTS:otter-core>
-    $<TARGET_OBJECTS:otter-trace>
+# Otter library compiled for OMP mode
+add_library(otter-ompt
+    $<TARGET_OBJECTS:otter-events-ompt>
+    $<TARGET_OBJECTS:otter-trace-ompt>
+    $<TARGET_OBJECTS:otter-dtype>
+)
+
+# Otter library compiled for serial mode
+add_library(otter-serial
+    $<TARGET_OBJECTS:otter-events-serial>
+    $<TARGET_OBJECTS:otter-trace-serial>
     $<TARGET_OBJECTS:otter-dtype>
 )
 
 # Specify Otter install location
-install(TARGETS otter DESTINATION lib)
+install(TARGETS otter-ompt DESTINATION lib)
+install(TARGETS otter-serial DESTINATION lib)
 
 # Configure version header
 configure_file(
@@ -152,7 +196,8 @@ configure_file(
 )
 
 # Link to dependencies
-target_link_libraries(otter pthread)
+target_link_libraries(otter-ompt pthread)
+target_link_libraries(otter-serial pthread)
 
 # # # OMPT # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Check for omp-tools.h
@@ -164,8 +209,8 @@ endif()
 # Flag that we should use OMPT 5.1 features
 if(USE_OMPT_51)
     message(STATUS "Using OMPT 5.1")
-    target_compile_definitions(otter-core PRIVATE USE_OMPT_MASKED)
-    target_compile_definitions(otter-trace PRIVATE USE_OMPT_MASKED)
+    target_compile_definitions(otter-events-ompt PRIVATE USE_OMPT_MASKED)
+    target_compile_definitions(otter-trace-ompt PRIVATE USE_OMPT_MASKED)
 else()
     message(STATUS "Not using OMPT 5.1")
 endif()
@@ -174,16 +219,21 @@ endif()
 # Add OTF2 include directory if it was specified
 set(HAVE_OTF2_INCLUDE_DIR FALSE)
 if(DEFINED OTF2_INCLUDE_DIR)
-    target_include_directories(otter-core PRIVATE ${OTF2_INCLUDE_DIR})
-    target_include_directories(otter-trace PRIVATE ${OTF2_INCLUDE_DIR})
+    target_include_directories(otter-events-ompt PRIVATE ${OTF2_INCLUDE_DIR})
+    target_include_directories(otter-events-serial PRIVATE ${OTF2_INCLUDE_DIR})
+    target_include_directories(otter-trace-ompt PRIVATE ${OTF2_INCLUDE_DIR})
+    target_include_directories(otter-trace-serial PRIVATE ${OTF2_INCLUDE_DIR})
+    target_include_directories(otter-dtype PRIVATE ${OTF2_INCLUDE_DIR})
     set(HAVE_OTF2_INCLUDE_DIR TRUE)
     message(STATUS "OTF2 include dir was specified")
 endif()
 
-target_link_libraries(otter otf2)
+target_link_libraries(otter-ompt otf2)
+target_link_libraries(otter-serial otf2)
 # Add library directory for OTF2 if it was specified
 if(DEFINED OTF2_LIB_DIR)
-    target_link_libraries(otter -L${OTF2_LIB_DIR})
+    target_link_libraries(otter-ompt -L${OTF2_LIB_DIR})
+    target_link_libraries(otter-serial -L${OTF2_LIB_DIR})
 endif()
 
 # Check for otf2.h
@@ -218,7 +268,9 @@ endif()
 
 # # # Build examples for demonstrating Otter  # # # # # # # # # # # # # # #
 
+message(STATUS "Detecting examples")
 if (WITH_EXAMPLES)
+    message(STATUS "Adding examples")
     add_subdirectory(src/otter/examples)
 endif()
 

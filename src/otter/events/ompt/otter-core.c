@@ -21,7 +21,7 @@
 #include "otter/otter-entry.h"
 #include "otter/otter-environment-variables.h"
 #include "otter/trace.h"
-#include "otter/trace-structs.h"
+// #include "otter/trace-structs.h"
 
 /* Static function prototypes */
 static void print_resource_usage(void);
@@ -517,7 +517,15 @@ on_ompt_callback_work(
         if (endpoint == ompt_scope_begin)
         {
             trace_region_def_t *wshare_rgn = trace_new_workshare_region(
-                thread_data->location, wstype, count, task_data->id);
+                thread_data->location,
+                /* Convert the OMPT enum type to a generic Otter enum type */
+                wstype == ompt_work_loop ? otter_work_loop :
+                    wstype == ompt_work_single_executor ? otter_work_single_executor :
+                    wstype == ompt_work_single_other ? otter_work_single_other :
+                    wstype == ompt_work_taskloop ? otter_work_taskloop : 0,
+                count,
+                task_data->id
+            );
             trace_event_enter(thread_data->location, wshare_rgn);
         } else {
 
@@ -629,9 +637,9 @@ on_ompt_callback_sync_region(
     return;
 }
 
-unique_id_t
-get_unique_id(unique_id_type_t id_type)
-{
-    static unique_id_t id[NUM_ID_TYPES] = {0,0,0,0};
-    return __sync_fetch_and_add(&id[id_type], 1L);
-}
+// unique_id_t
+// get_unique_id(unique_id_type_t id_type)
+// {
+//     static unique_id_t id[NUM_ID_TYPES] = {0,0,0,0};
+//     return __sync_fetch_and_add(&id[id_type], 1L);
+// }

@@ -4,6 +4,8 @@
 #include "otter/trace-attributes.h"
 #include "otter/trace-structs.h"
 #include "otter/trace-region-task.h"
+#include "otter/trace-unique-refs.h"
+#include "otter/trace-check-error-code.h"
 #include "otter/queue.h"
 #include "otter/stack.h"
 
@@ -63,8 +65,8 @@ void
 trace_destroy_task_region(trace_region_def_t *rgn)
 {
     LOG_WARN_IF(
-        (!(rgn->attr.task.task_status == ompt_task_complete 
-            || rgn->attr.task.task_status == ompt_task_cancel)),
+        (!(rgn->attr.task.task_status == otter_task_complete 
+            || rgn->attr.task.task_status == otter_task_cancel)),
         "destroying task region before task-complete/task-cancel");
     LOG_DEBUG("region %p destroying attribute list %p", rgn, rgn->attributes);
     OTF2_AttributeList_Delete(rgn->attributes);

@@ -13,6 +13,7 @@
 #include "otter/trace.h"
 #include "otter/trace-archive.h"
 #include "otter/trace-attributes.h"
+#include "otter/trace-unique-refs.h"
 
 #define DEFAULT_LOCATION_GRP 0 // OTF2_UNDEFINED_LOCATION_GROUP
 #define DEFAULT_SYSTEM_TREE  0
@@ -25,12 +26,34 @@ OTF2_StringRef attr_name_ref[n_attr_defined][2] = {0};
 OTF2_StringRef attr_label_ref[n_attr_label_defined] = {0};
 
 /* References to global archive & def writer */
-OTF2_Archive *Archive = NULL;
-OTF2_GlobalDefWriter *Defs = NULL;
+static OTF2_Archive *Archive = NULL;
+static OTF2_GlobalDefWriter *Defs = NULL;
 
 /* Mutexes for thread-safe access to Archive and Defs */
-pthread_mutex_t lock_global_def_writer = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t lock_global_archive    = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t lock_global_def_writer = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t lock_global_archive    = PTHREAD_MUTEX_INITIALIZER;
+
+pthread_mutex_t *
+global_def_writer_lock(void)
+{
+    return &lock_global_def_writer;
+}
+
+pthread_mutex_t *
+global_archive_lock(void)
+{
+    return &lock_global_archive;
+}
+
+OTF2_GlobalDefWriter *get_global_def_writer(void)
+{
+    return Defs;
+}
+
+OTF2_Archive *get_global_archive(void)
+{
+    return Archive;
+}
 
 /* Pre- and post-flush callbacks required by OTF2 */
 static OTF2_FlushType

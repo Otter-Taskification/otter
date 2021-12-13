@@ -6,6 +6,17 @@
 #include "otter/trace.h"
 #include "otter/trace-structs.h"
 
+/* Used as an array index to keep track of unique ids for different entities */
+typedef enum {
+    id_timestamp,
+    id_parallel,
+    id_thread,
+    id_task,
+    NUM_ID_TYPES
+} unique_id_type_t;
+
+static unique_id_t get_unique_id(unique_id_type_t id_type);
+
 parallel_data_t *
 new_parallel_data(
     unique_id_t  thread_id,
@@ -94,6 +105,26 @@ void task_destroy(task_data_t *task_data)
 {
     free(task_data);
     return;
+}
+
+unique_id_t get_unique_parallel_id(void)
+{
+    return get_unique_id(id_parallel);
+}
+
+unique_id_t get_unique_thread_id(void)
+{
+    return get_unique_id(id_thread);
+}
+
+unique_id_t get_unique_task_id(void)
+{
+    return get_unique_id(id_task);
+}
+
+unique_id_t get_dummy_time(void)
+{
+    return get_unique_id(id_timestamp);
 }
 
 unique_id_t

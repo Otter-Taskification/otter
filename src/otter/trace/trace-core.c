@@ -22,6 +22,8 @@
 #include "otter/trace-location.h"
 #include "otter/trace-attributes.h"
 #include "otter/trace-lookup-macros.h"
+#include "otter/trace-unique-refs.h"
+#include "otter/trace-check-error-code.h"
 
 #include "otter/queue.h"
 #include "otter/stack.h"
@@ -39,51 +41,47 @@ static void trace_add_common_event_attributes(
 extern OTF2_StringRef attr_name_ref[n_attr_defined][2];
 extern OTF2_StringRef attr_label_ref[n_attr_label_defined];
 
-/* References to global archive & def writer */
-extern OTF2_Archive *Archive;
-extern OTF2_GlobalDefWriter *Defs;
-
 /* Mutexes for thread-safe access to Archive and Defs */
-extern pthread_mutex_t lock_global_def_writer;
-extern pthread_mutex_t lock_global_archive;
+// extern pthread_mutex_t lock_global_def_writer;
+// extern pthread_mutex_t lock_global_archive;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /*   WRITE DEFINITIONS                                                       */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-void
-trace_write_location_definition(trace_location_def_t *loc)
-{
-    if (loc == NULL)
-    {
-        LOG_ERROR("null pointer");
-        return;
-    }
+// void
+// trace_write_location_definition(trace_location_def_t *loc)
+// {
+//     if (loc == NULL)
+//     {
+//         LOG_ERROR("null pointer");
+//         return;
+//     }
 
-    char location_name[DEFAULT_NAME_BUF_SZ + 1] = {0};
-    OTF2_StringRef location_name_ref = get_unique_str_ref();
-    snprintf(location_name, DEFAULT_NAME_BUF_SZ, "Thread %lu", loc->id);
+//     char location_name[DEFAULT_NAME_BUF_SZ + 1] = {0};
+//     OTF2_StringRef location_name_ref = get_unique_str_ref();
+//     snprintf(location_name, DEFAULT_NAME_BUF_SZ, "Thread %lu", loc->id);
 
-    LOG_DEBUG("[t=%lu] locking global def writer", loc->id);
-    pthread_mutex_lock(&lock_global_def_writer);
+//     LOG_DEBUG("[t=%lu] locking global def writer", loc->id);
+//     pthread_mutex_lock(&lock_global_def_writer);
 
-    OTF2_GlobalDefWriter_WriteString(Defs,
-        location_name_ref,
-        location_name);
+//     OTF2_GlobalDefWriter_WriteString(Defs,
+//         location_name_ref,
+//         location_name);
 
-    LOG_DEBUG("[t=%lu] writing location definition", loc->id);
-    OTF2_GlobalDefWriter_WriteLocation(Defs,
-        loc->ref,
-        location_name_ref,
-        loc->type,
-        loc->events,
-        loc->location_group);
+//     LOG_DEBUG("[t=%lu] writing location definition", loc->id);
+//     OTF2_GlobalDefWriter_WriteLocation(Defs,
+//         loc->ref,
+//         location_name_ref,
+//         loc->type,
+//         loc->events,
+//         loc->location_group);
 
-    LOG_DEBUG("[t=%lu] unlocking global def writer", loc->id);
-    pthread_mutex_unlock(&lock_global_def_writer);
+//     LOG_DEBUG("[t=%lu] unlocking global def writer", loc->id);
+//     pthread_mutex_unlock(&lock_global_def_writer);
 
-    return;
-}
+//     return;
+// }
 
 void
 trace_write_region_definition(trace_region_def_t *rgn)
@@ -96,6 +94,8 @@ trace_write_region_definition(trace_region_def_t *rgn)
 
     LOG_DEBUG("writing region definition %3u (type=%3d, role=%3u) %p",
         rgn->ref, rgn->type, rgn->role, rgn);
+
+    OTF2_GlobalDefWriter *Defs = get_global_def_writer();
 
     switch (rgn->type)
     {
@@ -672,20 +672,6 @@ get_timestamp(void)
     struct timespec time;
     clock_gettime(CLOCK_MONOTONIC, &time);
     return time.tv_sec * (uint64_t)1000000000 + time.tv_nsec;
-}
-
-uint64_t
-get_unique_uint64_ref(trace_ref_type_t ref_type)
-{
-    static uint64_t id[NUM_REF_TYPES] = {0};
-    return __sync_fetch_and_add(&id[ref_type], 1L);
-}
-
-uint32_t
-get_unique_uint32_ref(trace_ref_type_t ref_type)
-{
-    static uint32_t id[NUM_REF_TYPES] = {0};
-    return __sync_fetch_and_add(&id[ref_type], 1);
 }
 
 /* pretty-print region definitions */

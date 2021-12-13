@@ -2,8 +2,11 @@
 #include <pthread.h>
 #include "otter/trace-lookup-macros.h"
 #include "otter/trace-attributes.h"
+#include "otter/trace-archive.h"
 #include "otter/trace-structs.h"
 #include "otter/trace-region-parallel.h"
+#include "otter/trace-unique-refs.h"
+#include "otter/trace-check-error-code.h"
 #include "otter/queue.h"
 #include "otter/stack.h"
 
@@ -12,7 +15,7 @@ extern OTF2_StringRef attr_name_ref[n_attr_defined][2];
 extern OTF2_StringRef attr_label_ref[n_attr_label_defined];
 
 /* Defined in trace.c */
-extern pthread_mutex_t lock_global_def_writer;
+// extern pthread_mutex_t lock_global_def_writer;
 
 /* Constructor */
 trace_region_def_t *
@@ -59,8 +62,10 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
     LOG_DEBUG("[parallel=%lu] writing nested region definitions (%lu)", 
         rgn->attr.parallel.id, n_defs);
 
+    pthread_mutex_t *lock_global_def_writer = global_def_writer_lock();
+
     /* Lock the global def writer first */
-    pthread_mutex_lock(&lock_global_def_writer);
+    pthread_mutex_lock(lock_global_def_writer);
     
     /* Write parallel region's definition */
     trace_write_region_definition(rgn);
@@ -105,7 +110,7 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
     }
 
     /* Release once done */
-    pthread_mutex_unlock(&lock_global_def_writer);
+    pthread_mutex_unlock(lock_global_def_writer);
 
     /* destroy parallel region once all locations are done with it
        and all definitions written */

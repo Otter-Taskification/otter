@@ -4,6 +4,8 @@
 #include "otter/trace-attributes.h"
 #include "otter/trace-structs.h"
 #include "otter/trace-region-sync.h"
+#include "otter/trace-unique-refs.h"
+#include "otter/trace-check-error-code.h"
 #include "otter/queue.h"
 #include "otter/stack.h"
 

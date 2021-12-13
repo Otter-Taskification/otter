@@ -7,15 +7,16 @@
 #include "otter/trace-lookup-macros.h"
 #include "otter/trace-attributes.h"
 #include "otter/trace-location.h"
+#include "otter/trace-archive.h"
+#include "otter/trace-unique-refs.h"
+#include "otter/trace-check-error-code.h"
+#include "otter/trace-static-constants.h"
 #include "otter/queue.h"
 #include "otter/stack.h"
 
 /* Defined in trace-archive.c */
 extern OTF2_StringRef attr_name_ref[n_attr_defined][2];
 extern OTF2_StringRef attr_label_ref[n_attr_label_defined];
-
-/* Defined in trace.c */
-extern OTF2_Archive *Archive;
 
 trace_location_def_t *
 trace_new_location_definition(
@@ -38,6 +39,8 @@ trace_new_location_definition(
         .rgn_defs_stack = stack_create(),
         .attributes     = OTF2_AttributeList_New()
     };
+
+    OTF2_Archive *Archive = get_global_archive();
 
     new->evt_writer = OTF2_Archive_GetEvtWriter(Archive, new->ref);
     new->def_writer = OTF2_Archive_GetDefWriter(Archive, new->ref);
@@ -82,10 +85,46 @@ trace_add_thread_attributes(trace_location_def_t *self)
     r = OTF2_AttributeList_AddUint64(self->attributes, attr_unique_id, self->id);
     CHECK_OTF2_ERROR_CODE(r);
     r = OTF2_AttributeList_AddStringRef(self->attributes, attr_thread_type,
-        self->thread_type == ompt_thread_initial ? 
+        self->thread_type == otter_thread_initial ? 
             attr_label_ref[attr_thread_type_initial] :
-        self->thread_type == ompt_thread_worker ? 
+        self->thread_type == otter_thread_worker ? 
             attr_label_ref[attr_thread_type_worker] : 0);
     CHECK_OTF2_ERROR_CODE(r);
+    return;
+}
+
+void
+trace_write_location_definition(trace_location_def_t *loc)
+{
+    if (loc == NULL)
+    {
+        LOG_ERROR("null pointer");
+        return;
+    }
+
+    char location_name[DEFAULT_NAME_BUF_SZ + 1] = {0};
+    OTF2_StringRef location_name_ref = get_unique_str_ref();
+    snprintf(location_name, DEFAULT_NAME_BUF_SZ, "Thread %lu", loc->id);
+
+    LOG_DEBUG("[t=%lu] locking global def writer", loc->id);
+    pthread_mutex_t *def_writer_lock = global_def_writer_lock();
+    pthread_mutex_lock(def_writer_lock);
+
+    OTF2_GlobalDefWriter *Defs = get_global_def_writer();
+    OTF2_GlobalDefWriter_WriteString(Defs,
+        location_name_ref,
+        location_name);
+
+    LOG_DEBUG("[t=%lu] writing location definition", loc->id);
+    OTF2_GlobalDefWriter_WriteLocation(Defs,
+        loc->ref,
+        location_name_ref,
+        loc->type,
+        loc->events,
+        loc->location_group);
+
+    LOG_DEBUG("[t=%lu] unlocking global def writer", loc->id);
+    pthread_mutex_unlock(def_writer_lock);
+
     return;
 }

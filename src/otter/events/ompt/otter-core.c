@@ -21,8 +21,7 @@
 #include "otter/otter-entry.h"
 #include "otter/otter-environment-variables.h"
 #include "otter/trace.h"
-#include "otter/trace-archive.h"
-#include "otter/trace-structs.h"
+// #include "otter/trace-structs.h"
 
 /* Static function prototypes */
 static void print_resource_usage(void);

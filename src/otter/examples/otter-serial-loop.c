@@ -20,8 +20,28 @@ int main(void)
                 otterTaskEnd();
             }
             otterLoopEnd();
+            otterSynchroniseChildTasks();
         }
         otterTaskEndSingle();
+
+        otterLoopBegin();
+        for (j=0; j<LEN; j++)
+        {
+            otterTaskBegin();
+                otterTaskBegin();
+                usleep(50);
+                otterTaskEnd();
+                otterTaskBegin();
+                usleep(50);
+                otterTaskEnd();
+                otterTaskBegin();
+                usleep(50);
+                otterTaskEnd();
+            otterTaskEnd();
+        }
+        otterLoopEnd();
+        otterSynchroniseChildTasks();
+
     }
     otterParallelEnd();
     otterTraceEnd();

@@ -20,9 +20,9 @@ int main(int argc, char *argv[]) {
     otterParallelBegin();
     {
         // Tag: wrap a task
-        otterTaskBeginSingle();
+        otterTaskSingleBegin();
             fibn = fib(n);
-        otterTaskEndSingle();
+        otterTaskSingleEnd();
     }
     // Tag: end of a region we want to parallelise
     otterParallelEnd();

@@ -242,7 +242,7 @@ void otterTaskEnd(void)
     return;
 }
 
-void otterTaskBeginSingle(void)
+void otterTaskSingleBegin(void)
 {
     fprintf(stderr, "%s\n", __func__);
 
@@ -262,7 +262,7 @@ void otterTaskBeginSingle(void)
     return;
 }
 
-void otterTaskEndSingle(void)
+void otterTaskSingleEnd(void)
 {
     fprintf(stderr, "%s\n", __func__);
     trace_region_def_t *single = NULL;
@@ -330,8 +330,27 @@ void otterSynchroniseChildTasks(void)
     return;
 }
 
-void otterSynchroniseDescendantTasks(void)
+void otterSynchroniseDescendantTasksBegin(void)
 {
     fprintf(stderr, "%s\n", __func__);
+    task_data_t *encountering_task = get_encountering_task();
+    trace_region_def_t *taskgroup = trace_new_sync_region(
+        thread_data->location,
+        otter_sync_region_taskgroup,
+        encountering_task->id
+    );
+    stack_push(region_stack, (data_item_t) {.ptr = taskgroup});
+    trace_event_enter(thread_data->location, taskgroup);
+    return;
+}
+
+void otterSynchroniseDescendantTasksEnd(void)
+{
+    fprintf(stderr, "%s\n", __func__);
+    trace_region_def_t *taskgroup = NULL;
+    stack_pop(region_stack, (data_item_t*) &taskgroup);
+    assert((taskgroup->type == trace_region_synchronise)
+        && (taskgroup->attr.sync.type == otter_sync_region_taskgroup));
+    trace_event_leave(thread_data->location);
     return;
 }

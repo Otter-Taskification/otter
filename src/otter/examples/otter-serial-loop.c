@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "otter/otter-serial.h"
-
 #define LEN 5
 
 int main(void)
@@ -10,7 +9,7 @@ int main(void)
     otterTraceBegin();
     otterParallelBegin();
     {
-        otterTaskBeginSingle();
+        otterTaskSingleBegin();
         {
             otterLoopBegin();
             for (j=0; j<LEN; j++)
@@ -20,10 +19,11 @@ int main(void)
                 otterTaskEnd();
             }
             otterLoopEnd();
-            otterSynchroniseChildTasks();
         }
-        otterTaskEndSingle();
+        otterTaskSingleEnd();
+        otterSynchroniseChildTasks();
 
+        otterSynchroniseDescendantTasksBegin();
         otterLoopBegin();
         for (j=0; j<LEN; j++)
         {
@@ -40,7 +40,7 @@ int main(void)
             otterTaskEnd();
         }
         otterLoopEnd();
-        otterSynchroniseChildTasks();
+        otterSynchroniseDescendantTasksEnd();
 
     }
     otterParallelEnd();

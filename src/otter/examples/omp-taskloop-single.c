@@ -17,7 +17,23 @@ int main(void)
             {
                 usleep(50);
             }
+            #pragma omp taskwait
+
+            #pragma omp taskloop nogroup
+            for (j=0; j<LEN; j++)
+            {
+                usleep(50);
+            }
+            #pragma omp taskwait
         }
+
+        #pragma omp for nowait
+        for (j=0; j<LEN; j++)
+        {
+            #pragma omp task
+            usleep(50);
+        }
+        #pragma omp taskwait
     }
 
     return 0;

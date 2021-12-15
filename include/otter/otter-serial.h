@@ -12,13 +12,14 @@ void otterParallelBegin(void);
 void otterParallelEnd(void);
 void otterTaskBegin(void);
 void otterTaskEnd(void);
-void otterTaskBeginSingle(void);
-void otterTaskEndSingle(void);
+void otterTaskSingleBegin(void);
+void otterTaskSingleEnd(void);
 void otterLoopBegin(void);
 void otterLoopEnd(void);
 void otterLoopIterationBegin(void);
 void otterLoopIterationEnd(void);
 void otterSynchroniseChildTasks(void);
-void otterSynchroniseDescendantTasks(void);
+void otterSynchroniseDescendantTasksBegin(void);
+void otterSynchroniseDescendantTasksEnd(void);
 
 #endif // OTTER_SERIAL_H

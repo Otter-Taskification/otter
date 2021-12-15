@@ -70,7 +70,7 @@ trace_destroy_location(trace_location_def_t *loc)
     }
     LOG_DEBUG("[t=%lu] destroying rgn_defs_stack %p", loc->id, loc->rgn_defs_stack);
     stack_destroy(loc->rgn_defs_stack, false, NULL);
-    // OTF2_AttributeList_Delete(loc->attributes);
+    OTF2_AttributeList_Delete(loc->attributes);
     LOG_DEBUG("[t=%lu] destroying location", loc->id);
     free(loc);
     return;

@@ -114,7 +114,7 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
 
     /* destroy parallel region once all locations are done with it
        and all definitions written */
-    // OTF2_AttributeList_Delete(rgn->attributes);
+    OTF2_AttributeList_Delete(rgn->attributes);
     queue_destroy(rgn->attr.parallel.rgn_defs, false, NULL);
     LOG_DEBUG("region %p (parallel id %lu)", rgn, rgn->attr.parallel.id);
     free(rgn);

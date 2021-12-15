@@ -121,6 +121,10 @@ void otterTraceEnd(void)
     thread_destroy(thread_data);
     trace_finalise_archive();
 
+    stack_destroy(region_stack, false, NULL);
+    stack_destroy(task_stack, false, NULL);
+    stack_destroy(parallel_stack, false, NULL);
+
     char trace_folder[PATH_MAX] = {0};
 
     realpath(opt.tracepath, &trace_folder[0]);
@@ -179,11 +183,13 @@ void otterParallelEnd(void)
     stack_pop(task_stack, (data_item_t*) &implicit_task);
     assert(implicit_task->region == implicit_task_region);
     trace_event_leave(thread_data->location); // implicit task
+    task_destroy(implicit_task);
 
     stack_pop(region_stack, (data_item_t*) &parallel_region);
     stack_pop(parallel_stack, (data_item_t*) &parallel_data);
     assert(parallel_data->region == parallel_region);
     trace_event_leave(thread_data->location); // parallel
+    parallel_destroy(parallel_data);
     return;
 }
 
@@ -238,6 +244,8 @@ void otterTaskEnd(void)
         otter_task_complete,
         encountering_task->region
     );
+
+    task_destroy(task);
 
     return;
 }

@@ -1,3 +1,12 @@
+/**
+ * @file trace-location.c
+ * @author Adam Tuft
+ * @brief Defines trace_location_def_t which represents an OTF2 location, used
+ * to record the location's definition in the trace. Responsible for new/delete,
+ * adding a thread's attributes to its OTF2 attribute list when recording an 
+ * event, and writing a location's definition to the trace.
+ */
+
 #define _GNU_SOURCE
 
 #include <stdlib.h>

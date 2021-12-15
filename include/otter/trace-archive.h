@@ -1,3 +1,11 @@
+/**
+ * @file trace-archive.c
+ * @author Adam Tuft
+ * @brief Responsible for initialising and finalising single instances of the 
+ * trace archive and its global definitions writer. Returns pointers to these 
+ * resources as well as mutexes protecting access to them both.
+ */
+
 #if !defined(OTTER_TRACE_ARCHIVE_H)
 #define OTTER_TRACE_ARCHIVE_H
 

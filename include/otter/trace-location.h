@@ -1,11 +1,16 @@
+/**
+ * @file trace-location.c
+ * @author Adam Tuft
+ * @brief Defines trace_location_def_t which represents an OTF2 location, used
+ * to record the location's definition in the trace. Responsible for new/delete,
+ * adding a thread's attributes to its OTF2 attribute list when recording an 
+ * event, and writing a location's definition to the trace.
+ */
+
 #if !defined(OTTER_TRACE_LOCATION_H)
 #define OTTER_TRACE_LOCATION_H
 
-// #include <stdint.h>
-// #include <stdbool.h>
 #include <otf2/otf2.h>
-
-// #include "otter/otter-ompt-header.h"
 #include "otter/otter-common.h"
 #include "otter/queue.h"
 #include "otter/stack.h"
@@ -28,19 +33,14 @@ typedef struct {
 } trace_location_def_t;
 
 /* Create new location */
-trace_location_def_t *
-trace_new_location_definition(
+trace_location_def_t *trace_new_location_definition(
     uint64_t              id,
     otter_thread_t        thread_type,
     OTF2_LocationType     loc_type, 
     OTF2_LocationGroupRef loc_grp
 );
-
-/* Destroy location */
 void trace_destroy_location(trace_location_def_t *loc);
-
 void trace_add_thread_attributes(trace_location_def_t *self);
-
 void trace_write_location_definition(trace_location_def_t *loc);
 
 #endif // OTTER_TRACE_LOCATION_H

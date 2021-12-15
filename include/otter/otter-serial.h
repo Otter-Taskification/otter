@@ -1,6 +1,10 @@
 #if !defined(OTTER_SERIAL_H)
 #define OTTER_SERIAL_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
 The public API for the Otter serial programme tracing library
 */
@@ -21,5 +25,9 @@ void otterLoopIterationEnd(void);
 void otterSynchroniseChildTasks(void);
 void otterSynchroniseDescendantTasksBegin(void);
 void otterSynchroniseDescendantTasksEnd(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // OTTER_SERIAL_H

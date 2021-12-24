@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
     int n = atoi(argv[1]);
     int fibn = 0;
 
-    otterTraceBegin();
+    otterTraceInitialise();
 
     // Tag: start of a region we want to parallelise
     otterParallelBegin();
@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
 
     printf("f(%d) = %d\n", n, fibn);
 
-    otterTraceEnd();
+    otterTraceFinalise();
 
     return 0;
 }

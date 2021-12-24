@@ -9,7 +9,6 @@
 #include "otter/debug.h"
 #include "otter/otter-environment-variables.h"
 #include "otter/trace.h"
-// #include "otter/trace-archive.h"
 #include "otter/otter-serial.h"
 #include "otter/otter-structs.h"
 
@@ -17,6 +16,7 @@ static thread_data_t *thread_data = NULL;
 static otter_stack_t *region_stack = NULL;
 static otter_stack_t *task_stack = NULL;
 static otter_stack_t *parallel_stack = NULL;
+static bool tracingActive = false;
 
 /* detect environment variables */
 static otter_opt_t opt = {
@@ -43,7 +43,7 @@ static trace_region_def_t *get_encountering_region(void)
     return r;
 }
 
-void otterTraceBegin(void)
+void otterTraceInitialise(void)
 {
     // Initialise archive
 
@@ -73,6 +73,8 @@ void otterTraceBegin(void)
     task_stack = stack_create();
     parallel_stack = stack_create();
 
+    tracingActive = true;
+
     thread_data = new_thread_data(otter_thread_initial);
     trace_event_thread_begin(thread_data->location);
 
@@ -93,7 +95,7 @@ void otterTraceBegin(void)
     return;
 }
 
-void otterTraceEnd(void)
+void otterTraceFinalise(void)
 {
     // Finalise arhchive
     fprintf(stderr, "%s\n", __func__);
@@ -137,6 +139,12 @@ void otterTraceEnd(void)
 
 void otterParallelBegin(void)
 {
+    if (!tracingActive)
+    {
+        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        return;
+    }
+
     fprintf(stderr, "%s\n", __func__);
 
     task_data_t *encountering_task = get_encountering_task();
@@ -172,6 +180,12 @@ void otterParallelBegin(void)
 
 void otterParallelEnd(void)
 {
+    if (!tracingActive)
+    {
+        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        return;
+    }
+
     fprintf(stderr, "%s\n", __func__);
 
     task_data_t *implicit_task = NULL;
@@ -195,6 +209,12 @@ void otterParallelEnd(void)
 
 void otterTaskBegin(void)
 {
+    if (!tracingActive)
+    {
+        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        return;
+    }
+
     fprintf(stderr, "%s\n", __func__);
 
     task_data_t *encountering_task = get_encountering_task();
@@ -224,6 +244,12 @@ void otterTaskBegin(void)
 
 void otterTaskEnd(void)
 {
+    if (!tracingActive)
+    {
+        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        return;
+    }
+
     fprintf(stderr, "%s\n", __func__);
 
     task_data_t *task = NULL;
@@ -252,6 +278,12 @@ void otterTaskEnd(void)
 
 void otterTaskSingleBegin(void)
 {
+    if (!tracingActive)
+    {
+        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        return;
+    }
+
     fprintf(stderr, "%s\n", __func__);
 
     task_data_t *encountering_task = get_encountering_task();
@@ -272,6 +304,12 @@ void otterTaskSingleBegin(void)
 
 void otterTaskSingleEnd(void)
 {
+    if (!tracingActive)
+    {
+        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        return;
+    }
+
     fprintf(stderr, "%s\n", __func__);
     trace_region_def_t *single = NULL;
     stack_pop(region_stack, (data_item_t*) &single);
@@ -283,6 +321,12 @@ void otterTaskSingleEnd(void)
 
 void otterLoopBegin(void)
 {
+    if (!tracingActive)
+    {
+        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        return;
+    }
+
     fprintf(stderr, "%s\n", __func__);
 
     task_data_t *encountering_task = get_encountering_task();
@@ -303,6 +347,12 @@ void otterLoopBegin(void)
 
 void otterLoopEnd(void)
 {
+    if (!tracingActive)
+    {
+        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        return;
+    }
+
     fprintf(stderr, "%s\n", __func__);
     trace_region_def_t *loop = NULL;
     stack_pop(region_stack, (data_item_t*) &loop);
@@ -314,18 +364,36 @@ void otterLoopEnd(void)
 
 void otterLoopIterationBegin(void)
 {
+    if (!tracingActive)
+    {
+        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        return;
+    }
+
     fprintf(stderr, "%s\n", __func__);
     return;
 }
 
 void otterLoopIterationEnd(void)
 {
+    if (!tracingActive)
+    {
+        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        return;
+    }
+
     fprintf(stderr, "%s\n", __func__);
     return;
 }
 
 void otterSynchroniseChildTasks(void)
 {
+    if (!tracingActive)
+    {
+        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        return;
+    }
+
     fprintf(stderr, "%s\n", __func__);
     task_data_t *encountering_task = get_encountering_task();
     trace_region_def_t *taskwait = trace_new_sync_region(
@@ -340,6 +408,12 @@ void otterSynchroniseChildTasks(void)
 
 void otterSynchroniseDescendantTasksBegin(void)
 {
+    if (!tracingActive)
+    {
+        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        return;
+    }
+
     fprintf(stderr, "%s\n", __func__);
     task_data_t *encountering_task = get_encountering_task();
     trace_region_def_t *taskgroup = trace_new_sync_region(
@@ -354,11 +428,41 @@ void otterSynchroniseDescendantTasksBegin(void)
 
 void otterSynchroniseDescendantTasksEnd(void)
 {
+    if (!tracingActive)
+    {
+        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        return;
+    }
+
     fprintf(stderr, "%s\n", __func__);
     trace_region_def_t *taskgroup = NULL;
     stack_pop(region_stack, (data_item_t*) &taskgroup);
     assert((taskgroup->type == trace_region_synchronise)
         && (taskgroup->attr.sync.type == otter_sync_region_taskgroup));
     trace_event_leave(thread_data->location);
+    return;
+}
+
+void otterTraceStart(void)
+{
+    if (!tracingActive)
+    {
+        fprintf(stderr, "%s: tracing interface started\n", __func__);
+        tracingActive = true;
+    } else {
+        fprintf(stderr, "%s: tracing interface already started\n", __func__);
+    }
+    return;
+}
+
+void otterTraceStop(void)
+{
+    if (tracingActive)
+    {
+        fprintf(stderr, "%s: tracing interface stopped\n", __func__);
+        tracingActive = false;
+    } else {
+        fprintf(stderr, "%s: tracing interface already stopped\n", __func__);
+    }
     return;
 }

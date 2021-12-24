@@ -10,8 +10,8 @@ The public API for the Otter serial programme tracing library
 */
 
 // API entrypoints
-void otterTraceBegin(void);
-void otterTraceEnd(void);
+void otterTraceInitialise(void);
+void otterTraceFinalise(void);
 void otterParallelBegin(void);
 void otterParallelEnd(void);
 void otterTaskBegin(void);
@@ -25,6 +25,9 @@ void otterLoopIterationEnd(void);
 void otterSynchroniseChildTasks(void);
 void otterSynchroniseDescendantTasksBegin(void);
 void otterSynchroniseDescendantTasksEnd(void);
+
+void otterTraceStart(void);
+void otterTraceStop(void);
 
 #ifdef __cplusplus
 }

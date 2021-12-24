@@ -6,7 +6,7 @@
 int main(void)
 {
     int j=0;
-    otterTraceBegin();
+    otterTraceInitialise();
     otterParallelBegin();
     {
         otterTaskSingleBegin();
@@ -44,7 +44,7 @@ int main(void)
 
     }
     otterParallelEnd();
-    otterTraceEnd();
+    otterTraceFinalise();
 
     return 0;
 }

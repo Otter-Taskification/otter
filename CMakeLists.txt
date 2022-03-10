@@ -17,8 +17,7 @@ option(WITH_EXAMPLES "Generate and build examples for demonstrating Otter" OFF)
 option(WITH_TESTS "Generate and build tests" OFF)
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(OTF2_INCLUDE_DIR "/opt/otf2/include" CACHE STRING "OTF2 include directory")
-set(OTF2_LIB_DIR "/opt/otf2/lib" CACHE STRING "OTF2 library directory")
+set(OTF2_INSTALL_DIR "/opt/otf2" CACHE STRING "OTF2 install directory")
 
 if (CMAKE_C_FLAGS)
     message(STATUS "Flags added: \"${CMAKE_C_FLAGS}\"")
@@ -216,35 +215,35 @@ else()
 endif()
 
 # # # OTF2 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# Add OTF2 include directory if it was specified
-set(HAVE_OTF2_INCLUDE_DIR FALSE)
-if(DEFINED OTF2_INCLUDE_DIR)
-    target_include_directories(otter-events-ompt PRIVATE ${OTF2_INCLUDE_DIR})
-    target_include_directories(otter-events-serial PRIVATE ${OTF2_INCLUDE_DIR})
-    target_include_directories(otter-trace-ompt PRIVATE ${OTF2_INCLUDE_DIR})
-    target_include_directories(otter-trace-serial PRIVATE ${OTF2_INCLUDE_DIR})
-    target_include_directories(otter-dtype PRIVATE ${OTF2_INCLUDE_DIR})
-    set(HAVE_OTF2_INCLUDE_DIR TRUE)
+# Add OTF2 install directory if it was specified
+set(HAVE_OTF2_INSTALL_DIR FALSE)
+if(DEFINED OTF2_INSTALL_DIR)
+    target_include_directories(otter-events-ompt PRIVATE ${OTF2_INSTALL_DIR}/include)
+    target_include_directories(otter-events-serial PRIVATE ${OTF2_INSTALL_DIR}/include)
+    target_include_directories(otter-trace-ompt PRIVATE ${OTF2_INSTALL_DIR}/include)
+    target_include_directories(otter-trace-serial PRIVATE ${OTF2_INSTALL_DIR}/include)
+    target_include_directories(otter-dtype PRIVATE ${OTF2_INSTALL_DIR}/include)
+    set(HAVE_OTF2_INSTALL_DIR TRUE)
     message(STATUS "OTF2 include dir was specified")
 endif()
 
 target_link_libraries(otter-ompt otf2)
 target_link_libraries(otter-serial otf2)
 # Add library directory for OTF2 if it was specified
-if(DEFINED OTF2_LIB_DIR)
-    target_link_libraries(otter-ompt -L${OTF2_LIB_DIR})
-    target_link_libraries(otter-serial -L${OTF2_LIB_DIR})
+if(DEFINED OTF2_INSTALL_DIR)
+    target_link_libraries(otter-ompt -L${OTF2_INSTALL_DIR}/lib)
+    target_link_libraries(otter-serial -L${OTF2_INSTALL_DIR}/lib)
 endif()
 
 # Check for otf2.h
-set(CMAKE_REQUIRED_INCLUDES $<$<BOOL:HAVE_OTF2_INCLUDE_DIR>:${OTF2_INCLUDE_DIR}>)
+set(CMAKE_REQUIRED_INCLUDES $<$<BOOL:HAVE_OTF2_INSTALL_DIR>:${OTF2_INSTALL_DIR}/include>)
 CHECK_INCLUDE_FILE(otf2/otf2.h HAVE_OTF2_H)
 if(NOT HAVE_OTF2_H)
-    message(FATAL_ERROR "Can't find otf2.h - did you specify OTF2_INCLUDE_DIR?")
+    message(FATAL_ERROR "Can't find otf2.h - did you specify OTF2_INSTALL_DIR?")
 endif()
 
 # Check OTF2 version found
-file(READ "${OTF2_INCLUDE_DIR}/otf2/OTF2_GeneralDefinitions.h" otf2_defs_h)
+file(READ "${OTF2_INSTALL_DIR}/include/otf2/OTF2_GeneralDefinitions.h" otf2_defs_h)
 
 string(REGEX MATCH "#define OTF2_VERSION_MAJOR[ \t]+[0-9]+" OTF2_VERSION_MAJOR_DEF "${otf2_defs_h}")
 string(REGEX REPLACE "#define OTF2" "" OTF2_VERSION_MAJOR_R "${OTF2_VERSION_MAJOR_DEF}")

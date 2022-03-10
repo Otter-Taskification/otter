@@ -16,6 +16,7 @@
 /build*/
 /trace/
 /scratch/
+/reports/
 /.vscode/
 
 /workspace.code-workspace

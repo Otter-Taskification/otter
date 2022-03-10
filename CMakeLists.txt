@@ -183,10 +183,11 @@ add_library(otter-serial
     $<TARGET_OBJECTS:otter-trace-serial>
     $<TARGET_OBJECTS:otter-dtype>
 )
+set_target_properties(otter-serial PROPERTIES PUBLIC_HEADER "include/otter/otter-serial.h")
 
 # Specify Otter install location
 install(TARGETS otter-ompt DESTINATION lib)
-install(TARGETS otter-serial DESTINATION lib)
+install(TARGETS otter-serial LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include)
 
 # Configure version header
 configure_file(

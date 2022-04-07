@@ -639,6 +639,13 @@ trace_event_task_switch(
         next_task->attr.task.id
     );
 
+    // The region_type of the task that was resumed
+    OTF2_AttributeList_AddStringRef(
+        prior_task->attributes,
+        attr_next_task_region_type,
+        TASK_TYPE_TO_STR_REF(next_task->attr.task.type)
+    );
+
     // Task-switch is always considered a discrete event
     OTF2_AttributeList_AddStringRef(
         prior_task->attributes,

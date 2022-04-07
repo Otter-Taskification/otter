@@ -104,6 +104,7 @@ INCLUDE_LABEL(thread_type,  initial)
 INCLUDE_LABEL(thread_type,  worker )
 
 /* region type - parallel, workshare, sync, task */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, next_task_region_type, "region type of a task resumed at a task-scheduling point")
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, region_type, "region type")
 /* generic region types */
 INCLUDE_LABEL(region_type, parallel)

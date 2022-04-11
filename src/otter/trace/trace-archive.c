@@ -17,6 +17,7 @@
 #include <otf2/otf2.h>
 #include <otf2/OTF2_Pthread_Locks.h>
 
+#include "otter/otter-version.h"
 #include "otter/debug.h"
 #include "otter/trace.h"
 #include "otter/trace-archive.h"
@@ -178,6 +179,10 @@ trace_initialise_archive(otter_opt_t *opt)
 
     /* write an empty string as the first entry so that string ref 0 is "" */
     OTF2_GlobalDefWriter_WriteString(Defs, get_unique_str_ref(), "");
+
+    
+    /* write Otter version string as 2nd entry so it is always at index 1 */
+    OTF2_GlobalDefWriter_WriteString(Defs, get_unique_str_ref(), OTTER_VERSION_STRING);
 
     /* write global system tree */
     OTF2_SystemTreeNodeRef g_sys_tree_id = DEFAULT_SYSTEM_TREE;

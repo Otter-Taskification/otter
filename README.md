@@ -1,20 +1,12 @@
-# Otter - An OMPT Tool for Tracing OpenMP Tasks
+# Otter
 
-Otter is a tool for visualising the structure of task-based OpenMP programs allowing developers and researchers to see the true structure of their OpenMP 5.0 programs from the perspective of the OpenMP runtime, without any modification of the target application.
+Developed under the [ExCALIBUR task parallelism cross-cutting research theme](https://excalibur.ac.uk/projects/exposing-parallelism-task-parallelism/), Otter is a tool designed to facilitate data-driven parallelisation of serial code. Otter allows HPC developers to:
 
-Otter uses the OpenMP Tools interface in [OpenMP 5.0](https://www.openmp.org/spec-html/5.0/openmpch4.html) to observe task creation and synchronisation events, extracting from this data the structure of a target application independent of the particular scheduling of tasks at runtime.
+- Annotate, trace & visualise loop/task-based serial code as a directed graph;
+- Recommend strategies for transforming serial code into effective task-based parallel code;
+- Non-invasively trace & visualise loop/task-based OpenMP 5.x programs.
 
-## Features
-
-- Trace the task creation and synchronisation constructs of an OpenMP 5.0 program without any modification of the source - no need to add any instrumentation to the target application.
-- Supports synchronisation due to taskwait and taskgroup constructs.
-- Supports nested tasks and nested parallelism.
-- No additional thread synchronisation - won't accidentally serialise the target application.
-<!-- - Low runtime overhead. -->
-
-## Example
-
-Take this example code which uses nested tasks synchronised by a taskwait barrier to calculate the n<sup>th</sup> Fibonacci number:
+The [project wiki](https://github.com/Otter-Taskification/otter/wiki) introduces the Otter toolset and explains how to use the features above. Otter can trace and visualise the structure of serial and OpenMP code, for example transforming the following code:
 
 ```c
 int fibonacci(int n) {
@@ -27,125 +19,55 @@ int fibonacci(int n) {
     #pragma omp taskwait
     return i+j;
 }
+
+int main(int argc, char *argv[]) {
+    int n = atoi(argv[1]);
+    #pragma omp parallel shared(n)
+    {
+        #pragma omp single
+        printf("f(%d) = %d\n", n, f(n));
+    }
+}
 ```
 
-We can speculate about the structure of this code in terms of tasks and their synchronisation, but how can we check that our ideas match reality? This is a challenge even for the simple code above, and soon becomes impossible for complex task-based code. We might try using performance analysis tools to trace or profile an application, providing a thread-centric view of a specific arrangement of tasks. While this gives us insight into the application's runtime performance, we would still struggle to get a clear picture of the application's overall structure. Using Otter we can observe the true structure of a task-based OpenMP application, all without modifying the application's source. Here is the result of applying Otter to a program using the Fibonacci function above to calculate `fibonacci(5)`:
+Into a directed graph visualising the code's task creation and synchronisation structure:
 
 <p align="center">
 <img src="docs/listing2.svg" height="750" alt="The task-based structure of the Fibonacci function.">
 </p>
 
-The nodes of this graph represent the different OpenMP constructs that Otter can show:
+The nodes of this graph represent the different tasking constructs that Otter can show:
 
 <p align="center">
 <img src="docs/node-symbol-table.svg" height="200" alt="The node styles representing the OpenMP constructs represented by Otter.">
 </p>
 
+## Otter Toolset
+
+The Otter toolset includes:
+
+- [**Otter-Serial**](https://github.com/Otter-Taskification/otter/wiki/Otter-Serial): an API and runtime library for annotating & tracing the structure of a serial target application.
+<!-- -  in order to facilitate data-driven parallelisation of the target. -->
+- [**Otter-OMPT**](https://github.com/Otter-Taskification/otter/wiki/Otter-OMPT): an OMPT tool for non-invasive tracing of the loop/task-based structure of OpenMP 5.x programs.
+<!-- - , allowing HPC developers to observe OpenMP program structure from the perspective of the OpenMP runtime. -->
+- [**PyOtter**](https://github.com/Otter-Taskification/otter/wiki/PyOtter): The visualisation & reporting tool for use with Otter trace data.
+
 ## Getting Started
 
-### Prerequisites
-
-The following dependencies should be installed before building Otter:
-
-- A recent version of a compiler supporting OMPT, such as Clang or Intel's one-API compilers.
-- [OTF2 v2.3](https://zenodo.org/record/4682684)
-- [`python-igraph` v0.9.1](https://pypi.org/project/python-igraph/0.9.1/)
-
-### Building Otter
-
-To build the runtime tool and install post-processing python components:
-
-```bash
-git clone https://github.com/adamtuft/otter.git && cd otter
-git checkout dev
-mkdir build && cd build
-cmake -DCMAKE_C_COMPILER=clang \
-    -DCMAKE_INSTALL_PREFIX=<preferred-install-dir> \
-    -DOTF2_INCLUDE_DIR=<otf2-include-dir> \
-    -DOTF2_LIB_DIR=<otf2-library-dir> \
-    ../
-cmake --build . && cmake --install .
-pip install ../src/python/
-```
-
-The `OTF2_INCLUDE_DIR` and `OTF2_LIB_DIR` arguments should point to the include and library directories for OTF2. The default values assumed by Otter are `/opt/otf2/include` and `/opt/otf2/lib`.
-
-To build several example OpenMP programs with which you can test Otter, set `WITH_EXAMPLES=ON`. You will need to also specify C++ and Fortran compilers which use the LLVM or Intel OpenMP library. **Note:** it is not advised to compile the examples with `gcc`/`gfortran` and then link them to `libomp` or `libiomp5` as this does not give access to the full range of runtime events needed by Otter. Doing this is likely to cause a corrupted trace to be created. For more details, see [this post](https://github.com/adamtuft/otter/issues/14#issuecomment-914156774).
-
-You can build tests by including `WITH_TESTS=ON`. These can be found in the `test` folder and executed with `ctest`.
-
-### Using Otter
-
-Tracing a target application `omp-demo` is as simple as:
-
-```bash
-OMP_TOOL_LIBRARIES=<otter-install-prefix>/lib/libotter.so ./omp-demo
-```
-
-If everything is set up correctly, you should see output like this (depending on the specific OpenMP runtime you are using):
-
-```
-Intel(R) OMP version: 5.0.20210428, OMP v. 201611
-Otter was compiled with icc (ICC) 2021.3.0 20210609
-Starting OTTer...
-Trace output path:             trace/otter_trace.[pid]
-
-Registering callbacks:
-ompt_callback_thread_begin       | ompt_set_always (5)
-ompt_callback_thread_end         | ompt_set_always (5)
-ompt_callback_parallel_begin     | ompt_set_always (5)
-ompt_callback_parallel_end       | ompt_set_always (5)
-ompt_callback_task_create        | ompt_set_always (5)
-ompt_callback_task_schedule      | ompt_set_always (5)
-ompt_callback_implicit_task      | ompt_set_always (5)
-ompt_callback_work               | ompt_set_always (5)
-ompt_callback_masked             | ompt_set_always (5)
-ompt_callback_sync_region        | ompt_set_always (5)
-
-PROCESS RESOURCE USAGE:
-       maximum resident set size:    11916 kb
-page reclaims (soft page faults):     5644 
-  page faults (hard page faults):        1 
-          block input operations:        0 
-         block output operations:       72 
-
-                         threads:        3 
-                parallel regions:        2 
-                           tasks:       25 
-OTTER_TRACE_FOLDER=/home/adam/otter/trace/otter_trace.[pid]
-```
-
-By default, Otter writes a trace to `trace/otter_trace.[pid]` - the location and name of the trace can be set with the `OTTER_TRACE_PATH` and `OTTER_TRACE_NAME` environment variables.
-
-The contents of the trace can be converted into a graph with:
-
-```bash
-python3 -m otter trace/otter_trace.[pid]/otter_trace.[pid].otf2 -o graph.dot
-```
-
-The graph, saved to `graph.dot`, can then be visualised using the `dot` command line tool included with [Graphviz](https://graphviz.org/) or a graph visualisation tool such as [yEd-Desktop or yEd-Live](https://www.yworks.com/\#products).
-
-## Future Work
-
-The future direction of development may include, in no particular order:
-
-- [ ] Record and visualise actual work done per task.
-- [ ] Automatic detection of the critical path.
-- [ ] Support for MPI+OpenMP applications.
-- [ ] Support for GPU-offloaded tasks.
-- [ ] Stronger graph visualisation capabilities.
-
-## Contributing
-
-Contributions are welcome! If you would like to contribute, please fork the repository and use the `contributions` branch. There is no specific style guide, although I would be grateful if you could code in a style consistent with that of the main project.
+- [Installation guide](https://github.com/Otter-Taskification/otter/wiki#installation-guide)
+- [Using Otter-Serial](https://github.com/Otter-Taskification/otter/wiki/Otter-Serial/#using-otter-serial)
+- [Using Otter-OMPT](https://github.com/Otter-Taskification/otter/wiki/Otter-OMPT#getting-started)
+- [Using PyOtter](https://github.com/Otter-Taskification/otter/wiki/PyOtter)
 
 ## Issues, Questions and Feature Requests
 
-Please post any of the above here: https://github.com/adamtuft/otter/issues
+For **Otter-Serial** or **Otter-OMPT**, please post [here](https://github.com/Otter-Taskification/otter/issues).
+
+For **PyOtter**, please post [here](https://github.com/Otter-Taskification/pyotter/issues).
 
 ## Licensing
 
-Otter is released under the BSD 3-clause license. See [LICENSE](LICENSE) for details.
+Otter is released under the BSD 3-clause license. See [LICENCE](LICENCE) for details.
 
 Copyright (c) 2021, Adam Tuft
 All rights reserved.

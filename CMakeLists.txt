@@ -194,7 +194,7 @@ set_target_properties(otter-serial PROPERTIES PUBLIC_HEADER "include/otter/otter
 
 # Specify Otter install location
 install(TARGETS otter-ompt DESTINATION lib)
-install(TARGETS otter-serial LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include)
+install(TARGETS otter-serial LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include/otter)
 
 # Configure version header
 configure_file(

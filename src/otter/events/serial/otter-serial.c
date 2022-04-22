@@ -20,8 +20,6 @@ static otter_stack_t *task_stack = NULL;
 static otter_stack_t *parallel_stack = NULL;
 static bool tracingActive = false;
 
-static const char* _SRCFILE_ = __FILE__;
-
 /* detect environment variables */
 static otter_opt_t opt = {
     .hostname         = NULL,

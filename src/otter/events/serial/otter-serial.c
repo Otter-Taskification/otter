@@ -12,11 +12,15 @@
 #include "otter/otter-serial.h"
 #include "otter/otter-structs.h"
 
+#define LOG_EVENT_CALL() fprintf(stderr, "OTTER-SERIAL-EVENT:%s:%s:%d:%s\n", file, func, line, __func__)
+
 static thread_data_t *thread_data = NULL;
 static otter_stack_t *region_stack = NULL;
 static otter_stack_t *task_stack = NULL;
 static otter_stack_t *parallel_stack = NULL;
 static bool tracingActive = false;
+
+static const char* _SRCFILE_ = __FILE__;
 
 /* detect environment variables */
 static otter_opt_t opt = {
@@ -47,7 +51,7 @@ void otterTraceInitialise(void)
 {
     // Initialise archive
 
-    fprintf(stderr, "%s\n", __func__);
+    
 
     static char host[HOST_NAME_MAX+1] = {0};
     gethostname(host, HOST_NAME_MAX);
@@ -98,7 +102,7 @@ void otterTraceInitialise(void)
 void otterTraceFinalise(void)
 {
     // Finalise arhchive
-    fprintf(stderr, "%s\n", __func__);
+    
 
     // initial task
     trace_event_leave(thread_data->location);
@@ -145,7 +149,7 @@ void otterParallelBegin(void)
         return;
     }
 
-    fprintf(stderr, "%s\n", __func__);
+    
 
     task_data_t *encountering_task = get_encountering_task();
 
@@ -186,7 +190,7 @@ void otterParallelEnd(void)
         return;
     }
 
-    fprintf(stderr, "%s\n", __func__);
+    
 
     task_data_t *implicit_task = NULL;
     parallel_data_t *parallel_data = NULL;
@@ -207,7 +211,7 @@ void otterParallelEnd(void)
     return;
 }
 
-void otterTaskBegin(void)
+void otterTaskBegin_i(const char* file, const char* func, const int line)
 {
     if (!tracingActive)
     {
@@ -215,7 +219,7 @@ void otterTaskBegin(void)
         return;
     }
 
-    fprintf(stderr, "%s\n", __func__);
+    LOG_EVENT_CALL();
 
     task_data_t *encountering_task = get_encountering_task();
 
@@ -250,7 +254,7 @@ void otterTaskEnd(void)
         return;
     }
 
-    fprintf(stderr, "%s\n", __func__);
+    
 
     task_data_t *task = NULL;
     trace_region_def_t *task_region = NULL;
@@ -276,7 +280,7 @@ void otterTaskEnd(void)
     return;
 }
 
-void otterTaskSingleBegin(void)
+void otterTaskSingleBegin_i(const char* file, const char* func, const int line)
 {
     if (!tracingActive)
     {
@@ -284,7 +288,7 @@ void otterTaskSingleBegin(void)
         return;
     }
 
-    fprintf(stderr, "%s\n", __func__);
+    LOG_EVENT_CALL();
 
     task_data_t *encountering_task = get_encountering_task();
 
@@ -310,7 +314,7 @@ void otterTaskSingleEnd(void)
         return;
     }
 
-    fprintf(stderr, "%s\n", __func__);
+    
     trace_region_def_t *single = NULL;
     stack_pop(region_stack, (data_item_t*) &single);
     assert((single->type == trace_region_workshare)
@@ -319,7 +323,7 @@ void otterTaskSingleEnd(void)
     return;
 }
 
-void otterLoopBegin(void)
+void otterLoopBegin_i(const char* file, const char* func, const int line)
 {
     if (!tracingActive)
     {
@@ -327,7 +331,7 @@ void otterLoopBegin(void)
         return;
     }
 
-    fprintf(stderr, "%s\n", __func__);
+    LOG_EVENT_CALL();
 
     task_data_t *encountering_task = get_encountering_task();
 
@@ -353,7 +357,7 @@ void otterLoopEnd(void)
         return;
     }
 
-    fprintf(stderr, "%s\n", __func__);
+    
     trace_region_def_t *loop = NULL;
     stack_pop(region_stack, (data_item_t*) &loop);
     assert((loop->type == trace_region_workshare)
@@ -362,7 +366,7 @@ void otterLoopEnd(void)
     return;
 }
 
-void otterLoopIterationBegin(void)
+void otterLoopIterationBegin_i(const char* file, const char* func, const int line)
 {
     if (!tracingActive)
     {
@@ -370,7 +374,7 @@ void otterLoopIterationBegin(void)
         return;
     }
 
-    fprintf(stderr, "%s\n", __func__);
+    LOG_EVENT_CALL();
     return;
 }
 
@@ -382,11 +386,11 @@ void otterLoopIterationEnd(void)
         return;
     }
 
-    fprintf(stderr, "%s\n", __func__);
+    
     return;
 }
 
-void otterSynchroniseChildTasks(void)
+void otterSynchroniseChildTasks_i(const char* file, const char* func, const int line)
 {
     if (!tracingActive)
     {
@@ -394,7 +398,7 @@ void otterSynchroniseChildTasks(void)
         return;
     }
 
-    fprintf(stderr, "%s\n", __func__);
+    LOG_EVENT_CALL();
     task_data_t *encountering_task = get_encountering_task();
     trace_region_def_t *taskwait = trace_new_sync_region(
         thread_data->location,
@@ -406,7 +410,7 @@ void otterSynchroniseChildTasks(void)
     return;
 }
 
-void otterSynchroniseDescendantTasksBegin(void)
+void otterSynchroniseDescendantTasksBegin_i(const char* file, const char* func, const int line)
 {
     if (!tracingActive)
     {
@@ -414,7 +418,7 @@ void otterSynchroniseDescendantTasksBegin(void)
         return;
     }
 
-    fprintf(stderr, "%s\n", __func__);
+    LOG_EVENT_CALL();
     task_data_t *encountering_task = get_encountering_task();
     trace_region_def_t *taskgroup = trace_new_sync_region(
         thread_data->location,
@@ -434,7 +438,7 @@ void otterSynchroniseDescendantTasksEnd(void)
         return;
     }
 
-    fprintf(stderr, "%s\n", __func__);
+    
     trace_region_def_t *taskgroup = NULL;
     stack_pop(region_stack, (data_item_t*) &taskgroup);
     assert((taskgroup->type == trace_region_synchronise)

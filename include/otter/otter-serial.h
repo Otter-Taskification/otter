@@ -5,6 +5,19 @@
 extern "C" {
 #endif
 
+#define otterTaskBegin()                                                       \
+    otterTaskBegin_i(__FILE__, __func__, __LINE__)
+#define otterTaskSingleBegin()                                                 \
+    otterTaskSingleBegin_i(__FILE__, __func__, __LINE__)
+#define otterLoopBegin()                                                       \
+    otterLoopBegin_i(__FILE__, __func__, __LINE__)
+#define otterLoopIterationBegin()                                              \
+    otterLoopIterationBegin_i(__FILE__, __func__, __LINE__)
+#define otterSynchroniseChildTasks()                                           \
+    otterSynchroniseChildTasks_i(__FILE__, __func__, __LINE__)
+#define otterSynchroniseDescendantTasksBegin()                                 \
+    otterSynchroniseDescendantTasksBegin_i(__FILE__, __func__, __LINE__)
+
 /*
 The public API for the Otter serial programme tracing library
 */
@@ -14,16 +27,16 @@ void otterTraceInitialise(void);
 void otterTraceFinalise(void);
 void otterParallelBegin(void);
 void otterParallelEnd(void);
-void otterTaskBegin(void);
+void otterTaskBegin_i(const char*, const char*, const int);
 void otterTaskEnd(void);
-void otterTaskSingleBegin(void);
+void otterTaskSingleBegin_i(const char*, const char*, const int);
 void otterTaskSingleEnd(void);
-void otterLoopBegin(void);
+void otterLoopBegin_i(const char*, const char*, const int);
 void otterLoopEnd(void);
-void otterLoopIterationBegin(void);
+void otterLoopIterationBegin_i(const char*, const char*, const int);
 void otterLoopIterationEnd(void);
-void otterSynchroniseChildTasks(void);
-void otterSynchroniseDescendantTasksBegin(void);
+void otterSynchroniseChildTasks_i(const char*, const char*, const int);
+void otterSynchroniseDescendantTasksBegin_i(const char*, const char*, const int);
 void otterSynchroniseDescendantTasksEnd(void);
 
 void otterTraceStart(void);

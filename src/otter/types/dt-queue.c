@@ -158,37 +158,6 @@ queue_append(
     return true;
 }
 
-/* scan through the items in a queue without modifying the queue
-   write the current queue item to dest
-   save the address of the next item in the queue to [next]
-   if [next] == NULL, start with queue->head
-   (NOTE: up to the caller to track how many items to scan, otherwise will loop)
-*/
-void
-queue_scan(
-    otter_queue_t *q,
-    data_item_t *dest,
-    void **next)
-{
-    if ((next == NULL) || (dest == NULL))
-    {
-        LOG_ERROR("null pointer");
-        return;
-    }
-
-    node_t *next_node = (node_t*) *next;
-
-    if (next_node == NULL)
-    {
-        *dest = q->head->data;
-        *next = (void*) q->head->next;
-    } else {
-        *dest = next_node->data;
-        *next = (void*) next_node->next;
-    }
-    return;
-}
-
 #if DEBUG_LEVEL >= 4
 void
 queue_print(otter_queue_t *q)

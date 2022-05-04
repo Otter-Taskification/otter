@@ -18,7 +18,8 @@ trace_new_task_region(
     trace_region_def_t   *parent_task_region,
     unique_id_t           task_id,
     otter_task_flag_t     flags,
-    int                   has_dependences
+    int                   has_dependences,
+    otter_src_location_t *src_location
 );
 
 /* Destroy region */

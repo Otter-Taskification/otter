@@ -308,7 +308,7 @@ on_ompt_callback_task_create(
     /* make space for the newly-created task */
     task_data_t *task_data = new_task_data(thread_data->location, 
         parent_task_data ? parent_task_data->region : NULL, 
-        get_unique_task_id(), flags, has_dependences);
+        get_unique_task_id(), flags, has_dependences, NULL);
 
     /* record the task-create event */
     trace_event_task_create(thread_data->location, task_data->region);
@@ -440,7 +440,9 @@ on_ompt_callback_implicit_task(
                 parallel_data->encountering_task_data->region : NULL,
             get_unique_task_id(),
             flags,
-            0);
+            0,
+            NULL
+        );
         task->ptr = implicit_task_data;
 
         /* Enter implicit task region */

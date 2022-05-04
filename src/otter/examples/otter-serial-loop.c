@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
-#include "otter/otter-serial.h"
+#include <otter/otter-serial.h>
 #define LEN 5
 
 int main(void)

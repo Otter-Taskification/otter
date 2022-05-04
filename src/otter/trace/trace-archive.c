@@ -23,6 +23,7 @@
 #include "otter/trace-archive.h"
 #include "otter/trace-attributes.h"
 #include "otter/trace-unique-refs.h"
+#include "otter/trace-check-error-code.h"
 
 #define DEFAULT_LOCATION_GRP 0 // OTF2_UNDEFINED_LOCATION_GROUP
 #define DEFAULT_SYSTEM_TREE  0
@@ -37,6 +38,7 @@ OTF2_StringRef attr_label_ref[n_attr_label_defined] = {0};
 /* References to global archive & def writer */
 static OTF2_Archive *Archive = NULL;
 static OTF2_GlobalDefWriter *Defs = NULL;
+static char_ref_registry *Registry = NULL;
 
 /* Mutexes for thread-safe access to Archive and Defs */
 static pthread_mutex_t lock_global_def_writer = PTHREAD_MUTEX_INITIALIZER;
@@ -64,6 +66,11 @@ OTF2_Archive *get_global_archive(void)
     return Archive;
 }
 
+char_ref_registry *get_global_str_registry(void)
+{
+    return Registry;
+}
+
 /* Pre- and post-flush callbacks required by OTF2 */
 static OTF2_FlushType
 pre_flush(
@@ -83,6 +90,16 @@ post_flush(
     OTF2_LocationRef    location)
 {
     return get_timestamp();
+}
+
+// Callback to pass to Registry which will be used to write source location
+// string refs to the DefWriter when Registry is deleted.
+static void trace_write_string_ref(const char *s, OTF2_StringRef ref)
+{
+    LOG_DEBUG("[%s] writing ref %u for string \"%s\"", __func__, ref, s);
+    OTF2_ErrorCode r = OTF2_SUCCESS;
+    r = OTF2_GlobalDefWriter_WriteString(Defs, ref, s);
+    CHECK_OTF2_ERROR_CODE(r);
 }
 
 bool
@@ -246,12 +263,19 @@ trace_initialise_archive(otter_opt_t *opt)
             Type);
     #include "otter/trace-attribute-defs.h"
 
+    Registry = char_ref_registry_make(
+        get_unique_str_ref,
+        trace_write_string_ref
+    );
+
     return true;
 }
 
 bool
 trace_finalise_archive(void)
 {
+    char_ref_registry_delete(Registry);
+
     /* close event files */
     OTF2_Archive_CloseEvtFiles(Archive);
 

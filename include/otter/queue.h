@@ -28,7 +28,7 @@ bool queue_append(otter_queue_t *q, otter_queue_t *r);
 /* scan through the items in a queue without modifying the queue
    write the current queue item to dest
 */
-void queue_scan(otter_queue_t *q, data_item_t *dest, void **next);
+// void queue_scan(otter_queue_t *q, data_item_t *dest, void **next);
 
 #if DEBUG_LEVEL >= 4
 void           queue_print(otter_queue_t *q);

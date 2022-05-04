@@ -142,5 +142,10 @@ INCLUDE_LABEL(prior_task_status,  early_fulfil  )
 INCLUDE_LABEL(prior_task_status,  late_fulfil   )
 INCLUDE_LABEL(prior_task_status,  switch        )
 
+/* task source location */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT32, source_line_number, "the line number of the construct which caused this region to be created")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, source_file_name, "the source file containing the construct which caused this region to be created")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, source_func_name, "the name of the function containing the construct which caused this region to be created")
+
 #undef INCLUDE_LABEL
 #undef INCLUDE_ATTRIBUTE

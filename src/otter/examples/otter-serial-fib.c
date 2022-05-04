@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <otter-serial.h>
+#include <otter/otter-serial.h>
 
 int fib(int n);
 

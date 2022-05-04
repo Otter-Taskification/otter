@@ -47,7 +47,8 @@ task_data_t *new_task_data(
     trace_region_def_t    *parent_task_region,
     unique_id_t            task_id,
     otter_task_flag_t      flags,
-    int                    has_dependences
+    int                    has_dependences,
+    otter_src_location_t  *src_location
 );
 void task_destroy(task_data_t *task_data);
 

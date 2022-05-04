@@ -13,7 +13,7 @@
 #include "otter/otter-structs.h"
 #include "otter/char_ref_registry.hpp"
 
-#define LOG_EVENT_CALL(file, func, line, ifunc) fprintf(stderr, "OTTER-SERIAL-EVENT:%s:%s:%d:%s\n", file, func, line, ifunc)
+#define LOG_EVENT_CALL(file, func, line, ifunc) LOG_DEBUG("%s:%d in %s", file, line, func)
 
 static thread_data_t *thread_data = NULL;
 static otter_stack_t *region_stack = NULL;

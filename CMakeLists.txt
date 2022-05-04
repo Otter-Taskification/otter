@@ -118,6 +118,7 @@ endif()
 add_library(otter-events-ompt OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/ompt/otter-core.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/ompt/otter-entry.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/otter-structs.c
 )
 target_include_directories(otter-events-ompt PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(otter-events-ompt BEFORE PRIVATE ${CMAKE_C_FLAGS})
@@ -127,6 +128,7 @@ set_property(TARGET otter-events-ompt PROPERTY POSITION_INDEPENDENT_CODE ON)
 # Serial event source
 add_library(otter-events-serial OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/serial/otter-serial.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/otter-structs.c
 )
 target_include_directories(otter-events-serial PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(otter-events-serial BEFORE PRIVATE ${CMAKE_C_FLAGS})
@@ -171,7 +173,7 @@ target_compile_definitions(otter-trace-serial PRIVATE OTTER_SERIAL_MODE)
 add_library(otter-dtype OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/dt-queue.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/dt-stack.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/otter-structs.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/char_ref_registry.cpp
 )
 target_include_directories(otter-dtype PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(otter-dtype PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_DTYPE})

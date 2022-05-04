@@ -29,3 +29,14 @@ OTF2_LocationRef get_unique_loc_ref(void)
 {
     return (OTF2_LocationRef) get_unique_uint64_ref(trace_location);
 }
+
+trace_callback_t trace_get_unique_labeller(trace_ref_type_t ref_type)
+{
+    switch (ref_type)
+    {
+    case trace_string:
+        return (trace_callback_t) &get_unique_str_ref;
+    default:
+        return NULL; // not implemented
+    }
+}

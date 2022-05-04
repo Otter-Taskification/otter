@@ -8,6 +8,7 @@
 #include "otter/trace-check-error-code.h"
 #include "otter/queue.h"
 #include "otter/stack.h"
+#include "otter/char_ref_registry.hpp"
 
 /* Defined in trace-archive.c */
 extern OTF2_StringRef attr_name_ref[n_attr_defined][2];
@@ -19,7 +20,8 @@ trace_new_task_region(
     trace_region_def_t    *parent_task_region, 
     unique_id_t            id,
     otter_task_flag_t      flags,
-    int                    has_dependences)
+    int                    has_dependences,
+    otter_src_location_t  *src_location)
 {
     /* Create a region representing a task. Add to the location's region
        definition queue. */
@@ -30,6 +32,17 @@ trace_new_task_region(
 
     LOG_INFO_IF((parent_task_region == NULL),
         "[t=%lu] parent task region is null", loc->id);
+
+    LOG_DEBUG_IF((src_location), "got src_location(file=%s, func=%s, line=%d)\n", src_location->file, src_location->func, src_location->line);
+
+    // if (src_location) {
+    //     fprintf(stderr, "[%s] got src_location(file=%s, func=%s, line=%d)\n",
+    //         __func__,
+    //         src_location->file,
+    //         src_location->func,
+    //         src_location->line
+    //     );
+    // }
 
     trace_region_def_t *new = malloc(sizeof(*new));
     *new = (trace_region_def_t) {
@@ -47,7 +60,11 @@ trace_new_task_region(
                 parent_task_region->attr.task.id   : OTF2_UNDEFINED_UINT64,
             .parent_type = parent_task_region != NULL ? 
                 parent_task_region->attr.task.type : OTF2_UNDEFINED_UINT32,
-            .task_status     = 0 /* no status */
+            .task_status     = 0 /* no status */,
+
+            .source_file_name_ref = src_location ? char_ref_registry_insert(get_global_str_registry(), src_location->file) : 0,
+            .source_func_name_ref = src_location ? char_ref_registry_insert(get_global_str_registry(), src_location->func) : 0,
+            .source_line_number = src_location ? src_location->line : 0,
         }
     };
     new->encountering_task_id = new->attr.task.parent_id;
@@ -116,5 +133,19 @@ trace_add_task_attributes(trace_region_def_t *rgn)
     r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_prior_task_status,
         TASK_STATUS_TO_STR_REF(rgn->attr.task.task_status));
     CHECK_OTF2_ERROR_CODE(r);
+
+    // Add source location if defined for this task
+    if (rgn->attr.task.source_file_name_ref != 0)
+    {
+        r = OTF2_AttributeList_AddUint32(rgn->attributes, attr_source_line_number,
+        rgn->attr.task.source_line_number);
+        CHECK_OTF2_ERROR_CODE(r);
+        r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_source_file_name,
+            rgn->attr.task.source_file_name_ref);
+        CHECK_OTF2_ERROR_CODE(r);
+        r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_source_func_name,
+            rgn->attr.task.source_func_name_ref);
+        CHECK_OTF2_ERROR_CODE(r);
+    }
     return;
 }

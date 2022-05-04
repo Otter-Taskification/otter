@@ -6,6 +6,7 @@
 #include "otter/otter-common.h"
 #include "otter/queue.h"
 #include "otter/stack.h"
+#include "otter/char_ref_registry.hpp"
 
 /* Different kinds of unique IDs */
 typedef enum trace_ref_type_t {
@@ -128,6 +129,9 @@ typedef struct {
     unique_id_t         parent_id;
     otter_task_flag_t   parent_type;        
     otter_task_status_t task_status;
+    otter_string_ref_t  source_file_name_ref;
+    otter_string_ref_t  source_func_name_ref;
+    int                 source_line_number;
 } trace_task_region_attr_t;
 
 typedef union {

@@ -5,6 +5,10 @@
 extern "C" {
 #endif
 
+#define otterTraceInitialise()                                                 \
+    otterTraceInitialise_i(__FILE__, __func__, __LINE__)
+#define otterParallelBegin()                                                   \
+    otterParallelBegin_i(__FILE__, __func__, __LINE__)
 #define otterTaskBegin()                                                       \
     otterTaskBegin_i(__FILE__, __func__, __LINE__)
 #define otterTaskSingleBegin()                                                 \
@@ -23,9 +27,9 @@ The public API for the Otter serial programme tracing library
 */
 
 // API entrypoints
-void otterTraceInitialise(void);
+void otterTraceInitialise_i(const char*, const char*, const int);
 void otterTraceFinalise(void);
-void otterParallelBegin(void);
+void otterParallelBegin_i(const char*, const char*, const int);
 void otterParallelEnd(void);
 void otterTaskBegin_i(const char*, const char*, const int);
 void otterTaskEnd(void);

@@ -46,11 +46,9 @@ static trace_region_def_t *get_encountering_region(void)
     return r;
 }
 
-void otterTraceInitialise(void)
+void otterTraceInitialise_i(const char* file, const char* func, const int line)
 {
-    // Initialise archive
-
-    
+    // Initialise archive    
 
     static char host[HOST_NAME_MAX+1] = {0};
     gethostname(host, HOST_NAME_MAX);
@@ -81,6 +79,13 @@ void otterTraceInitialise(void)
     thread_data = new_thread_data(otter_thread_initial);
     trace_event_thread_begin(thread_data->location);
 
+    otter_src_location_t src_location = {
+        .file = file,
+        .func = func,
+        .line = line
+    };
+    LOG_EVENT_CALL(src_location.file, src_location.func, src_location.line, __func__);
+
     // initial task
     task_data_t *initial_task = new_task_data(
         thread_data->location,
@@ -88,7 +93,7 @@ void otterTraceInitialise(void)
         get_unique_task_id(),
         otter_task_initial,
         0,
-        NULL
+        &src_location
     );
 
     stack_push(region_stack, (data_item_t) {.ptr = initial_task->region});
@@ -141,15 +146,13 @@ void otterTraceFinalise(void)
     return;
 }
 
-void otterParallelBegin(void)
+void otterParallelBegin_i(const char* file, const char* func, const int line)
 {
     if (!tracingActive)
     {
         fprintf(stderr, "%s [INACTIVE]\n", __func__);
         return;
-    }
-
-    
+    }    
 
     task_data_t *encountering_task = get_encountering_task();
 
@@ -166,13 +169,20 @@ void otterParallelBegin(void)
 
     trace_event_enter(thread_data->location, parallel_data->region);
 
+    otter_src_location_t src_location = {
+        .file = file,
+        .func = func,
+        .line = line
+    };
+    LOG_EVENT_CALL(src_location.file, src_location.func, src_location.line, __func__);
+
     task_data_t *implicit_task = new_task_data(
         thread_data->location,
         encountering_task->region,
         get_unique_task_id(),
         otter_task_implicit,
         0,
-        NULL
+        &src_location
     );
 
     stack_push(region_stack, (data_item_t) {.ptr = implicit_task->region});

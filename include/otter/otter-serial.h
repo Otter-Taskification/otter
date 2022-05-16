@@ -97,21 +97,6 @@ extern "C" {
 
 
 /**
- * Annotate that multiple tasks start
- *
- * @todo Adam, does this make sense? Can we introduce this one? Is similar to
- *  a parallel loop start
- */
-#define otterTasksBegin(taskCount)
-
-
-/**
- * @todo Adam. Can we support this one?
- */
-#define otterTasksEnd()
-
-
-/**
  * Indicate that a loop begins here
  *
  * This should be used if and only if you want to mark a loop which could run

@@ -487,3 +487,18 @@ void otterTraceStop(void)
     }
     return;
 }
+
+
+void otterPhaseBegin(const char* name)
+{
+}
+
+
+void otterPhaseSwitch(const char* name)
+{
+}
+
+
+void otterPhaseEnd(void)
+{
+}

@@ -82,7 +82,33 @@ if(NOT "${C_COMPILER_VERSION_MINOR}" STREQUAL "")
     endif()
 endif()
 
-message(STATUS "C compiler selected: ${CMAKE_C_COMPILER_ID} ${C_COMPILER_VERSION}")
+# Extract CXX compiler version as separate components
+execute_process (
+    COMMAND bash -c "${CMAKE_CXX_COMPILER} -dumpversion | tr -d '\n'  | sed 's/\\./\\;/g'" 
+    OUTPUT_VARIABLE CXX_COMPILER_VERSION_LIST
+)
+list(GET CXX_COMPILER_VERSION_LIST 0 CXX_COMPILER_VERSION_MAJOR)
+list(GET CXX_COMPILER_VERSION_LIST 1 CXX_COMPILER_VERSION_MINOR)
+list(GET CXX_COMPILER_VERSION_LIST 2 CXX_COMPILER_VERSION_BUGFIX)
+
+# Build version string component-wise
+set(CXX_COMPILER_VERSION ${CXX_COMPILER_VERSION_MAJOR})
+if(NOT "${CXX_COMPILER_VERSION_MINOR}" STREQUAL "")
+    set(CXX_COMPILER_VERSION "${CXX_COMPILER_VERSION}.${CXX_COMPILER_VERSION_MINOR}")
+    if(NOT "${CXX_COMPILER_VERSION_BUGFIX}" STREQUAL "")
+        set(CXX_COMPILER_VERSION "${CXX_COMPILER_VERSION}.${CXX_COMPILER_VERSION_BUGFIX}")
+    endif()
+endif()
+
+message(STATUS "C compiler selected: ${CMAKE_C_COMPILER} (${CMAKE_C_COMPILER_ID}) ${C_COMPILER_VERSION}")
+message(STATUS "C++ compiler selected: ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID}) ${CXX_COMPILER_VERSION}")
+
+# # # OMPT # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Check for omp-tools.h
+CHECK_INCLUDE_FILE(omp-tools.h HAVE_OMP_TOOLS_H)
+if(NOT HAVE_OMP_TOOLS_H)
+    message(WARNING "Can't find omp-tools.h - did you specify an OMPT-supporting compiler?")
+endif()
 
 # Detect requirement to use 5.1 features instead of deprecated 5.1 features
 set(USE_OMPT_51 0)
@@ -112,6 +138,42 @@ else()
     message(WARN " Selected C compiler may not be supported:")
     message(WARN "   CMAKE_C_COMPILER_ID=${CMAKE_C_COMPILER_ID}")
     message(WARN "   C_COMPILER_VERSION=${C_COMPILER_VERSION}")
+endif()
+
+# Check for otf2.h
+if(DEFINED OTF2_INSTALL_DIR)
+set(CMAKE_REQUIRED_INCLUDES ${CMAKE_REQUIRED_INCLUDES};${OTF2_INSTALL_DIR}/include)
+message(STATUS "Searching for otf2.h in: ${CMAKE_REQUIRED_INCLUDES}")
+else()
+message(STATUS "Searching for otf2.h in default include locations")
+endif()
+CHECK_INCLUDE_FILE(otf2/otf2.h HAVE_OTF2_H)
+if(NOT HAVE_OTF2_H)
+    message(FATAL_ERROR "Can't find otf2.h - did you specify OTF2_INSTALL_DIR?")
+endif()
+
+# Check OTF2 version found
+find_path(OTF2_INCLUDE_DIR otf2.h 
+    PATHS ${OTF2_INSTALL_DIR}/include/otf2)
+message(STATUS OTF2_INCLUDE_DIR=${OTF2_INCLUDE_DIR})
+file(READ "${OTF2_INCLUDE_DIR}/OTF2_GeneralDefinitions.h" otf2_defs_h)
+
+string(REGEX MATCH "#define OTF2_VERSION_MAJOR[ \t]+[0-9]+" OTF2_VERSION_MAJOR_DEF "${otf2_defs_h}")
+string(REGEX REPLACE "#define OTF2" "" OTF2_VERSION_MAJOR_R "${OTF2_VERSION_MAJOR_DEF}")
+string(REGEX MATCH "[0-9]+" OTF2_VERSION_MAJOR "${OTF2_VERSION_MAJOR_R}")
+
+string(REGEX MATCH "#define OTF2_VERSION_MINOR[ \t]+[0-9]+" OTF2_VERSION_MINOR_DEF "${otf2_defs_h}")
+string(REGEX REPLACE "#define OTF2" "" OTF2_VERSION_MINOR_R "${OTF2_VERSION_MINOR_DEF}")
+string(REGEX MATCH "[0-9]+" OTF2_VERSION_MINOR "${OTF2_VERSION_MINOR_R}")
+
+string(REGEX MATCH "#define OTF2_VERSION_BUGFIX[ \t]+[0-9]+" OTF2_VERSION_BUGFIX_DEF "${otf2_defs_h}")
+string(REGEX REPLACE "#define OTF2" "" OTF2_VERSION_BUGFIX_R "${OTF2_VERSION_BUGFIX_DEF}")
+string(REGEX MATCH "[0-9]+" OTF2_VERSION_BUGFIX "${OTF2_VERSION_BUGFIX_R}")
+
+message(STATUS "Using OTF2 v${OTF2_VERSION_MAJOR}.${OTF2_VERSION_MINOR}.${OTF2_VERSION_BUGFIX}")
+
+if(NOT "${OTF2_VERSION_MAJOR}.${OTF2_VERSION_MINOR}" STREQUAL "2.3")
+    message(FATAL_ERROR "Otter requires OTF2 v2.3")
 endif()
 
 # OMPT event source
@@ -180,11 +242,21 @@ target_compile_definitions(otter-dtype PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_DTYPE})
 set_property(TARGET otter-dtype PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # Otter library compiled for OMP mode
+if(HAVE_OMP_TOOLS_H)
 add_library(otter-ompt
     $<TARGET_OBJECTS:otter-events-ompt>
     $<TARGET_OBJECTS:otter-trace-ompt>
     $<TARGET_OBJECTS:otter-dtype>
 )
+install(TARGETS otter-ompt DESTINATION lib)
+target_link_libraries(otter-ompt pthread)
+target_link_libraries(otter-ompt otf2)
+if(DEFINED OTF2_INSTALL_DIR)
+    target_link_libraries(otter-ompt -L${OTF2_INSTALL_DIR}/lib)
+endif()
+else()
+message(WARNING "otter-ompt target was not generated as omp-tools.h is not available")
+endif()
 
 # Otter library compiled for serial mode
 add_library(otter-serial
@@ -194,25 +266,14 @@ add_library(otter-serial
 )
 set_target_properties(otter-serial PROPERTIES PUBLIC_HEADER "include/otter/otter-serial.h")
 
-# Specify Otter install location
-install(TARGETS otter-ompt DESTINATION lib)
-install(TARGETS otter-serial LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include/otter)
-
-# Configure version header
-configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/otter-version.h.in
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/otter-version.h
-)
-
-# Link to dependencies
-target_link_libraries(otter-ompt pthread)
-target_link_libraries(otter-serial pthread)
-
-# # # OMPT # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# Check for omp-tools.h
-CHECK_INCLUDE_FILE(omp-tools.h HAVE_OMP_TOOLS_H)
-if(NOT HAVE_OMP_TOOLS_H)
-    message(FATAL_ERROR "Can't find omp-tools.h - did you specify an OMPT-supporting compiler?")
+# # # OTF2 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Add OTF2 install directory if it was specified
+if(DEFINED OTF2_INSTALL_DIR)
+    target_include_directories(otter-events-ompt PRIVATE ${OTF2_INSTALL_DIR}/include)
+    target_include_directories(otter-events-serial PRIVATE ${OTF2_INSTALL_DIR}/include)
+    target_include_directories(otter-trace-ompt PRIVATE ${OTF2_INSTALL_DIR}/include)
+    target_include_directories(otter-trace-serial PRIVATE ${OTF2_INSTALL_DIR}/include)
+    target_include_directories(otter-dtype PRIVATE ${OTF2_INSTALL_DIR}/include)
 endif()
 
 # Flag that we should use OMPT 5.1 features
@@ -224,53 +285,21 @@ else()
     message(STATUS "Not using OMPT 5.1")
 endif()
 
-# # # OTF2 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# Add OTF2 install directory if it was specified
-set(HAVE_OTF2_INSTALL_DIR FALSE)
-if(DEFINED OTF2_INSTALL_DIR)
-    target_include_directories(otter-events-ompt PRIVATE ${OTF2_INSTALL_DIR}/include)
-    target_include_directories(otter-events-serial PRIVATE ${OTF2_INSTALL_DIR}/include)
-    target_include_directories(otter-trace-ompt PRIVATE ${OTF2_INSTALL_DIR}/include)
-    target_include_directories(otter-trace-serial PRIVATE ${OTF2_INSTALL_DIR}/include)
-    target_include_directories(otter-dtype PRIVATE ${OTF2_INSTALL_DIR}/include)
-    set(HAVE_OTF2_INSTALL_DIR TRUE)
-    message(STATUS "OTF2 include dir was specified")
-endif()
+# Specify Otter install location
+install(TARGETS otter-serial LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include/otter)
 
-target_link_libraries(otter-ompt otf2)
+# Configure version header
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/otter-version.h.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/otter-version.h
+)
+
+# Link to dependencies
+target_link_libraries(otter-serial pthread)
 target_link_libraries(otter-serial otf2)
 # Add library directory for OTF2 if it was specified
 if(DEFINED OTF2_INSTALL_DIR)
-    target_link_libraries(otter-ompt -L${OTF2_INSTALL_DIR}/lib)
     target_link_libraries(otter-serial -L${OTF2_INSTALL_DIR}/lib)
-endif()
-
-# Check for otf2.h
-set(CMAKE_REQUIRED_INCLUDES $<$<BOOL:HAVE_OTF2_INSTALL_DIR>:${OTF2_INSTALL_DIR}/include>)
-CHECK_INCLUDE_FILE(otf2/otf2.h HAVE_OTF2_H)
-if(NOT HAVE_OTF2_H)
-    message(FATAL_ERROR "Can't find otf2.h - did you specify OTF2_INSTALL_DIR?")
-endif()
-
-# Check OTF2 version found
-file(READ "${OTF2_INSTALL_DIR}/include/otf2/OTF2_GeneralDefinitions.h" otf2_defs_h)
-
-string(REGEX MATCH "#define OTF2_VERSION_MAJOR[ \t]+[0-9]+" OTF2_VERSION_MAJOR_DEF "${otf2_defs_h}")
-string(REGEX REPLACE "#define OTF2" "" OTF2_VERSION_MAJOR_R "${OTF2_VERSION_MAJOR_DEF}")
-string(REGEX MATCH "[0-9]+" OTF2_VERSION_MAJOR "${OTF2_VERSION_MAJOR_R}")
-
-string(REGEX MATCH "#define OTF2_VERSION_MINOR[ \t]+[0-9]+" OTF2_VERSION_MINOR_DEF "${otf2_defs_h}")
-string(REGEX REPLACE "#define OTF2" "" OTF2_VERSION_MINOR_R "${OTF2_VERSION_MINOR_DEF}")
-string(REGEX MATCH "[0-9]+" OTF2_VERSION_MINOR "${OTF2_VERSION_MINOR_R}")
-
-string(REGEX MATCH "#define OTF2_VERSION_BUGFIX[ \t]+[0-9]+" OTF2_VERSION_BUGFIX_DEF "${otf2_defs_h}")
-string(REGEX REPLACE "#define OTF2" "" OTF2_VERSION_BUGFIX_R "${OTF2_VERSION_BUGFIX_DEF}")
-string(REGEX MATCH "[0-9]+" OTF2_VERSION_BUGFIX "${OTF2_VERSION_BUGFIX_R}")
-
-message(STATUS "Using OTF2 v${OTF2_VERSION_MAJOR}.${OTF2_VERSION_MINOR}.${OTF2_VERSION_BUGFIX}")
-
-if(NOT "${OTF2_VERSION_MAJOR}.${OTF2_VERSION_MINOR}" STREQUAL "2.3")
-    message(FATAL_ERROR "Otter requires OTF2 v2.3")
 endif()
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

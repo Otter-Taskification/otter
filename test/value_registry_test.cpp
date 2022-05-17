@@ -34,12 +34,14 @@ protected:
         deleted = 0;
     }
 
+    void SafeDelete(registry*& reg) {
+        delete reg;
+        reg = nullptr;
+    }
+
     virtual void TearDown() override {
-        if (r) {
-            registry::destroy(r);
-            r = nullptr;
-        }
-        if (s) s = nullptr;
+        SafeDelete(r);
+        SafeDelete(s);
         registry_label<label> = 1;
         inserted = 0;
         deleted = 0;
@@ -72,7 +74,6 @@ TEST_F(TestStringRegistry, IsNonNull){
 TEST_F(TestStringRegistry, AcceptsNullDeleter){
     s = TestStringRegistry::registry::make(&mock_labeller<TestStringRegistry::label>, nullptr);
     ASSERT_NE(s, nullptr);
-    TestStringRegistry::registry::destroy(s);
 }
 
 TEST_F(TestStringRegistry, KeyIsLabelled){
@@ -103,9 +104,8 @@ TEST_F(TestStringRegistry, InsertedEqDeleted){
         r->insert(key);
     }
     ASSERT_EQ(inserted, 3);
-    TestStringRegistry::registry::destroy(r);
+    TestStringRegistry::SafeDelete(r);
     ASSERT_EQ(deleted, 3);
-    r = nullptr;
 }
 
 /*** DEATH TESTS ***/

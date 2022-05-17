@@ -8,7 +8,7 @@ include(CheckIncludeFile)
 ### Declare the main project
 project(Otter
     VERSION 0.1.0
-    HOMEPAGE_URL https://github.com/adamtuft/otter
+    HOMEPAGE_URL https://github.com/Otter-Taskification/otter
     LANGUAGES C CXX Fortran
 )
 
@@ -40,7 +40,6 @@ if (NOT OTTER_DEBUG_LEVELS)
     endif()
 else()
     set(OTTER_DEBUG_LEVELS "${OTTER_DEBUG_LEVELS}" CACHE STRING "Debug levels for Otter components" FORCE)
-    message(STATUS OTTER_DEBUG_LEVELS=${OTTER_DEBUG_LEVELS})
 endif()
 
 # Parse debug levels into individual values
@@ -54,19 +53,16 @@ list(GET OTTER_DEBUG_LEVELS_LIST 0 OTTER_DEBUG_CORE)
 if (NOT OTTER_DEBUG_CORE MATCHES "^[0-9]+$")
     message(FATAL_ERROR "Invalid debug level: ${OTTER_DEBUG_CORE}")
 endif()
-message(STATUS OTTER_DEBUG_CORE=${OTTER_DEBUG_CORE})
 
 list(GET OTTER_DEBUG_LEVELS_LIST 1 OTTER_DEBUG_TRACE)
 if (NOT OTTER_DEBUG_TRACE MATCHES "^[0-9]+$")
     message(FATAL_ERROR "Invalid debug level: ${OTTER_DEBUG_TRACE}")
 endif()
-message(STATUS OTTER_DEBUG_TRACE=${OTTER_DEBUG_TRACE})
 
 list(GET OTTER_DEBUG_LEVELS_LIST 2 OTTER_DEBUG_DTYPE)
 if (NOT OTTER_DEBUG_DTYPE MATCHES "^[0-9]+$")
     message(FATAL_ERROR "Invalid debug level: ${OTTER_DEBUG_DTYPE}")
 endif()
-message(STATUS OTTER_DEBUG_DTYPE=${OTTER_DEBUG_DTYPE})
 
 # Extract C compiler version as separate components
 execute_process (

@@ -1,6 +1,16 @@
 #if !defined(OTTER_SERIAL_H)
 #define OTTER_SERIAL_H
 
+/**
+ * @todo finalise "simple trace" event source for use in single-threaded app (only with updates to current implementation of otter-serial)
+ *   @todo refactor otterParallel[Begin|End] -> otterThreads[Begin|End]
+ *   @todo replace otterSynchroniseDescendantTasks[Begin|End] with macro/function barrier to synchronise child/descendant tasks
+ * @todo (eventually) make otterParallel[Begin|End] optional (will require re-engineering otter-trace)
+ * @todo (eventually) add the concept of "phases" -> probably depends on re-engineering of otter-trace
+ * @todo (eventually) need to be able to start/stop tracing at will -> probably depends on re-engineering of otter-trace
+ * @todo (long term) generic trace API that accepts diverse event sources from user code
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif

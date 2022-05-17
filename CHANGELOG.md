@@ -1,29 +1,24 @@
 # Changelog
 
-## Unpublished
+<!-- ## Unpublished
 
 ### Added
-- CMake 3.12 build system.
-- Tests for queue & stack datatypes.
-- Detect deprecation of `ompt_callback_master` for `ompt_callback_masked` using compiler ID and version.
-- CMake option `-DOTTER_DEBUG_LEVELS=X,Y,Z` for specifying debug level of callbacks (X), tracing (Y) and data types (Z) e.g. 3,0,0.
-- CMake option `-DWITH_EXAMPLES=[ON|OFF]` to generate and build example programs for demonstrating Otter. Off by default.
-- CMake option `-DWITH_TESTS=[ON|OFF]` to generate and build tests using googletest. Off by default.
-- CMake options `-DOTF2_INCLUDE_DIR=<...>` and `-DOTF2_LIB_DIR=<...>` for locating OTF2 components. Default to `/opt/otf2/include` and `/opt/otf2/lib`.
-- Warn when GNU compiler detected to protect against [#14](https://github.com/adamtuft/otter/issues/14) at runtime.
-- Add debug assert statements to detect [#14](https://github.com/adamtuft/otter/issues/14) at runtime in debug builds.
 
 ### Changed
-- Nothing of note.
 
 ### Deprecated
-- Makefile no longer the supported build method, will be deleted in future updates
 
 ### Removed
-- Nothing of note.
 
-### Fixed
-- Fixed [#15](https://github.com/adamtuft/otter/issues/15#issue-988922376) to ensure `sync_cluster_id` vertex attribute is always defined to prevent crashes when there are no barrier regions encountered.
+### Fixed -->
+
+## v0.1.0 [2022-05-17]
+
+### Added
+- `otter-serial` event source allows developers to trace execution of a serial target application.
+- `otter-serial` records the source location of various constructs in the target application e.g. task creation points.
+- `otter-ompt` event source is now optional - if cmake is invoked with a C compiler that doesn't support OMPT, `otter-ompt` is not built.
+- `pyotter` produces a basic HTML report of a trace, which includes a visualisation of the overall program structure and some basic attributes of its tasks. See `python3 -m otter --help` for usage.
 
 ## v0.1 [2021-08-25]
 

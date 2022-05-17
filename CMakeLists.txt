@@ -8,7 +8,7 @@ include(CheckIncludeFile)
 ### Declare the main project
 project(Otter
     VERSION 0.1.0
-    HOMEPAGE_URL https://github.com/adamtuft/otter
+    HOMEPAGE_URL https://github.com/Otter-Taskification/otter
     LANGUAGES C CXX Fortran
 )
 

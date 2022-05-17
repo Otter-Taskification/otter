@@ -4,7 +4,7 @@
 #include <otter/value_registry.hpp>
 
 template<typename V>
-static V label;
+static V registry_label;
 static int inserted;
 static int deleted;
 
@@ -15,32 +15,32 @@ template<typename K, typename V>
 void mock_deleter(K key, V value);
 
 namespace {
-class StringRegistryTextFxt: public testing::Test {
+class TestStringRegistry: public testing::Test {
 public:
-    using test_registry_type = value_registry<std::string, uint32_t>;
-    using test_key_type = test_registry_type::key_type;
-    using test_value_type = test_registry_type::value_type;
+    using registry = value_registry<std::string, uint32_t>;
+    using key = registry::key;
+    using label = registry::label;
 protected:
-    test_registry_type *r;
-    test_registry_type *s;
+    registry *r;
+    registry *s;
 
     void SetUp() override {
-        test_registry_type::labeller_type labeller = &mock_labeller<test_value_type>;
-        test_registry_type::destructor_type destructor = &mock_deleter<test_key_type, test_value_type>;
-        r = test_registry_type::make(labeller, destructor);
+        registry::labelcbk labeller = &mock_labeller<label>;
+        registry::destroycbk destructor = &mock_deleter<key, label>;
+        r = registry::make(labeller, destructor);
         s = nullptr;
-        label<test_value_type> = 1;
+        registry_label<label> = 1;
         inserted = 0;
         deleted = 0;
     }
 
     virtual void TearDown() override {
         if (r) {
-            test_registry_type::destroy(r);
+            registry::destroy(r);
             r = nullptr;
         }
         if (s) s = nullptr;
-        label<test_value_type> = 1;
+        registry_label<label> = 1;
         inserted = 0;
         deleted = 0;
     }
@@ -52,7 +52,7 @@ protected:
 template<typename V>
 V mock_labeller()
 {
-    inserted ++; return label<V>++;
+    inserted ++; return registry_label<V>++;
 }
 
 template<typename K, typename V>
@@ -61,60 +61,60 @@ void mock_deleter(K key, V value)
     deleted++;
 }
 
-using StringRegistryDeathTextFxt = StringRegistryTextFxt;
+using TestStringRegistryDeath = TestStringRegistry;
 
 /*** TESTS ***/
 
-TEST_F(StringRegistryTextFxt, IsNonNull){
+TEST_F(TestStringRegistry, IsNonNull){
     ASSERT_NE(r, nullptr);
 }
 
-TEST_F(StringRegistryTextFxt, AcceptsNullDeleter){
-    s = StringRegistryTextFxt::test_registry_type::make(&mock_labeller<StringRegistryTextFxt::test_value_type>, nullptr);
+TEST_F(TestStringRegistry, AcceptsNullDeleter){
+    s = TestStringRegistry::registry::make(&mock_labeller<TestStringRegistry::label>, nullptr);
     ASSERT_NE(s, nullptr);
-    StringRegistryTextFxt::test_registry_type::destroy(s);
+    TestStringRegistry::registry::destroy(s);
 }
 
-TEST_F(StringRegistryTextFxt, KeyIsLabelled){
-    StringRegistryTextFxt::test_key_type key = "foo";
-    StringRegistryTextFxt::test_value_type id = r->insert(key);
+TEST_F(TestStringRegistry, KeyIsLabelled){
+    TestStringRegistry::key key = "foo";
+    TestStringRegistry::label id = r->insert(key);
     ASSERT_EQ(id, 1);
 }
 
-TEST_F(StringRegistryTextFxt, SameKeySameLabel){
-    StringRegistryTextFxt::test_key_type key = "foo";
-    StringRegistryTextFxt::test_value_type id1 = r->insert(key);
-    StringRegistryTextFxt::test_value_type id2 = r->insert(key);
+TEST_F(TestStringRegistry, SameKeySameLabel){
+    TestStringRegistry::key key = "foo";
+    TestStringRegistry::label id1 = r->insert(key);
+    TestStringRegistry::label id2 = r->insert(key);
     ASSERT_EQ(id1, id2);
 }
 
-TEST_F(StringRegistryTextFxt, DiffKeyDiffLabel){
-    StringRegistryTextFxt::test_key_type key1 = "foo";
-    StringRegistryTextFxt::test_key_type key2 = "bar";
-    StringRegistryTextFxt::test_value_type id1 = r->insert(key1);
-    StringRegistryTextFxt::test_value_type id2 = r->insert(key2);
+TEST_F(TestStringRegistry, DiffKeyDiffLabel){
+    TestStringRegistry::key key1 = "foo";
+    TestStringRegistry::key key2 = "bar";
+    TestStringRegistry::label id1 = r->insert(key1);
+    TestStringRegistry::label id2 = r->insert(key2);
     ASSERT_EQ(id1+1, id2);
 }
 
-TEST_F(StringRegistryTextFxt, InsertedEqDeleted){
-    StringRegistryTextFxt::test_key_type keys[] = {"foo", "bar", "baz"};
+TEST_F(TestStringRegistry, InsertedEqDeleted){
+    TestStringRegistry::key keys[] = {"foo", "bar", "baz"};
     for (auto& key : keys)
     {
         r->insert(key);
     }
     ASSERT_EQ(inserted, 3);
-    StringRegistryTextFxt::test_registry_type::destroy(r);
+    TestStringRegistry::registry::destroy(r);
     ASSERT_EQ(deleted, 3);
     r = nullptr;
 }
 
 /*** DEATH TESTS ***/
 
-TEST_F(StringRegistryDeathTextFxt, DeathOnNullLabeller){
+TEST_F(TestStringRegistryDeath, DeathOnNullLabeller){
     ASSERT_DEATH({
-        s = StringRegistryDeathTextFxt::test_registry_type::make(
+        s = TestStringRegistryDeath::registry::make(
             nullptr,
-            &mock_deleter<StringRegistryDeathTextFxt::test_key_type, StringRegistryDeathTextFxt::test_value_type>
+            &mock_deleter<TestStringRegistryDeath::key, TestStringRegistryDeath::label>
         );
     }, ".*");
 }

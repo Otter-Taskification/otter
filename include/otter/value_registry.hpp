@@ -4,21 +4,21 @@
 #include <string>
 #include <cassert>
 
-template<typename K, typename V> // e.g. key=std::string, value=uint32_t
+template<typename KeyType, typename LabelType> // e.g. key=std::string, value=uint32_t
 class value_registry {
 public:
-    using map_type = std::map<K,V>;
-    using key_type = K;
-    using value_type = V;
-    using labeller_type = V(*)(void);
-    using destructor_type = void(*)(K, V);
-    value_registry(labeller_type labeller, destructor_type destructor) :
-        i_get_label{labeller},
+    using key = KeyType;
+    using label = LabelType;
+    using map = std::map<key,label>;
+    using labelcbk = label(*)(void);
+    using destroycbk = void(*)(key, label);
+    value_registry(labelcbk getlabel, destroycbk destructor) :
+        i_get_label{getlabel},
         i_destroy_entry(destructor),
         i_default_label{},
         i_map{}
     {
-        assert(labeller != nullptr);
+        assert(i_get_label != nullptr);
     };
     ~value_registry() {
         if (this->i_destroy_entry) {
@@ -27,19 +27,19 @@ public:
             }
         }
     }
-    static value_registry<K, V>* make(labeller_type labeller, destructor_type destructor) { return new value_registry<K, V>(labeller, destructor); }
-    static void destroy(value_registry<K, V>* r) { delete r; }
-    value_type insert(key_type key) {
-        auto label = i_map[key];
+    static value_registry<key, label>* make(labelcbk getlabel, destroycbk destructor) { return new value_registry<key, label>(getlabel, destructor); }
+    static void destroy(value_registry<key, label>* r) { delete r; }
+    label insert(key k) {
+        auto label = i_map[k];
         if (label == i_default_label) {
             label = this->i_get_label();
-            i_map[key] = label;
+            i_map[k] = label;
         }
         return label;
     }
 private:
-    map_type i_map;
-    value_type i_default_label;
-    labeller_type i_get_label;
-    destructor_type i_destroy_entry;
+    map i_map;
+    label i_default_label;
+    labelcbk i_get_label;
+    destroycbk i_destroy_entry;
 };

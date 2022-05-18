@@ -92,3 +92,8 @@ void string_registry_delete(string_registry* registry)
 {
     string_registry::destroy(registry);
 }
+
+string_registry::label string_registry_insert(string_registry* registry, const char* str)
+{
+    return registry->insert(std::string{str});
+}

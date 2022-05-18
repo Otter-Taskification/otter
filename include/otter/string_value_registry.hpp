@@ -27,7 +27,7 @@ typedef void(*destroycbk)(const char*, uint32_t);
 // Defined elsewhere
 string_registry* string_registry_make(labelcbk, destroycbk);
 void string_registry_delete(string_registry*);
-uint32_t string_registry_insert(const char*);
+uint32_t string_registry_insert(string_registry*, const char*);
 
 #if defined(__cplusplus)
 }

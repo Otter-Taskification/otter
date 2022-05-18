@@ -185,3 +185,21 @@ TEST_F(TestStringRegistry_C, InsertedEqDeleted){
     TestStringRegistry::SafeDelete(t);
     ASSERT_EQ(deleted, 3);
 }
+
+TEST_F(TestStringRegistry_C, ArgOutlivesScope){
+    auto print_values = [](const char* str, uint32_t label) -> void {
+        std::cerr << "(" << label << "," << str << ")" << std::endl;
+    };
+    t = string_registry_make(&mock_labeller<TestStringRegistry::label>, print_values);
+    {
+        std::string s1 = "foo";
+        std::string s2 = "bar";
+        std::string s3 = "baz";
+        string_registry_insert(t, s1.c_str());
+        string_registry_insert(t, s2.c_str());
+        string_registry_insert(t, s3.c_str());
+    }
+    TestStringRegistry::SafeDelete(t);
+    ASSERT_EQ(inserted, 3);
+    ASSERT_EQ(deleted, 0);
+}

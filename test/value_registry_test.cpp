@@ -15,7 +15,7 @@ template<typename K, typename V>
 void mock_deleter(K key, V value);
 
 namespace {
-class TestStringRegistry: public testing::Test {
+class TestValueRegistry: public testing::Test {
 public:
     using registry = value_registry<std::string, uint32_t>;
     using key = registry::key;
@@ -63,58 +63,58 @@ void mock_deleter(K key, V value)
     deleted++;
 }
 
-using TestStringRegistryDeath = TestStringRegistry;
+using TestValueRegistryDeath = TestValueRegistry;
 
 /*** TESTS ***/
 
-TEST_F(TestStringRegistry, IsNonNull){
+TEST_F(TestValueRegistry, IsNonNull){
     ASSERT_NE(r, nullptr);
 }
 
-TEST_F(TestStringRegistry, AcceptsNullDeleter){
-    s = TestStringRegistry::registry::make(&mock_labeller<TestStringRegistry::label>, nullptr);
+TEST_F(TestValueRegistry, AcceptsNullDeleter){
+    s = TestValueRegistry::registry::make(&mock_labeller<TestValueRegistry::label>, nullptr);
     ASSERT_NE(s, nullptr);
 }
 
-TEST_F(TestStringRegistry, KeyIsLabelled){
-    TestStringRegistry::key key = "foo";
-    TestStringRegistry::label id = r->insert(key);
+TEST_F(TestValueRegistry, KeyIsLabelled){
+    TestValueRegistry::key key = "foo";
+    TestValueRegistry::label id = r->insert(key);
     ASSERT_EQ(id, 1);
 }
 
-TEST_F(TestStringRegistry, SameKeySameLabel){
-    TestStringRegistry::key key = "foo";
-    TestStringRegistry::label id1 = r->insert(key);
-    TestStringRegistry::label id2 = r->insert(key);
+TEST_F(TestValueRegistry, SameKeySameLabel){
+    TestValueRegistry::key key = "foo";
+    TestValueRegistry::label id1 = r->insert(key);
+    TestValueRegistry::label id2 = r->insert(key);
     ASSERT_EQ(id1, id2);
 }
 
-TEST_F(TestStringRegistry, DiffKeyDiffLabel){
-    TestStringRegistry::key key1 = "foo";
-    TestStringRegistry::key key2 = "bar";
-    TestStringRegistry::label id1 = r->insert(key1);
-    TestStringRegistry::label id2 = r->insert(key2);
+TEST_F(TestValueRegistry, DiffKeyDiffLabel){
+    TestValueRegistry::key key1 = "foo";
+    TestValueRegistry::key key2 = "bar";
+    TestValueRegistry::label id1 = r->insert(key1);
+    TestValueRegistry::label id2 = r->insert(key2);
     ASSERT_EQ(id1+1, id2);
 }
 
-TEST_F(TestStringRegistry, InsertedEqDeleted){
-    TestStringRegistry::key keys[] = {"foo", "bar", "baz"};
+TEST_F(TestValueRegistry, InsertedEqDeleted){
+    TestValueRegistry::key keys[] = {"foo", "bar", "baz"};
     for (auto& key : keys)
     {
         r->insert(key);
     }
     ASSERT_EQ(inserted, 3);
-    TestStringRegistry::SafeDelete(r);
+    TestValueRegistry::SafeDelete(r);
     ASSERT_EQ(deleted, 3);
 }
 
 /*** DEATH TESTS ***/
 
-TEST_F(TestStringRegistryDeath, DeathOnNullLabeller){
+TEST_F(TestValueRegistryDeath, DeathOnNullLabeller){
     ASSERT_DEATH({
-        s = TestStringRegistryDeath::registry::make(
+        s = TestValueRegistryDeath::registry::make(
             nullptr,
-            &mock_deleter<TestStringRegistryDeath::key, TestStringRegistryDeath::label>
+            &mock_deleter<TestValueRegistryDeath::key, TestValueRegistryDeath::label>
         );
     }, ".*");
 }

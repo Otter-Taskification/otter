@@ -190,6 +190,7 @@ set_property(TARGET otter-events-ompt PROPERTY POSITION_INDEPENDENT_CODE ON)
 # Serial event source
 add_library(otter-events-serial OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/serial/otter-serial.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/serial/otter-serial.F90
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/otter-structs.c
 )
 target_include_directories(otter-events-serial PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)

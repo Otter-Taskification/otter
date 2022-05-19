@@ -11,7 +11,6 @@
 #include "otter/trace.h"
 #include "otter/otter-serial.h"
 #include "otter/otter-structs.h"
-#include "otter/char_ref_registry.hpp"
 
 #define LOG_EVENT_CALL(file, func, line, ifunc) LOG_DEBUG("%s:%d in %s", file, line, func)
 

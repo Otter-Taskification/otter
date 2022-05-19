@@ -236,7 +236,7 @@ target_compile_definitions(otter-trace-serial PRIVATE OTTER_SERIAL_MODE)
 add_library(otter-dtype OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/dt-queue.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/dt-stack.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/char_ref_registry.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/string_value_registry.cpp
 )
 target_include_directories(otter-dtype PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(otter-dtype PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_DTYPE})

@@ -6,7 +6,7 @@
 #include "otter/otter-common.h"
 #include "otter/queue.h"
 #include "otter/stack.h"
-#include "otter/char_ref_registry.hpp"
+
 
 /* Different kinds of unique IDs */
 typedef enum trace_ref_type_t {

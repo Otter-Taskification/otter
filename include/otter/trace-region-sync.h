@@ -16,6 +16,7 @@ trace_region_def_t *
 trace_new_sync_region(
     trace_location_def_t *loc,
     otter_sync_region_t   stype,
+    trace_task_sync_t     task_sync_mode,
     unique_id_t           encountering_task_id
 );
 

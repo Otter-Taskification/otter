@@ -18,6 +18,17 @@
 #if !defined(OTTER_SERIAL_H)
 #define OTTER_SERIAL_H
 
+#include "otter/trace-enum-types.h"
+
+
+/**
+ * @brief Defines whether a task synchronisation construct should apply a 
+ * synchronisation constraint to immediate child tasks or all descendant tasks.
+ * 
+ * @see otterSynchroniseTasks()
+ * 
+ */
+typedef trace_task_sync_t otter_task_sync_t;
 
 /**
  * @brief Convenience macro function for use with functions that require file,
@@ -162,7 +173,7 @@ void otterThreadsEnd(void);
  * - Must be matched by a `otterTaskEnd()` call enclosing a region which could/
  *   should be a task.
  * - No synchronisation constraints are applied by default. To indicate that
- *   a task should be synchronised, see `otterSynchroniseChildTasks()` or
+ *   a task should be synchronised, see `otterSynchroniseTasks()` or
  *   `otterSynchroniseDescendantTasksBegin()`.
  * 
  * ## Semantics
@@ -331,7 +342,7 @@ void otterTaskSingleEnd(void);
  * Analogous to the `#pragma omp taskwait` directive.
  * 
  */
-void otterSynchroniseChildTasks(void);
+void otterSynchroniseTasks(otter_task_sync_t mode);
 
 
 /**

@@ -1,6 +1,7 @@
 #if !defined(OTTER_TRACE_H)
 #define OTTER_TRACE_H
 
+#include "otter/trace-enum-types.h"
 #include "otter/trace-types.h"
 #include "otter/trace-static-constants.h"
 #include "otter/trace-location.h"

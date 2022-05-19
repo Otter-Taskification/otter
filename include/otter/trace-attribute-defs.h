@@ -51,6 +51,7 @@ INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, workshare_count, "number of iterations assoc
 
 /* Attributes relating to sync regions (barrier, taskgroup, taskwait) */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, sync_type, "type of synchronisation region")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, sync_descendant_tasks, "whether this region synchronises descendant tasks")
 
 /* Attributes relating to task regions */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, parent_task_id, "unique ID of the parent task of this task")

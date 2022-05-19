@@ -117,6 +117,7 @@ typedef struct {
 /* Attributes of a sync region */
 typedef struct {
     otter_sync_region_t type;
+    bool                sync_descendant_tasks;
     unique_id_t         encountering_task_id;
 } trace_sync_region_attr_t;
 

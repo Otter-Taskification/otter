@@ -21,7 +21,7 @@ int main(void)
             otterLoopEnd();
         }
         otterTaskSingleEnd();
-        otterSynchroniseTasks(sync_children);
+        otterSynchroniseTasks(otter_sync_children);
 
         otterSynchroniseDescendantTasksBegin();
         otterLoopBegin();

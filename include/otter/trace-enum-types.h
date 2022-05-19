@@ -8,8 +8,8 @@
  * 
  */
 typedef enum {
-    sync_children,
-    sync_descendants
+    trace_sync_children,
+    trace_sync_descendants
 } trace_task_sync_t;
 
 #endif // TRACE_ENUM_TYPES_H

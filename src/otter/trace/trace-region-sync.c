@@ -31,7 +31,7 @@ trace_new_sync_region(
         .rgn_stack = NULL,
         .attr.sync = {
             .type = stype,
-            .sync_descendant_tasks = (task_sync_mode == sync_descendants ? true : false)
+            .sync_descendant_tasks = (task_sync_mode == trace_sync_descendants ? true : false)
         }
     };
 

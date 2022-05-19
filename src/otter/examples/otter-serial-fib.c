@@ -49,7 +49,7 @@ int fib(int n) {
     otterTaskEnd();
 
     // Indicate a synchronisation constraint on a subset of work items
-    otterSynchroniseTasks(sync_children);
+    otterSynchroniseTasks(otter_sync_children);
 
     return i+j;
 }

@@ -407,7 +407,7 @@ void otterLoopIterationEnd(void)
     return;
 }
 
-void otterSynchroniseTasks(trace_task_sync_t mode)
+void otterSynchroniseTasks(otter_task_sync_t mode)
 {
     if (!tracingActive)
     {
@@ -420,7 +420,7 @@ void otterSynchroniseTasks(trace_task_sync_t mode)
     trace_region_def_t *taskwait = trace_new_sync_region(
         thread_data->location,
         otter_sync_region_taskwait,
-        mode,
+        mode == otter_sync_descendants ? trace_sync_descendants : trace_sync_children,
         encountering_task->id
     );
     trace_event_enter(thread_data->location, taskwait);
@@ -441,7 +441,7 @@ void otterSynchroniseDescendantTasksBegin()
     trace_region_def_t *taskgroup = trace_new_sync_region(
         thread_data->location,
         otter_sync_region_taskgroup,
-        sync_descendants,
+        trace_sync_descendants,
         encountering_task->id
     );
     stack_push(region_stack, (data_item_t) {.ptr = taskgroup});

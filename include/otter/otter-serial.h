@@ -18,8 +18,6 @@
 #if !defined(OTTER_SERIAL_H)
 #define OTTER_SERIAL_H
 
-#include "otter/trace-enum-types.h"
-
 
 /**
  * @brief Defines whether a task synchronisation construct should apply a 
@@ -28,7 +26,11 @@
  * @see otterSynchroniseTasks()
  * 
  */
-typedef trace_task_sync_t otter_task_sync_t;
+typedef enum {
+    otter_sync_children,
+    otter_sync_descendants
+} otter_task_sync_t;
+
 
 /**
  * @brief Convenience macro function for use with functions that require file,

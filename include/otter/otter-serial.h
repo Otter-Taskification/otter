@@ -319,27 +319,84 @@ void otterTaskSingleEnd(void);
 
 
 /**
- * @brief Indicate a synchronisation constraint on the children of the
- * encountering task
+ * @brief Indicate a synchronisation constraint on the children or descendants
+ * of the encountering task
  * 
  * 
  * ## Usage
  * 
  * - This is a freestanding operation which indicates that the encountering
- *   task may not proceed until all prior child tasks are complete.
- * - Note that this constraint applies to immediate child tasks only, not their
- *   descendants.
+ *   task may not proceed until all prior child or descendant tasks are complete.
+ * - The `mode` argument indicates whether this constraint applies to immediate
+ *   children only or to all descendant tasks.
  * 
  * 
  * ## Semantics
  * 
- * Creates a region representing a barrier which waits on child tasks. Records
- * an enter event immediately followed by a leave event.
+ * Creates a region representing a barrier which waits either on child tasks or
+ * on all descendant tasks of the encountering task. Records an enter event
+ * immediately followed by a leave event.
  * 
  * 
  * ## OpenMP
  * 
- * Analogous to the `#pragma omp taskwait` directive.
+ * With `sync_descendants`, analogous to a `#pragma omp taskgroup` construct
+ * beginning implicitly after the previous such construct (or the start of the
+ * enclosing task if there is no prior construct). Otherwise analogous to the
+ * `#pragma omp taskwait` directive. That is, this snippet:
+ * 
+ *     {
+ *       #pragma omp taskgroup
+ *       {
+ *         #pragma omp taskloop nogroup
+ *         { ... }
+ *         
+ *         #pragma omp taskloop nogroup
+ *         { ... }
+ *       }
+ *       
+ *       #pragma omp taskloop nogroup
+ *       { ... }
+ *       #pragma omp taskwait
+ *     }
+ * 
+ * is analogous to this sippet:
+ * 
+ *     {
+ *       otterLoopBegin(); for (...)
+ *       {
+ *         otterTaskBegin();
+ *         ...
+ *         otterTaskEnd();
+ *       }
+ *       otterLoopEnd();
+ *     
+ *       otterLoopBegin(); for (...)
+ *       {
+ *         otterTaskBegin();
+ *         ...
+ *         otterTaskEnd();
+ *       }
+ *       otterLoopEnd();
+ *     
+ *       otterSynchroniseTasks(sync_descendants);
+ *     
+ *       otterLoopBegin(); for (...)
+ *       {
+ *         otterTaskBegin();
+ *         ...
+ *         otterTaskEnd();
+ *       }
+ *       otterLoopEnd();
+ *     
+ *       otterSynchroniseTasks(sync_children);
+ *     
+ *     }
+ * 
+ * 
+ * @param mode Indicate whether this barrier synchronises immediate children of
+ * the encountering task (`sync_children`) or all descendants of the encountering
+ * task (`sync_descendants`).
  * 
  */
 void otterSynchroniseTasks(otter_task_sync_t mode);

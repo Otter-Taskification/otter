@@ -14,10 +14,10 @@ int main(int argc, char *argv[]) {
     int n = atoi(argv[1]);
     int fibn = 0;
 
-    otterTraceInitialise();
+    otterTraceInitialise(OTTER_SRC_ARGS());
 
     // Tag: start of a region we want to parallelise
-    otterParallelBegin();
+    otterThreadsBegin(OTTER_SRC_ARGS());
     {
         // Tag: wrap a task
         otterTaskSingleBegin();
@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
         otterTaskSingleEnd();
     }
     // Tag: end of a region we want to parallelise
-    otterParallelEnd();
+    otterThreadsEnd();
 
     printf("f(%d) = %d\n", n, fibn);
 
@@ -39,12 +39,12 @@ int fib(int n) {
     int i, j;
 
     // Tag: wrap a task
-    otterTaskBegin();
+    otterTaskBegin(OTTER_SRC_ARGS());
         i = fib(n-1);
     otterTaskEnd();
 
     // Tag: wrap a task
-    otterTaskBegin();
+    otterTaskBegin(OTTER_SRC_ARGS());
         j = fib(n-2);
     otterTaskEnd();
 

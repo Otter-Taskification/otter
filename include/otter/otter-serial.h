@@ -11,6 +11,8 @@
  * @todo (long term) generic trace API that accepts diverse event sources from user code
  */
 
+#define OTTER_SRC_ARGS() __FILE__, __func__, __LINE__
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -39,8 +41,8 @@ extern "C" {
  *
  * The routine implicitly calls otterTraceStart().
  */
-#define otterTraceInitialise()                                                 \
-    otterTraceInitialise_i(__FILE__, __func__, __LINE__)
+// #define otterTraceInitialise()                                                 \
+//     otterTraceInitialise_i(__FILE__, __func__, __LINE__)
 
 
 /**
@@ -74,8 +76,8 @@ extern "C" {
  * correspond to a teams statement where you issue a whole team - maybe
  * even on another device.
  */
-#define otterParallelBegin()                                                   \
-    otterParallelBegin_i(__FILE__, __func__, __LINE__)
+// #define otterThreadsBegin()                                                   \
+//     otterThreadsBegin_i(__FILE__, __func__, __LINE__)
 
 
 /**
@@ -102,8 +104,8 @@ extern "C" {
  * synchronisation. If you create a task, you usually insert some waits
  * somewhere.
  */
-#define otterTaskBegin()                                                       \
-    otterTaskBegin_i(__FILE__, __func__, __LINE__)
+// #define otterTaskBegin()                                                       \
+//     otterTaskBegin_i(__FILE__, __func__, __LINE__)
 
 
 /**
@@ -120,22 +122,22 @@ extern "C" {
  *   otterLoopIterationEnd(). This will allow Otter to measure how expensive
  *   individual loop iterations are and
  */
-#define otterLoopBegin()                                                       \
-    otterLoopBegin_i(__FILE__, __func__, __LINE__)
+// #define otterLoopBegin()                                                       \
+//     otterLoopBegin_i(__FILE__, __func__, __LINE__)
 
 
 /**
  * @see otterLoopBegin()
  */
-#define otterLoopIterationBegin()                                              \
-    otterLoopIterationBegin_i(__FILE__, __func__, __LINE__)
+// #define otterLoopIterationBegin()                                              \
+//     otterLoopIterationBegin_i(__FILE__, __func__, __LINE__)
 
 
 /**
  * @todo Adam. I have no clue what this means.
  */
-#define otterTaskSingleBegin()                                                 \
-    otterTaskSingleBegin_i(__FILE__, __func__, __LINE__)
+// #define otterTaskSingleBegin()                                                 \
+//     otterTaskSingleBegin_i(__FILE__, __func__, __LINE__)
 
 
 /**
@@ -144,8 +146,8 @@ extern "C" {
  * This operation indicates that you have to wait for direct children. It does
  * not mean that you wait for the children of children.
  */
-#define otterSynchroniseChildTasks()                                           \
-    otterSynchroniseChildTasks_i(__FILE__, __func__, __LINE__)
+// #define otterSynchroniseChildTasks()                                           \
+//     otterSynchroniseChildTasks_i(__FILE__, __func__, __LINE__)
 
 
 /**
@@ -153,8 +155,8 @@ extern "C" {
  *  I think that's too close to Peano's internal semantics and/or OpenMP working.
  *  Let's just provide otterSynchroniseDescendantTasks().
  */
-#define otterSynchroniseDescendantTasksBegin()                                 \
-    otterSynchroniseDescendantTasksBegin_i(__FILE__, __func__, __LINE__)
+// #define otterSynchroniseDescendantTasksBegin()                                 \
+//     otterSynchroniseDescendantTasksBegin_i(__FILE__, __func__, __LINE__)
 
 
 /**
@@ -174,7 +176,7 @@ extern "C" {
  *
  * @see otterTraceInitialise()
  */
-void otterTraceInitialise_i(const char*, const char*, const int);
+void otterTraceInitialise(const char* file, const char* func, int line);
 
 
 /**
@@ -198,7 +200,7 @@ void otterTraceFinalise(void);
  *
  * @see otterParallelBegin()
  */
-void otterParallelBegin_i(const char*, const char*, const int);
+void otterThreadsBegin(const char* file, const char* func, int line);
 
 
 /**
@@ -206,7 +208,7 @@ void otterParallelBegin_i(const char*, const char*, const int);
  *
  * @see otterParallelBegin()
  */
-void otterParallelEnd(void);
+void otterThreadsEnd(void);
 
 
 /**
@@ -220,7 +222,7 @@ void otterParallelEnd(void);
  *
  * @see otterTaskBegin()
  */
-void otterTaskBegin_i(const char*, const char*, const int);
+void otterTaskBegin(const char* file, const char* func, int line);
 
 
 /**
@@ -231,14 +233,14 @@ void otterTaskBegin_i(const char*, const char*, const int);
 void otterTaskEnd(void);
 
 
-void otterTaskSingleBegin_i(const char*, const char*, const int);
+void otterTaskSingleBegin(void);
 void otterTaskSingleEnd(void);
-void otterLoopBegin_i(const char*, const char*, const int);
+void otterLoopBegin(void);
 void otterLoopEnd(void);
-void otterLoopIterationBegin_i(const char*, const char*, const int);
+void otterLoopIterationBegin(void);
 void otterLoopIterationEnd(void);
-void otterSynchroniseChildTasks_i(const char*, const char*, const int);
-void otterSynchroniseDescendantTasksBegin_i(const char*, const char*, const int);
+void otterSynchroniseChildTasks(void);
+void otterSynchroniseDescendantTasksBegin(void);
 void otterSynchroniseDescendantTasksEnd(void);
 
 

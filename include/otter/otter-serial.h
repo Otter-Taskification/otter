@@ -1,16 +1,29 @@
-#if !defined(OTTER_SERIAL_H)
-#define OTTER_SERIAL_H
-
 /**
+ * @file otter-serial.h
+ * @author Adam Tuft (adam.s.tuft@durham.ac.uk)
+ * @brief Public API for the `otter-serial` event source
+ * @version 0.1.0
+ * @date 2022-05-19
+ * 
+ * @copyright Copyright (c) 2021, Adam Tuft. All rights reserved.
+ * 
  * @todo finalise "simple trace" event source for use in single-threaded app (only with updates to current implementation of otter-serial)
- *   @todo refactor otterParallel[Begin|End] -> otterThreads[Begin|End]
- *   @todo replace otterSynchroniseDescendantTasks[Begin|End] with macro/function barrier to synchronise child/descendant tasks
+ * @todo replace otterSynchroniseDescendantTasks[Begin|End] with macro/function barrier to synchronise child/descendant tasks
  * @todo (eventually) make otterParallel[Begin|End] optional (will require re-engineering otter-trace)
  * @todo (eventually) add the concept of "phases" -> probably depends on re-engineering of otter-trace
  * @todo (eventually) need to be able to start/stop tracing at will -> probably depends on re-engineering of otter-trace
  * @todo (long term) generic trace API that accepts diverse event sources from user code
  */
 
+#if !defined(OTTER_SERIAL_H)
+#define OTTER_SERIAL_H
+
+
+/**
+ * @brief Convenience macro function for use with functions that require file,
+ * func & line arguments.
+ * 
+ */
 #define OTTER_SRC_ARGS() __FILE__, __func__, __LINE__
 
 #ifdef __cplusplus
@@ -18,279 +31,421 @@ extern "C" {
 #endif
 
 /**
- * Initialise Otter overall
+ * @brief Initialise Otter overall
  *
- * This has to be the very first macro that you invoke.
- *
+ * This has to be the very first Otter function you invoke.
+ * 
+ * 
  * ## Usage
- *
- * - You have to call this routine early throughput the program
- *   execution. No Otter call should precede this operation.
- * - Ensure that the routine's counterpart otterTraceFinalise()
- *   is called as well as very last operation of your code.
- * - [optional] If you work with a tasking backend which works with a fixed
- *   number of threads which are persistent and use lightweight
- *   tasks (or logical threads), call otterParallelBegin().
- * - [optional] You might want to stop the tracing of events immediately
- *   after this function call via a call to otterTraceStop(). In this case,
- *   you have to manually invoke otterTraceStart() later on.
- *
+ * 
+ * - This routine must precede all other otter* routines.
+ * - The counterpart `otterTraceFinalise()` must be called immediately prior to
+ *   program termination in order to safely close the trace.
+ * - This routine implicitly starts event tracing, which can be deactivated with
+ *   `otterTraceStop()`.
+ * 
+ * 
  * ## Semantics
- *
- * @todo Adam Describe what this is doing.
- *
- * The routine implicitly calls otterTraceStart().
- */
-// #define otterTraceInitialise()                                                 \
-//     otterTraceInitialise_i(__FILE__, __func__, __LINE__)
-
-
-/**
- * Begin a parallel region
- *
- * This is the classic thread-spawn entry point, i.e. when you kick up
- * multiple threads. If you don't have multiple threads or if you don't
- * know when they are created, you don't have to call this routine, i.e.
- * it is an optional marker which is not found in each and every
- * Otter-annotated code.
- *
- * If you use the routine, please ensure that you also use a corresponding
- * otterParallelEnd().
- *
- *
- * ## Usage
- *
- * - Insert otterParallelBegin().
- * - Ensure that it is matched with a corresponding otterParallelEnd().
- *
- *
- * ## Semantics
- *
- * @Adam explanation if necessary
- *
- *
- * ## OpenMP
- *
- * In OpenMP, this routine would be the omp parallel where you issue your
- * threads without distributing work on it already. It would/could also
- * correspond to a teams statement where you issue a whole team - maybe
- * even on another device.
- */
-// #define otterThreadsBegin()                                                   \
-//     otterThreadsBegin_i(__FILE__, __func__, __LINE__)
-
-
-/**
- * Annotate that a task begins here
- *
- * This marker indicates that a task begins in a certain line. It does not
- * necessarily mean that the code starting after this statement is already a
- * task, but merely indicates that you think there could be task here.
- *
- *
- * ## Usage
- *
- * - Insert the otterTaskBegin() call just where your task is about to start.
- * - Ensure there is a statement otterTaskEnd() where the task terminates.
- * - Please note that the task termination does not mean any synchronisation.
- *   You have to add any required synchronisation points (dependencies)
- *   manually via otterSynchroniseChildTasks() or
- *   otterSynchroniseDescendentTasks().
- *
- *
- * ## Semantics
- *
- * The end of a task does not imply in any way that there should be any
- * synchronisation. If you create a task, you usually insert some waits
- * somewhere.
- */
-// #define otterTaskBegin()                                                       \
-//     otterTaskBegin_i(__FILE__, __func__, __LINE__)
-
-
-/**
- * Indicate that a loop begins here
- *
- * This should be used if and only if you want to mark a loop which could run
- * in parallel or is already parallelised.
- *
- * ## Usage
- *
- * - Add the otterLoopBegin() call just before the loop.
- * - Ensure there's a matching otterLoopEnd().
- * - Optional: Insert pairs of otterLoopIterationBegin() and
- *   otterLoopIterationEnd(). This will allow Otter to measure how expensive
- *   individual loop iterations are and
- */
-// #define otterLoopBegin()                                                       \
-//     otterLoopBegin_i(__FILE__, __func__, __LINE__)
-
-
-/**
- * @see otterLoopBegin()
- */
-// #define otterLoopIterationBegin()                                              \
-//     otterLoopIterationBegin_i(__FILE__, __func__, __LINE__)
-
-
-/**
- * @todo Adam. I have no clue what this means.
- */
-// #define otterTaskSingleBegin()                                                 \
-//     otterTaskSingleBegin_i(__FILE__, __func__, __LINE__)
-
-
-/**
- * Add synchronisation barrier waiting for children
- *
- * This operation indicates that you have to wait for direct children. It does
- * not mean that you wait for the children of children.
- */
-// #define otterSynchroniseChildTasks()                                           \
-//     otterSynchroniseChildTasks_i(__FILE__, __func__, __LINE__)
-
-
-/**
- * @todo Adam I'm not sure this should be mapped onto a begin() and end() thing.
- *  I think that's too close to Peano's internal semantics and/or OpenMP working.
- *  Let's just provide otterSynchroniseDescendantTasks().
- */
-// #define otterSynchroniseDescendantTasksBegin()                                 \
-//     otterSynchroniseDescendantTasksBegin_i(__FILE__, __func__, __LINE__)
-
-
-/**
- * @todo Adam. That's a macro I'd really like to have
- */
-#define otterSynchroniseDescendantTasks()
-
-
-/**
- * Public C API for the Otter's tracing
- *
- * Each of these functions has a _i postscript which distinguishes it from the
- * macro. We recommend that you start with the macros instead. Once the macros
- * give you a reasonable first analysis of your code, it makes sense to switch
- * to these _i functions which allow you to provide more context and details
- * to Otter.
- *
- * @see otterTraceInitialise()
+ * 
+ * Sets up a trace and initialises Otter's internals ready to begin tracing.
+ * Creates an internal representation of the thread executing the instrumented
+ * application; this thread representation records all events dispatched to
+ * Otter.
+ * 
+ * Implicitly records a `task-begin` event with an initial task representing the
+ * region within which all other events are recorded.
+ * 
+ * @param file The path to the source file containing this call.
+ * @param func The name of the enclosing function.
+ * @param line The line in @param file at which this call appears.
  */
 void otterTraceInitialise(const char* file, const char* func, int line);
 
 
 /**
- * Counterpart to otterTraceInitialise().
- *
- * @see otterTraceInitialise()
+ * @brief Finalise Otter and safely close the trace.
+ * 
+ * Is the counterpart to `otterTraceInitialise()`.
+ * 
+ * @see `otterTraceInitialise()`
  */
 void otterTraceFinalise(void);
 
 
 /**
- * Public C API for the Otter's tracing
+ * @brief Toggle tracing on
  *
- * Each of these functions has a _i postscript which distinguishes it from the
- * macro. We recommend that you start with the macros instead. Once the macros
- * give you a reasonable first analysis of your code, it makes sense to switch
- * to these _i functions which allow you to provide more context and details
- * to Otter.
+ * The tracing is automatically started by `otterTraceInitialise()` but you can
+ * stop it any time with `otterTraceStop()` and then resume it via this function.
+ * 
+ * @warning toggling tracing on/off at different levels of the call tree may
+ * result in an ill-formed trace. Otter does NOT check that you have started/
+ * stopped tracing at a sensible point.
  *
- * @todo Adam I think this name is too close to OpenMP. We should name it ThreadBegin() in my opinion.
- *
- * @see otterParallelBegin()
- */
-void otterThreadsBegin(const char* file, const char* func, int line);
-
-
-/**
- * Counterpart to otterParallelBegin().
- *
- * @see otterParallelBegin()
- */
-void otterThreadsEnd(void);
-
-
-/**
- * Public C API for the Otter's tracing
- *
- * Each of these functions has a _i postscript which distinguishes it from the
- * macro. We recommend that you start with the macros instead. Once the macros
- * give you a reasonable first analysis of your code, it makes sense to switch
- * to these _i functions which allow you to provide more context and details
- * to Otter.
- *
- * @see otterTaskBegin()
- */
-void otterTaskBegin(const char* file, const char* func, int line);
-
-
-/**
- * Counterpart to otterTaskBegin().
- *
- * @see otterTaskBegin()
- */
-void otterTaskEnd(void);
-
-
-void otterTaskSingleBegin(void);
-void otterTaskSingleEnd(void);
-void otterLoopBegin(void);
-void otterLoopEnd(void);
-void otterLoopIterationBegin(void);
-void otterLoopIterationEnd(void);
-void otterSynchroniseChildTasks(void);
-void otterSynchroniseDescendantTasksBegin(void);
-void otterSynchroniseDescendantTasksEnd(void);
-
-
-/**
- * Start tracing
- *
- * The tracing is automatically started by otterTraceInitialise() but you can
- * stop it any time and then resume it via otterTraceStart().
- *
- * @see otterTraceStop()
- * @see otterTraceInitialise()
+ * @see `otterTraceStop()`
+ * @see `otterTraceInitialise()`
  */
 void otterTraceStart(void);
 
 
 /**
- * Suspend tracing
+ * @brief Toggle tracing off
  *
- * To re-activate the tracing, you have to call otterTraceStart().
+ * To re-activate the tracing, you have to call `otterTraceStart()`.
+ * 
+ * @warning toggling tracing on/off at different levels of the call tree may
+ * result in an ill-formed trace. Otter does NOT check that you have started/
+ * stopped tracing at a sensible point.
+ * 
+ * @see `otterTraceStart()`
+ * @see `otterTraceInitialise()`
  */
 void otterTraceStop(void);
 
 
 /**
- * Start a new algorithmic phase
+ * @brief Indicate the start of a region which could be executed in parallel.
+ * 
+ * Indicates that the code enclosed by a matching `otterThreadsEnd()` could be ran
+ * in parallel across multiple threads. Note that this does NOT mean that the
+ * code is actually run in parallel - this is merely a hint to Otter that the
+ * enclosed code could be parallelised.
+ * 
+ * 
+ * ## Usage
+ * 
+ * - Must be matched by a `otterThreadsEnd()` call enclosing a region which could/
+ *   should be parallelised.
+ * 
+ * 
+ * ## Semantics
+ * 
+ * Creates a representation of the enclosed region which will nest regions
+ * created within it. Implicitly creates and begins a task within which the 
+ * region is executed.
+ * 
+ * 
+ * ## OpenMP
  *
- * By default, all trace events fall into the same global rubric. However, some
+ * Corresponds to the `#pragma omp parallel` where you create a team of threads
+ * without distributing work to them. It would/could also correspond to a teams
+ * statement where you create multiple teams, possible even on another device.
+ * 
+ * @param file The path to the source file containing this call.
+ * @param func The name of the enclosing function.
+ * @param line The line in @param file at which this call appears.
+ */
+void otterThreadsBegin(const char* file, const char* func, int line);
+
+
+/**
+ * @brief Indicate the end of a region which could be executed in parallel.
+ * 
+ * Counterpart to `otterThreadsBegin()`.
+ *
+ * @see `otterThreadsBegin()`
+ */
+void otterThreadsEnd(void);
+
+
+/**
+ * @brief Indicate the start of a region representing a task.
+ * 
+ * Indicate that the code enclosed by a matching `otterTaskEnd()` represents a
+ * task which could be scheduled on some thread. Note that this does not mean
+ * that the enclosed code is actually a task, rather that it could/should be a
+ * task after parallelisation.
+ * 
+ * 
+ * ## Usage
+ * 
+ * - Must be matched by a `otterTaskEnd()` call enclosing a region which could/
+ *   should be a task.
+ * - No synchronisation constraints are applied by default. To indicate that
+ *   a task should be synchronised, see `otterSynchroniseChildTasks()` or
+ *   `otterSynchroniseDescendantTasksBegin()`.
+ * 
+ * ## Semantics
+ * 
+ * Creates a unique representation of this task and records a `task-create`
+ * event immediately followed by a `task-switch` event which switches from the
+ * encountering task to the new task.
+ * 
+ * @param file The path to the source file containing this call.
+ * @param func The name of the enclosing function.
+ * @param line The line in @param file at which this call appears.
+ */
+void otterTaskBegin(const char* file, const char* func, int line);
+
+
+/**
+ * @brief Indicate the end of a region representing a task
+ * 
+ * Counterpart to `otterTaskBegin()`.
+ *
+ * @see `otterTaskBegin()`
+ */
+void otterTaskEnd(void);
+
+
+/**
+ * @brief Indicate the beginning of a loop.
+ * 
+ * Indicate that code enclosed by a matching `otterLoopEnd()` call represents a 
+ * loop which could/should be run in parallel. Note that this does NOT mean that
+ * the enclosed code is already parallelised
+ * 
+ * 
+ * ## Usage
+ * 
+ * - Must be matched by a `otterLoopEnd()` call to indicate the end of the loop
+ *   region.
+ * 
+ * ## Semantics
+ * 
+ * Creates a representation of this loop and records a `loop-begin` event.
+ * 
+ */
+void otterLoopBegin(void);
+
+
+/**
+ * @brief Indicate the end of a loop.
+ * 
+ * Counterpart to `otterLoopBegin()`.
+ * 
+ * @see `otterLoopBegin()`
+ * 
+ */
+void otterLoopEnd(void);
+
+/**
+ * @brief Indicate the beginning of a loop iteration. [TODO]
+ * 
+ * Indicate that code enclosed by a matching `otterLoopIterationEnd()` represents
+ * one iteration of an enclosing loop.
+ * 
+ * @warning This function is currently a stub; it is defined but has yet to be
+ * fully implemented.
+ * 
+ * 
+ * ## Usage
+ * 
+ * - Must be matched by a corresponding `otterLoopIterationEnd()` call.
+ * 
+ * 
+ * ## Semantics
+ * 
+ * - None (stub function).
+ * 
+ */
+void otterLoopIterationBegin(void);
+
+
+/**
+ * @brief Indicate the end of a loop iteration. [TODO]
+ * 
+ * Counterpart to `otterLoopIterationBegin()`.
+ * 
+ * @warning This function is currently a stub; it is defined but has yet to be
+ * fully implemented.
+ * 
+ */
+void otterLoopIterationEnd(void);
+
+
+/**
+ * @brief Indicate the start of a region which should be executed by exactly one
+ * thread in a team. 
+ * 
+ * 
+ * ## Usage
+ * 
+ * - Must be matched by a `otterTaskSingleEnd()` call to indicate the end of the
+ *   region.
+ * 
+ * 
+ * ## Semantics
+ * 
+ * Creates a representation of this region and records a `single-begin` event.
+ * 
+ * 
+ * ## OpenMP
+ * 
+ * This is analogous to the `#pragma omp single` construct i.e. this snippet:
+ * 
+ *     #pragma omp parallel
+ *     {
+ *         #pragma omp single
+ *         {
+ *             // Executted by one thread in the team
+ *         }
+ *     }
+ * 
+ * is analogous to this snippet:
+ * 
+ *     otterThreadsBegin();
+ *         otterTaskSingleBegin();
+ *             // Should be executed by one thread in the team.
+ *         otterTaskSingleEnd();
+ *     otterThreadEnd();
+ * 
+ * 
+ */
+void otterTaskSingleBegin(void);
+
+
+/**
+ * @brief Indicate the end of a region which should be executed by exactly one
+ * thread in a team.
+ * 
+ * Counterpart to `otterTaskSingleBegin()`.
+ * 
+ * @see `otterTaskSingleBegin()`
+ * 
+ */
+void otterTaskSingleEnd(void);
+
+
+/**
+ * @brief Indicate a synchronisation constraint on the children of the
+ * encountering task
+ * 
+ * 
+ * ## Usage
+ * 
+ * - This is a freestanding operation which indicates that the encountering
+ *   task may not proceed until all prior child tasks are complete.
+ * - Note that this constraint applies to immediate child tasks only, not their
+ *   descendants.
+ * 
+ * 
+ * ## Semantics
+ * 
+ * Creates a region representing a barrier which waits on child tasks. Records
+ * an enter event immediately followed by a leave event.
+ * 
+ * 
+ * ## OpenMP
+ * 
+ * Analogous to the `#pragma omp taskwait` directive.
+ * 
+ */
+void otterSynchroniseChildTasks(void);
+
+
+/**
+ * @brief Indicate the start of a region within which all descendant tasks of
+ * the encountering task will synchronise.
+ * 
+ * @deprecated This paired construct is deprecated and will be replaced by a 
+ * freestanding operation.
+ * 
+ * Indicate a region, bound by a matching `otterSynchroniseDescendantTasksEnd()`
+ * call, within which all descendant tasks must be complete by the end of the
+ * region.
+ * 
+ * 
+ * ## Usage
+ * 
+ * - Must be matched by a `otterSynchroniseDescendantTasksEnd()` call to indicate
+ *   the end of the region.
+ * 
+ * 
+ * ## Semantics
+ * 
+ * Creates and immediately enters a region within which this synchronisation
+ * constraint should be applied.
+ * 
+ * 
+ * ## OpenMP
+ * 
+ * Analogous to the `#pragma omp taskgroup` construct.
+ * 
+ */
+void otterSynchroniseDescendantTasksBegin(void);
+
+
+/**
+ * @brief Indicate the end of a region within which all descendant tasks of the
+ * encountering task will synchronise.
+ * 
+ * Counterpart to `otterSynchroniseDescendantTasksBegin()`
+ * 
+ * @deprecated This paired construct is deprecated and will be replaced by a 
+ * freestanding operation.
+ * 
+ * @see `otterSynchroniseDescendantTasksBegin()`
+ */
+void otterSynchroniseDescendantTasksEnd(void);
+
+
+/**
+ * @brief Start a new algorithmic phase [TODO]
+ *
+ * By default, all trace events fall into the same global phase. However, some
  * codes run through particular phases and will want to study these phases
  * independently. With the present routine you mark the begin of such a phase.
  * Each phase has to be given a unique name.
- *
- * @todo Adam can we provide this feature?
- *
- * @see otterPhaseEnd()
- * @see otterPhaseSwitch()
+ * 
+ * @warning This feature is not yet implemented.
+ * 
+ * 
+ * ## Usage
+ * 
+ * - Must be matched by a corresponding `otterPhaseEnd()`.
+ * 
+ * 
+ * ## Semantics
+ * 
+ * Creates a meta-region to nest all other regions encountered within it. Phases
+ * may themselves be nested.
+ * 
+ * 
+ * @param name A unique identifier for this phase
+ * 
+ * @see `otterPhaseEnd()`
+ * @see `otterPhaseSwitch()`
+ * 
  */
 void otterPhaseBegin( const char* name );
 
 
 /**
- * @see otterPhaseBegin()
- * @see otterPhaseSwitch()
+ * @brief End the present algorithmic phase [TODO]
+ * 
+ * Indicates the end of the present algorithmic phase and return to the
+ * encountering task.
+ * 
+ * @warning This feature is not yet implemented.
+ * 
+ * @see `otterPhaseBegin()`
+ * @see `otterPhaseSwitch()`
+ * 
  */
 void otterPhaseEnd();
 
 
 /**
- * Close last phase and switch to other one
+ * @brief End the present algorithmic phase and immediately proceed to another.
+ * [TODO]
+ * 
+ * Indicates the end of the present algorithmic phase and the immediate start
+ * of another.
+ * 
+ * Equivalent to:
+ * 
+ *     otterPhaseEnd();
+ *     otterPhaseBegin(...);
+ * 
+ * @param name The name of the next phase to begin
+ * 
+ * @see `otterPhaseBegin()`
+ * @see `otterPhaseEnd()`
+ * 
  */
 void otterPhaseSwitch( const char* name );
+
 
 #ifdef __cplusplus
 }

@@ -248,7 +248,6 @@ add_library(otter-ompt
     $<TARGET_OBJECTS:otter-trace-ompt>
     $<TARGET_OBJECTS:otter-dtype>
 )
-install(TARGETS otter-ompt DESTINATION lib)
 target_link_libraries(otter-ompt pthread)
 target_link_libraries(otter-ompt otf2)
 if(DEFINED OTF2_INSTALL_DIR)
@@ -264,7 +263,6 @@ add_library(otter-serial
     $<TARGET_OBJECTS:otter-trace-serial>
     $<TARGET_OBJECTS:otter-dtype>
 )
-set_target_properties(otter-serial PROPERTIES PUBLIC_HEADER "include/otter/otter-serial.h")
 
 # # # OTF2 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Add OTF2 install directory if it was specified
@@ -285,8 +283,6 @@ else()
     message(STATUS "Not using OMPT 5.1")
 endif()
 
-# Specify Otter install location
-install(TARGETS otter-serial LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include/otter)
 
 # Configure version header
 configure_file(
@@ -302,6 +298,11 @@ if(DEFINED OTF2_INSTALL_DIR)
     target_link_libraries(otter-serial -L${OTF2_INSTALL_DIR}/lib)
 endif()
 
+# Specify Otter install location
+install(TARGETS otter-ompt DESTINATION lib)
+set_target_properties(otter-serial PROPERTIES PUBLIC_HEADER "include/otter/otter-serial.h")
+install(TARGETS otter-serial LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include/otter)
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # # # Build examples for demonstrating Otter  # # # # # # # # # # # # # # #
@@ -315,5 +316,5 @@ endif()
 # # # Include testing # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 if (WITH_TESTS)
-    add_subdirectory(test)
+    add_subdirectory(test EXCLUDE_FROM_ALL)
 endif()

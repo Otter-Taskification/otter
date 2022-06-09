@@ -20,6 +20,7 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 # Set locations within build tree for these outputs
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/lib/fmod)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/ar)
 
 # Set default OTF2 install dir
 set(OTF2_INSTALL_DIR "/opt/otf2" CACHE STRING "OTF2 install directory")

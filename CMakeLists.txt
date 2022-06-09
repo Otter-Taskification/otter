@@ -16,7 +16,12 @@ project(Otter
 option(WITH_EXAMPLES "Generate and build examples for demonstrating Otter" OFF)
 option(WITH_TESTS "Generate and build tests" OFF)
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+
+# Set locations within build tree for these outputs
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/lib/fmod)
+
+# Set default OTF2 install dir
 set(OTF2_INSTALL_DIR "/opt/otf2" CACHE STRING "OTF2 install directory")
 
 if (CMAKE_C_FLAGS)
@@ -190,7 +195,6 @@ set_property(TARGET otter-events-ompt PROPERTY POSITION_INDEPENDENT_CODE ON)
 # Serial event source
 add_library(otter-events-serial OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/serial/otter-serial.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/serial/otter-serial.F90
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/otter-structs.c
 )
 target_include_directories(otter-events-serial PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -267,6 +271,16 @@ add_library(otter-serial
 )
 set_target_properties(otter-serial PROPERTIES PUBLIC_HEADER "include/otter/otter-serial.h")
 
+# Fortran module to interface to otter-serial
+add_library(otter-events-serial-f90 OBJECT
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/serial/otter-serial.F90
+)
+set_property(TARGET otter-events-serial-f90 PROPERTY POSITION_INDEPENDENT_CODE ON)
+add_library(otter-serial-f STATIC
+    $<TARGET_OBJECTS:otter-events-serial-f90>    
+)
+set_target_properties(otter-serial-f PROPERTIES PUBLIC_HEADER "include/otter/otter-serial.F90")
+
 # # # OTF2 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Add OTF2 install directory if it was specified
 if(DEFINED OTF2_INSTALL_DIR)
@@ -288,6 +302,8 @@ endif()
 
 # Specify Otter install location
 install(TARGETS otter-serial LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include/otter)
+install(TARGETS otter-serial-f LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include/otter)
+install(FILES ${CMAKE_BINARY_DIR}/lib/fmod/otter_serial.mod DESTINATION include/otter)
 
 # Configure version header
 configure_file(

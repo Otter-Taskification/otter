@@ -57,6 +57,11 @@ add_executable(otter-serial-loop
 target_include_directories(otter-serial-loop PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../include)
 target_link_libraries(otter-serial-loop otter-serial)
 
+add_executable(otter-serial-taskwait-some
+    "otter-serial-taskwait-some.c")
+target_include_directories(otter-serial-taskwait-some PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../include)
+target_link_libraries(otter-serial-taskwait-some otter-serial)
+
 # Add CXX executables
 add_executable(omp-peano-constructs "omp-peano-constructs.cpp")
 

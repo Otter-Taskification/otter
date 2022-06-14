@@ -1,8 +1,10 @@
 # Changelog
 
-<!-- ## Unpublished
+## Unpublished
 
 ### Added
+
+- Merged #3 from @LonelyCat124 which adds Fortran wrapper for otter-serial
 
 ### Changed
 
@@ -10,7 +12,7 @@
 
 ### Removed
 
-### Fixed -->
+### Fixed
 
 ## v0.1.0 [2022-05-17]
 

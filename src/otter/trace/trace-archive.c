@@ -38,7 +38,7 @@ OTF2_StringRef attr_label_ref[n_attr_label_defined] = {0};
 /* References to global archive & def writer */
 static OTF2_Archive *Archive = NULL;
 static OTF2_GlobalDefWriter *Defs = NULL;
-static char_ref_registry *Registry = NULL;
+static string_registry *Registry = NULL;
 
 /* Mutexes for thread-safe access to Archive and Defs */
 static pthread_mutex_t lock_global_def_writer = PTHREAD_MUTEX_INITIALIZER;
@@ -66,7 +66,7 @@ OTF2_Archive *get_global_archive(void)
     return Archive;
 }
 
-char_ref_registry *get_global_str_registry(void)
+string_registry *get_global_str_registry(void)
 {
     return Registry;
 }
@@ -263,7 +263,7 @@ trace_initialise_archive(otter_opt_t *opt)
             Type);
     #include "otter/trace-attribute-defs.h"
 
-    Registry = char_ref_registry_make(
+    Registry = string_registry_make(
         get_unique_str_ref,
         trace_write_string_ref
     );
@@ -274,7 +274,7 @@ trace_initialise_archive(otter_opt_t *opt)
 bool
 trace_finalise_archive(void)
 {
-    char_ref_registry_delete(Registry);
+    string_registry_delete(Registry);
 
     /* close event files */
     OTF2_Archive_CloseEvtFiles(Archive);

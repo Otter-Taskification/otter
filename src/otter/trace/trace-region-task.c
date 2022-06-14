@@ -8,7 +8,7 @@
 #include "otter/trace-check-error-code.h"
 #include "otter/queue.h"
 #include "otter/stack.h"
-#include "otter/char_ref_registry.hpp"
+#include "otter/string_value_registry.hpp"
 
 /* Defined in trace-archive.c */
 extern OTF2_StringRef attr_name_ref[n_attr_defined][2];
@@ -62,8 +62,8 @@ trace_new_task_region(
                 parent_task_region->attr.task.type : OTF2_UNDEFINED_UINT32,
             .task_status     = 0 /* no status */,
 
-            .source_file_name_ref = src_location ? char_ref_registry_insert(get_global_str_registry(), src_location->file) : 0,
-            .source_func_name_ref = src_location ? char_ref_registry_insert(get_global_str_registry(), src_location->func) : 0,
+            .source_file_name_ref = src_location ? string_registry_insert(get_global_str_registry(), src_location->file) : 0,
+            .source_func_name_ref = src_location ? string_registry_insert(get_global_str_registry(), src_location->func) : 0,
             .source_line_number = src_location ? src_location->line : 0,
         }
     };

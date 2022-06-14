@@ -16,7 +16,13 @@ project(Otter
 option(WITH_EXAMPLES "Generate and build examples for demonstrating Otter" OFF)
 option(WITH_TESTS "Generate and build tests" OFF)
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+
+# Set locations within build tree for these outputs
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/lib/fmod)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/ar)
+
+# Set default OTF2 install dir
 set(OTF2_INSTALL_DIR "/opt/otf2" CACHE STRING "OTF2 install directory")
 
 if (CMAKE_C_FLAGS)
@@ -190,6 +196,8 @@ set_property(TARGET otter-events-ompt PROPERTY POSITION_INDEPENDENT_CODE ON)
 # Serial event source
 add_library(otter-events-serial OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/serial/otter-serial.c
+    # Fortran entrypoints to otter-serial.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/serial/otter-serial.F90
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/otter-structs.c
 )
 target_include_directories(otter-events-serial PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -235,7 +243,7 @@ target_compile_definitions(otter-trace-serial PRIVATE OTTER_SERIAL_MODE)
 add_library(otter-dtype OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/dt-queue.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/dt-stack.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/char_ref_registry.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/string_value_registry.cpp
 )
 target_include_directories(otter-dtype PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(otter-dtype PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_DTYPE})
@@ -248,7 +256,6 @@ add_library(otter-ompt
     $<TARGET_OBJECTS:otter-trace-ompt>
     $<TARGET_OBJECTS:otter-dtype>
 )
-install(TARGETS otter-ompt DESTINATION lib)
 target_link_libraries(otter-ompt pthread)
 target_link_libraries(otter-ompt otf2)
 if(DEFINED OTF2_INSTALL_DIR)
@@ -266,8 +273,7 @@ add_library(otter-serial
 )
 set_target_properties(otter-serial PROPERTIES PUBLIC_HEADER "include/otter/otter-serial.h")
 
-# # # OTF2 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# Add OTF2 install directory if it was specified
+# Add OTF2 install directory to targets if it was specified manually
 if(DEFINED OTF2_INSTALL_DIR)
     target_include_directories(otter-events-ompt PRIVATE ${OTF2_INSTALL_DIR}/include)
     target_include_directories(otter-events-serial PRIVATE ${OTF2_INSTALL_DIR}/include)
@@ -285,8 +291,11 @@ else()
     message(STATUS "Not using OMPT 5.1")
 endif()
 
-# Specify Otter install location
+### SET INSTALL LOCATIONS ######################################################
+
+install(TARGETS otter-ompt DESTINATION lib)
 install(TARGETS otter-serial LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include/otter)
+install(FILES ${CMAKE_BINARY_DIR}/lib/fmod/otter_serial.mod DESTINATION include/otter)
 
 # Configure version header
 configure_file(
@@ -302,7 +311,7 @@ if(DEFINED OTF2_INSTALL_DIR)
     target_link_libraries(otter-serial -L${OTF2_INSTALL_DIR}/lib)
 endif()
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+################################################################################
 
 # # # Build examples for demonstrating Otter  # # # # # # # # # # # # # # #
 

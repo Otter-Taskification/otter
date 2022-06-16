@@ -315,9 +315,7 @@ endif()
 
 # # # Build examples for demonstrating Otter  # # # # # # # # # # # # # # #
 
-message(STATUS "Detecting examples")
 if (WITH_EXAMPLES)
-    message(STATUS "Adding examples")
     add_subdirectory(src/otter/examples)
 endif()
 

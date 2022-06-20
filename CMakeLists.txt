@@ -319,6 +319,10 @@ if (WITH_EXAMPLES)
     add_subdirectory(src/otter/examples)
 endif()
 
+if (WITH_VALIDATION)
+    add_subdirectory(src/otter/examples/validation)
+endif()
+
 # # # Include testing # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 if (WITH_TESTS)

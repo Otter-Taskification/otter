@@ -24,6 +24,12 @@ int main(void)
             #pragma omp task
             {usleep(10);}
         }
+
+        // Add an empty task so that the taskgroup-end vertex will synchronise
+        // a vertex with both the taskswitch-enter & -leave events (test assertions)
+        #pragma omp task
+        {usleep(10);}
+
     }
 
     #pragma omp taskgroup

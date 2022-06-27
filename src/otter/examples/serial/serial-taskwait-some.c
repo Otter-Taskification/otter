@@ -11,38 +11,38 @@
 int main(void)
 {
     int j=0;
-    otterTraceInitialise();
-    otterParallelBegin();
+    otterTraceInitialise(OTTER_SRC_ARGS());
+    otterThreadsBegin(OTTER_SRC_ARGS());
     {
-        otterTaskBegin();
+        otterTaskBegin(OTTER_SRC_ARGS());
         otterTaskEnd();
 
-        otterTaskBegin();
+        otterTaskBegin(OTTER_SRC_ARGS());
         otterTaskEnd();
 
-        otterTaskBegin();
+        otterTaskBegin(OTTER_SRC_ARGS());
         otterTaskEnd();
         
         otterSynchroniseChildTasks();
         
         // This task is not synchronised by the taskwait above
-        otterTaskBegin();
+        otterTaskBegin(OTTER_SRC_ARGS());
         otterTaskEnd();
         
         otterSynchroniseChildTasks();
         
         // This task is not synchronised by the taskwait above
-        otterTaskBegin();
+        otterTaskBegin(OTTER_SRC_ARGS());
         otterTaskEnd();
         
         otterSynchroniseChildTasks();
         
         // This task is not synchronised by the taskwait above
-        otterTaskBegin();
+        otterTaskBegin(OTTER_SRC_ARGS());
         otterTaskEnd();
 
     }
-    otterParallelEnd();
+    otterThreadsEnd();
     otterTraceFinalise();
 
     return 0;

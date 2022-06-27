@@ -5,35 +5,35 @@
 
 int main(void)
 {
-    otterTraceInitialise();
-    otterParallelBegin();
+    otterTraceInitialise(OTTER_SRC_ARGS());
+    otterThreadsBegin(OTTER_SRC_ARGS());
     {        
         // This task is not synchronised in the group below
-        otterTaskBegin();
+        otterTaskBegin(OTTER_SRC_ARGS());
         otterTaskEnd();
 
         otterSynchroniseDescendantTasksBegin();
 
-        otterTaskBegin();
+        otterTaskBegin(OTTER_SRC_ARGS());
         for (int k=0; k<LEN; k++)
         {
-            otterTaskBegin();
+            otterTaskBegin(OTTER_SRC_ARGS());
             otterTaskEnd();
         }
         otterTaskEnd();
 
-        otterTaskBegin();
+        otterTaskBegin(OTTER_SRC_ARGS());
         for (int k=0; k<LEN; k++)
         {
-            otterTaskBegin();
+            otterTaskBegin(OTTER_SRC_ARGS());
             otterTaskEnd();
         }
         otterTaskEnd();
 
-        otterTaskBegin();
+        otterTaskBegin(OTTER_SRC_ARGS());
         for (int k=0; k<LEN; k++)
         {
-            otterTaskBegin();
+            otterTaskBegin(OTTER_SRC_ARGS());
             otterTaskEnd();
         }
         otterTaskEnd();
@@ -41,11 +41,11 @@ int main(void)
         otterSynchroniseDescendantTasksEnd();
         
         // This task is not synchronised in the group above
-        otterTaskBegin();
+        otterTaskBegin(OTTER_SRC_ARGS());
         otterTaskEnd();
 
     }
-    otterParallelEnd();
+    otterThreadsEnd();
     otterTraceFinalise();
 
     return 0;

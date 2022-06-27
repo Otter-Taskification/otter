@@ -3,11 +3,11 @@
 
 int main(int argc, char *argv[]) {
 
-    otterTraceInitialise();
-    otterParallelBegin();
-    otterTaskBegin();
+    otterTraceInitialise(OTTER_SRC_ARGS());
+    otterThreadsBegin(OTTER_SRC_ARGS());
+    otterTaskBegin(OTTER_SRC_ARGS());
     otterTaskEnd();
-    otterParallelEnd();
+    otterThreadsEnd();
     otterTraceFinalise();
 
     return 0;

@@ -5,13 +5,13 @@
 
 int main(void)
 {
-    otterTraceInitialise();
-    otterParallelBegin();
+    otterTraceInitialise(OTTER_SRC_ARGS());
+    otterThreadsBegin(OTTER_SRC_ARGS());
     {
-        otterTaskBegin();
+        otterTaskBegin(OTTER_SRC_ARGS());
         for (int k=0; k<LEN; k++)
         {
-            otterTaskBegin();
+            otterTaskBegin(OTTER_SRC_ARGS());
             otterTaskEnd();
         }
         otterTaskEnd();
@@ -19,7 +19,7 @@ int main(void)
         otterSynchroniseChildTasks();
 
     }
-    otterParallelEnd();
+    otterThreadsEnd();
     otterTraceFinalise();
 
     return 0;

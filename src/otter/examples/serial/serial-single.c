@@ -10,13 +10,13 @@
 int main(void)
 {
     int j=0;
-    otterTraceInitialise();
-    otterParallelBegin();
+    otterTraceInitialise(OTTER_SRC_ARGS());
+    otterThreadsBegin(OTTER_SRC_ARGS());
     {
-        otterTaskBegin(); otterTaskEnd();
+        otterTaskBegin(OTTER_SRC_ARGS()); otterTaskEnd();
         otterSynchroniseChildTasks();
 
-        otterTaskBegin(); otterTaskEnd();
+        otterTaskBegin(OTTER_SRC_ARGS()); otterTaskEnd();
 
         otterTaskSingleBegin();
         otterTaskSingleEnd();
@@ -40,7 +40,7 @@ int main(void)
         otterTaskSingleEnd();
 
     }
-    otterParallelEnd();
+    otterThreadsEnd();
     otterTraceFinalise();
 
     return 0;

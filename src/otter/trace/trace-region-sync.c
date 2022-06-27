@@ -35,12 +35,6 @@ trace_new_sync_region(
         }
     };
 
-    // Specialise taskwait according to whether it synchronises descendants or just children
-    if ((stype == otter_sync_region_taskwait) && (task_sync_mode == trace_sync_descendants))
-    {
-        new->attr.sync.type = otter_sync_region_taskwait_descendants;
-    }
-
     LOG_DEBUG("[t=%lu] created sync region %u at %p",
         loc->id, new->ref, new);
 

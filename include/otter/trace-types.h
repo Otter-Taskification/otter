@@ -60,13 +60,11 @@ typedef enum otter_sync_region_t {
     otter_sync_region_barrier_explicit       = 3,
     otter_sync_region_barrier_implementation = 4,
     otter_sync_region_taskwait               = 5,
-    otter_sync_region_taskwait_children      = 6,
-    otter_sync_region_taskwait_descendants   = 7,
-    otter_sync_region_taskgroup              = 8,
-    otter_sync_region_reduction              = 9,
-    otter_sync_region_barrier_implicit_workshare = 10,
-    otter_sync_region_barrier_implicit_parallel = 11,
-    otter_sync_region_barrier_teams = 12
+    otter_sync_region_taskgroup              = 6,
+    otter_sync_region_reduction              = 7,
+    otter_sync_region_barrier_implicit_workshare = 8,
+    otter_sync_region_barrier_implicit_parallel = 9,
+    otter_sync_region_barrier_teams = 10
 } otter_sync_region_t;
 
 typedef enum otter_task_flag_t {

@@ -131,8 +131,6 @@ INCLUDE_LABEL(region_type, barrier_implicit)
 INCLUDE_LABEL(region_type, barrier_explicit)
 INCLUDE_LABEL(region_type, barrier_implementation)
 INCLUDE_LABEL(region_type, taskwait)
-INCLUDE_LABEL(region_type, taskwait_children)
-INCLUDE_LABEL(region_type, taskwait_descendants)
 INCLUDE_LABEL(region_type, taskgroup)
 
 /* prior task status at task-schedule event */

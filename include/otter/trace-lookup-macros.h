@@ -43,8 +43,6 @@
     type == otter_sync_region_barrier_explicit       ? attr_label_ref[attr_region_type_barrier_explicit]         : \
     type == otter_sync_region_barrier_implementation ? attr_label_ref[attr_region_type_barrier_implementation]   : \
     type == otter_sync_region_taskwait               ? attr_label_ref[attr_region_type_taskwait]                 : \
-    type == otter_sync_region_taskwait_children      ? attr_label_ref[attr_region_type_taskwait_children]        : \
-    type == otter_sync_region_taskwait_descendants   ? attr_label_ref[attr_region_type_taskwait_descendants]     : \
     type == otter_sync_region_taskgroup              ? attr_label_ref[attr_region_type_taskgroup]                : \
         0)
 #endif

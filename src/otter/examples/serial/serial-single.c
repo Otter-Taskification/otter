@@ -14,26 +14,26 @@ int main(void)
     otterThreadsBegin(OTTER_SRC_ARGS());
     {
         otterTaskBegin(OTTER_SRC_ARGS()); otterTaskEnd();
-        otterSynchroniseChildTasks();
+        otterSynchroniseTasks(otter_sync_children);
 
         otterTaskBegin(OTTER_SRC_ARGS()); otterTaskEnd();
 
         otterTaskSingleBegin();
         otterTaskSingleEnd();
         
-        otterSynchroniseChildTasks();
+        otterSynchroniseTasks(otter_sync_children);
         
         // This task is not synchronised by the taskwait above
         otterTaskSingleBegin();
         otterTaskSingleEnd();
         
-        otterSynchroniseChildTasks();
+        otterSynchroniseTasks(otter_sync_children);
         
         // This task is not synchronised by the taskwait above
         otterTaskSingleBegin();
         otterTaskSingleEnd();
         
-        otterSynchroniseChildTasks();
+        otterSynchroniseTasks(otter_sync_children);
         
         // This task is not synchronised by the taskwait above
         otterTaskSingleBegin();

@@ -16,7 +16,7 @@ int main(void)
         }
         otterTaskEnd();
 
-        otterSynchroniseChildTasks();
+        otterSynchroniseTasks(otter_sync_children);
 
     }
     otterThreadsEnd();

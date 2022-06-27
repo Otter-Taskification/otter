@@ -23,19 +23,19 @@ int main(void)
         otterTaskBegin(OTTER_SRC_ARGS());
         otterTaskEnd();
         
-        otterSynchroniseChildTasks();
+        otterSynchroniseTasks(otter_sync_children);
         
         // This task is not synchronised by the taskwait above
         otterTaskBegin(OTTER_SRC_ARGS());
         otterTaskEnd();
         
-        otterSynchroniseChildTasks();
+        otterSynchroniseTasks(otter_sync_children);
         
         // This task is not synchronised by the taskwait above
         otterTaskBegin(OTTER_SRC_ARGS());
         otterTaskEnd();
         
-        otterSynchroniseChildTasks();
+        otterSynchroniseTasks(otter_sync_children);
         
         // This task is not synchronised by the taskwait above
         otterTaskBegin(OTTER_SRC_ARGS());

@@ -20,7 +20,8 @@ Integer Recursive Function fib(n) result(a)
         Call fortran_otterTaskEnd()
 
         ! Indicate a synchronisation constraint on a subset of work items
-        Call fortran_otterSynchroniseChildTasks()
+        ! 0 indicates synchronise children only (not all descendants)
+        Call fortran_otterSynchroniseTasks(0)
 
         a = i + j
     end if
@@ -47,14 +48,14 @@ Program fibonacci
     Call fortran_otterTraceInitialise()
 
     ! Tag: start of a region we want to parallelise
-    Call fortran_otterParallelBegin()
+    Call fortran_otterThreadsBegin()
 
     ! Tag: wrap a task
     Call fortran_otterTaskSingleBegin()
     fibn = fib(n)
     Call fortran_otterTaskSingleEnd()
 
-    Call fortran_otterParallelEnd()
+    Call fortran_otterThreadsEnd()
 
     print *, n, fibn
 

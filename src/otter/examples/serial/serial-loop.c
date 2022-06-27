@@ -7,14 +7,14 @@ int main(void)
 {
     int j=0;
     otterTraceInitialise(OTTER_SRC_ARGS());
-    otterThreadsBegin(OTTER_SRC_ARGS()OTTER_SRC_ARGS());
+    otterThreadsBegin(OTTER_SRC_ARGS());
     {
         otterTaskSingleBegin();
         {
             otterLoopBegin();
             for (j=0; j<LEN; j++)
             {
-                otterTaskBegin(OTTER_SRC_ARGS()OTTER_SRC_ARGS());
+                otterTaskBegin(OTTER_SRC_ARGS());
                 usleep(50);
                 otterTaskEnd();
             }
@@ -27,14 +27,14 @@ int main(void)
         otterLoopBegin();
         for (j=0; j<LEN; j++)
         {
-            otterTaskBegin(OTTER_SRC_ARGS()OTTER_SRC_ARGS());
-                otterTaskBegin(OTTER_SRC_ARGS()OTTER_SRC_ARGS());
+            otterTaskBegin(OTTER_SRC_ARGS());
+                otterTaskBegin(OTTER_SRC_ARGS());
                 usleep(50);
                 otterTaskEnd();
-                otterTaskBegin(OTTER_SRC_ARGS()OTTER_SRC_ARGS());
+                otterTaskBegin(OTTER_SRC_ARGS());
                 usleep(50);
                 otterTaskEnd();
-                otterTaskBegin(OTTER_SRC_ARGS()OTTER_SRC_ARGS());
+                otterTaskBegin(OTTER_SRC_ARGS());
                 usleep(50);
                 otterTaskEnd();
             otterTaskEnd();

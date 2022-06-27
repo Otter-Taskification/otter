@@ -8,13 +8,13 @@ module otter_serial
         character(len = *) :: functionname
         integer :: linenum
         interface
-            subroutine otterTraceInitialise_i(filename, functionname, linenum) bind(C, NAME="otterTraceInitialise_i")
+            subroutine otterTraceInitialise(filename, functionname, linenum) bind(C, NAME="otterTraceInitialise")
                 use, intrinsic :: iso_c_binding
                 character(len=1, kind=c_char), dimension(*), intent(in) :: filename, functionname
                 integer(c_int), value :: linenum
-            end subroutine otterTraceInitialise_i
+            end subroutine otterTraceInitialise
         end interface
-        call otterTraceInitialise_i(trim(filename), trim(functionname), Int(linenum, kind=c_int))
+        call otterTraceInitialise(trim(filename), trim(functionname), Int(linenum, kind=c_int))
     end subroutine fortran_otterTraceInitialise_i
     
     subroutine fortran_otterTraceFinalise()
@@ -25,29 +25,29 @@ module otter_serial
         call otterTraceFinalise()
     end subroutine fortran_otterTraceFinalise
     
-    subroutine fortran_otterParallelBegin_i(filename, functionname, linenum)
+    subroutine fortran_otterThreadsBegin_i(filename, functionname, linenum)
         use, intrinsic :: iso_c_binding
         character(len = *) :: filename
         character(len = *) :: functionname
         integer :: linenum
         interface
-            subroutine otterParallelBegin_i(filename, functionname, linenum) bind(C, NAME="otterParallelBegin_i")
+            subroutine otterThreadsBegin(filename, functionname, linenum) bind(C, NAME="otterThreadsBegin")
                 use, intrinsic :: iso_c_binding
                 character(len=1, kind=c_char), dimension(*), intent(in) :: filename, functionname
                 integer(c_int), value :: linenum
-            end subroutine otterParallelBegin_i
+            end subroutine otterThreadsBegin
         end interface
-        call otterParallelBegin_i(trim(filename), trim(functionname), Int(linenum, kind=c_int))
-    end subroutine fortran_otterParallelBegin_i
+        call otterThreadsBegin(trim(filename), trim(functionname), Int(linenum, kind=c_int))
+    end subroutine fortran_otterThreadsBegin_i
     
-    subroutine fortran_otterParallelEnd()
+    subroutine fortran_otterThreadsEnd()
         use, intrinsic :: iso_c_binding
         interface
-            subroutine otterParallelEnd() bind(C, NAME="otterParallelEnd")
+            subroutine otterThreadsEnd() bind(C, NAME="otterThreadsEnd")
             end subroutine
         end interface
     
-        call otterParallelEnd()
+        call otterThreadsEnd()
     
     end subroutine
     
@@ -57,14 +57,14 @@ module otter_serial
         character(len = *) :: functionname
         integer :: linenum
         interface
-            subroutine otterTaskBegin_i(filename, functionname, linenum) bind(C, NAME="otterTaskBegin_i")
+            subroutine otterTaskBegin(filename, functionname, linenum) bind(C, NAME="otterTaskBegin")
                 use, intrinsic :: iso_c_binding
                 character(len=1, kind=c_char), dimension(*), intent(in) :: filename, functionname
                 integer(c_int), value :: linenum
-            end subroutine otterTaskBegin_i
+            end subroutine otterTaskBegin
         end interface
     
-        call otterTaskBegin_i(trim(filename), trim(functionname), Int(linenum, kind=c_int))
+        call otterTaskBegin(trim(filename), trim(functionname), Int(linenum, kind=c_int))
     end subroutine fortran_otterTaskBegin_i
     
     subroutine fortran_otterTaskEnd()
@@ -84,14 +84,14 @@ module otter_serial
         character(len = *) :: functionname
         integer :: linenum
         interface
-            subroutine otterTaskSingleBegin_i(filename, functionname, linenum) bind(C, NAME="otterTaskSingleBegin_i")
+            subroutine otterTaskSingleBegin(filename, functionname, linenum) bind(C, NAME="otterTaskSingleBegin")
                 use, intrinsic :: iso_c_binding
                 character(len=1, kind=c_char), dimension(*), intent(in) :: filename, functionname
                 integer(c_int), value :: linenum
-            end subroutine otterTaskSingleBegin_i
+            end subroutine otterTaskSingleBegin
         end interface
     
-        call otterTaskSingleBegin_i(trim(filename), trim(functionname), Int(linenum, kind=c_int))
+        call otterTaskSingleBegin(trim(filename), trim(functionname), Int(linenum, kind=c_int))
     end subroutine fortran_otterTaskSingleBegin_i
     
     subroutine fortran_otterTaskSingleEnd()
@@ -104,19 +104,14 @@ module otter_serial
         call otterTaskSingleEnd()
      end subroutine fortran_otterTaskSingleEnd
     
-    subroutine fortran_otterLoopBegin_i(filename, functionname, linenum)
+    subroutine fortran_otterLoopBegin_i()
         use, intrinsic :: iso_c_binding
-        character(len = *) :: filename
-        character(len = *) :: functionname
-        integer :: linenum
         interface
-            subroutine otterLoopBegin_i(filename, functionname, linenum) bind(C, NAME="otterLoopBegin_i")
+            subroutine otterLoopBegin() bind(C, NAME="otterLoopBegin")
                 use, intrinsic :: iso_c_binding
-                character(len=1, kind=c_char), dimension(*), intent(in) :: filename, functionname
-                integer(c_int), value :: linenum
-            end subroutine otterLoopBegin_i
+            end subroutine otterLoopBegin
         end interface
-        call otterLoopBegin_i(trim(filename), trim(functionname), Int(linenum, kind=c_int))
+        call otterLoopBegin()
     end subroutine fortran_otterLoopBegin_i
     
     subroutine fortran_otterLoopEnd()
@@ -131,19 +126,14 @@ module otter_serial
         call otterLoopEnd()
     end subroutine
     
-    subroutine fortran_otterLoopIterationBegin_i(filename, functionname, linenum)
+    subroutine fortran_otterLoopIterationBegin_i()
         use, intrinsic :: iso_c_binding
-        character(len = *) :: filename
-        character(len = *) :: functionname
-        integer :: linenum
         interface
-            subroutine otterLoopIterationBegin_i(filename, functionname, linenum) bind(C, NAME="otterLoopIterationBegin_i")
+            subroutine otterLoopIterationBegin() bind(C, NAME="otterLoopIterationBegin")
                 use, intrinsic :: iso_c_binding
-                character(len=1, kind=c_char), dimension(*), intent(in) :: filename, functionname
-                integer(c_int), value :: linenum
-            end subroutine otterLoopIterationBegin_i
+            end subroutine otterLoopIterationBegin
         end interface
-        call otterLoopIterationBegin_i(trim(filename), trim(functionname), Int(linenum, kind=c_int))
+        call otterLoopIterationBegin()
     end subroutine fortran_otterLoopIterationBegin_i
     
     subroutine fortran_otterLoopIterationEnd()
@@ -158,36 +148,31 @@ module otter_serial
         call otterLoopIterationEnd()
     end subroutine
     
-    subroutine fortran_otterSynchroniseChildTasks_i(filename, functionname, linenum)
+    subroutine fortran_otterSynchroniseTasks_i(synchronise_descendants)
         use, intrinsic :: iso_c_binding
-        character(len = *) :: filename
-        character(len = *) :: functionname
-        integer :: linenum
+
+        ! otter_task_sync_t::otter_sync_children
+        integer :: synchronise_descendants
+
         interface
-            subroutine otterSynchroniseChildTasks_i(filename, functionname, linenum) bind(C, NAME="otterSynchroniseChildTasks_i")
+            subroutine otterSynchroniseTasks(synchronise_descendants) bind(C, NAME="otterSynchroniseTasks")
                 use, intrinsic :: iso_c_binding
-                character(len=1, kind=c_char), dimension(*), intent(in) :: filename, functionname
-                integer(c_int), value :: linenum
-            end subroutine otterSynchroniseChildTasks_i
+                integer(c_int), value :: synchronise_descendants
+            end subroutine otterSynchroniseTasks
         end interface
-        call otterSynchroniseChildTasks_i(trim(filename), trim(functionname), Int(linenum, kind=c_int))
+        call otterSynchroniseTasks(Int(synchronise_descendants, kind=c_int))
     
-    end subroutine fortran_otterSynchroniseChildTasks_i
+    end subroutine fortran_otterSynchroniseTasks_i
     
-    subroutine fortran_otterSynchroniseDescendantTasksBegin_i(filename, functionname, linenum)
+    subroutine fortran_otterSynchroniseDescendantTasksBegin_i()
         use, intrinsic :: iso_c_binding
-        character(len = *) :: filename
-        character(len = *) :: functionname
-        integer :: linenum
         interface
-            subroutine otterSynchroniseDescendantTasksBegin_i(filename, functionname, linenum)&
-                    bind(C, NAME="otterSynchroniseDescendantTasksBegin_i")
+            subroutine otterSynchroniseDescendantTasksBegin()&
+                    bind(C, NAME="otterSynchroniseDescendantTasksBegin")
                 use, intrinsic :: iso_c_binding
-                character(len=1, kind=c_char), dimension(*), intent(in) :: filename, functionname
-                integer(c_int), value :: linenum
-            end subroutine otterSynchroniseDescendantTasksBegin_i
+            end subroutine otterSynchroniseDescendantTasksBegin
         end interface
-        call otterSynchroniseDescendantTasksBegin_i(trim(filename), trim(functionname), Int(linenum, kind=c_int))
+        call otterSynchroniseDescendantTasksBegin()
     end subroutine fortran_otterSynchroniseDescendantTasksBegin_i
     
     subroutine fortran_otterSynchroniseDescendantTasksEnd()

@@ -45,7 +45,7 @@ static trace_region_def_t *get_encountering_region(void)
     return r;
 }
 
-void otterTraceInitialise_i(const char* file, const char* func, const int line)
+void otterTraceInitialise(const char* file, const char* func, const int line)
 {
     // Initialise archive    
 
@@ -145,7 +145,7 @@ void otterTraceFinalise(void)
     return;
 }
 
-void otterParallelBegin_i(const char* file, const char* func, const int line)
+void otterThreadsBegin(const char* file, const char* func, const int line)
 {
     if (!tracingActive)
     {
@@ -192,7 +192,7 @@ void otterParallelBegin_i(const char* file, const char* func, const int line)
     return;
 }
 
-void otterParallelEnd(void)
+void otterThreadsEnd(void)
 {
     if (!tracingActive)
     {
@@ -221,7 +221,7 @@ void otterParallelEnd(void)
     return;
 }
 
-void otterTaskBegin_i(const char* file, const char* func, const int line)
+void otterTaskBegin(const char* file, const char* func, const int line)
 {
     if (!tracingActive)
     {
@@ -296,7 +296,7 @@ void otterTaskEnd(void)
     return;
 }
 
-void otterTaskSingleBegin_i(const char* file, const char* func, const int line)
+void otterTaskSingleBegin()
 {
     if (!tracingActive)
     {
@@ -304,7 +304,7 @@ void otterTaskSingleBegin_i(const char* file, const char* func, const int line)
         return;
     }
 
-    LOG_EVENT_CALL(file, func, line, __func__);
+    // LOG_EVENT_CALL(file, func, line, __func__);
 
     task_data_t *encountering_task = get_encountering_task();
 
@@ -339,7 +339,7 @@ void otterTaskSingleEnd(void)
     return;
 }
 
-void otterLoopBegin_i(const char* file, const char* func, const int line)
+void otterLoopBegin()
 {
     if (!tracingActive)
     {
@@ -347,7 +347,7 @@ void otterLoopBegin_i(const char* file, const char* func, const int line)
         return;
     }
 
-    LOG_EVENT_CALL(file, func, line, __func__);
+    // LOG_EVENT_CALL(file, func, line, __func__);
 
     task_data_t *encountering_task = get_encountering_task();
 
@@ -382,7 +382,7 @@ void otterLoopEnd(void)
     return;
 }
 
-void otterLoopIterationBegin_i(const char* file, const char* func, const int line)
+void otterLoopIterationBegin()
 {
     if (!tracingActive)
     {
@@ -390,7 +390,7 @@ void otterLoopIterationBegin_i(const char* file, const char* func, const int lin
         return;
     }
 
-    LOG_EVENT_CALL(file, func, line, __func__);
+    // LOG_EVENT_CALL(file, func, line, __func__);
     return;
 }
 
@@ -406,7 +406,7 @@ void otterLoopIterationEnd(void)
     return;
 }
 
-void otterSynchroniseChildTasks_i(const char* file, const char* func, const int line)
+void otterSynchroniseTasks(otter_task_sync_t mode)
 {
     if (!tracingActive)
     {
@@ -414,11 +414,12 @@ void otterSynchroniseChildTasks_i(const char* file, const char* func, const int 
         return;
     }
 
-    LOG_EVENT_CALL(file, func, line, __func__);
+    // LOG_EVENT_CALL(file, func, line, __func__);
     task_data_t *encountering_task = get_encountering_task();
     trace_region_def_t *taskwait = trace_new_sync_region(
         thread_data->location,
         otter_sync_region_taskwait,
+        mode == otter_sync_descendants ? trace_sync_descendants : trace_sync_children,
         encountering_task->id
     );
     trace_event_enter(thread_data->location, taskwait);
@@ -426,7 +427,7 @@ void otterSynchroniseChildTasks_i(const char* file, const char* func, const int 
     return;
 }
 
-void otterSynchroniseDescendantTasksBegin_i(const char* file, const char* func, const int line)
+void otterSynchroniseDescendantTasksBegin()
 {
     if (!tracingActive)
     {
@@ -434,11 +435,12 @@ void otterSynchroniseDescendantTasksBegin_i(const char* file, const char* func, 
         return;
     }
 
-    LOG_EVENT_CALL(file, func, line, __func__);
+    // LOG_EVENT_CALL(file, func, line, __func__);
     task_data_t *encountering_task = get_encountering_task();
     trace_region_def_t *taskgroup = trace_new_sync_region(
         thread_data->location,
         otter_sync_region_taskgroup,
+        trace_sync_descendants,
         encountering_task->id
     );
     stack_push(region_stack, (data_item_t) {.ptr = taskgroup});

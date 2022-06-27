@@ -620,7 +620,11 @@ on_ompt_callback_sync_region(
     if (endpoint == ompt_scope_begin)
     {
         trace_region_def_t *sync_rgn = trace_new_sync_region(
-            thread_data->location, kind, task_data->id);
+            thread_data->location,
+            kind,
+            kind == ompt_sync_region_taskgroup ? trace_sync_descendants : trace_sync_children,
+            task_data->id
+        );
         trace_event_enter(thread_data->location, sync_rgn);
     } else {
 

@@ -6,35 +6,35 @@
 int main(void)
 {
     int j=0;
-    otterTraceInitialise();
-    otterParallelBegin();
+    otterTraceInitialise(OTTER_SRC_ARGS());
+    otterThreadsBegin(OTTER_SRC_ARGS());
     {
         otterTaskSingleBegin();
         {
             otterLoopBegin();
             for (j=0; j<LEN; j++)
             {
-                otterTaskBegin();
+                otterTaskBegin(OTTER_SRC_ARGS());
                 usleep(50);
                 otterTaskEnd();
             }
             otterLoopEnd();
         }
         otterTaskSingleEnd();
-        otterSynchroniseChildTasks();
+        otterSynchroniseTasks(otter_sync_children);
 
         otterSynchroniseDescendantTasksBegin();
         otterLoopBegin();
         for (j=0; j<LEN; j++)
         {
-            otterTaskBegin();
-                otterTaskBegin();
+            otterTaskBegin(OTTER_SRC_ARGS());
+                otterTaskBegin(OTTER_SRC_ARGS());
                 usleep(50);
                 otterTaskEnd();
-                otterTaskBegin();
+                otterTaskBegin(OTTER_SRC_ARGS());
                 usleep(50);
                 otterTaskEnd();
-                otterTaskBegin();
+                otterTaskBegin(OTTER_SRC_ARGS());
                 usleep(50);
                 otterTaskEnd();
             otterTaskEnd();
@@ -43,7 +43,7 @@ int main(void)
         otterSynchroniseDescendantTasksEnd();
 
     }
-    otterParallelEnd();
+    otterThreadsEnd();
     otterTraceFinalise();
 
     return 0;

@@ -271,7 +271,6 @@ add_library(otter-serial
     $<TARGET_OBJECTS:otter-trace-serial>
     $<TARGET_OBJECTS:otter-dtype>
 )
-set_target_properties(otter-serial PROPERTIES PUBLIC_HEADER "include/otter/otter-serial.h")
 
 # Add OTF2 install directory to targets if it was specified manually
 if(DEFINED OTF2_INSTALL_DIR)
@@ -294,6 +293,7 @@ endif()
 ### SET INSTALL LOCATIONS ######################################################
 
 install(TARGETS otter-ompt DESTINATION lib)
+set_target_properties(otter-serial PROPERTIES PUBLIC_HEADER "include/otter/otter-serial.h")
 install(TARGETS otter-serial LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include/otter)
 install(FILES ${CMAKE_BINARY_DIR}/lib/fmod/otter_serial.mod DESTINATION include/otter)
 
@@ -311,7 +311,7 @@ if(DEFINED OTF2_INSTALL_DIR)
     target_link_libraries(otter-serial -L${OTF2_INSTALL_DIR}/lib)
 endif()
 
-################################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # # # Build examples for demonstrating Otter  # # # # # # # # # # # # # # #
 
@@ -326,5 +326,5 @@ endif()
 # # # Include testing # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 if (WITH_TESTS)
-    add_subdirectory(test)
+    add_subdirectory(test EXCLUDE_FROM_ALL)
 endif()

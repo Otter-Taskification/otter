@@ -3,8 +3,14 @@
 #include <otter/otter-serial.h>
 #define LEN 5
 
-int main(void)
-{
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "usage: %s [0|1]\n", argv[0]);
+        return 1;
+    }
+
+    otter_task_sync_t sync_mode = atoi(argv[1]);
+
     otterTraceInitialise(OTTER_SRC_ARGS());
     otterThreadsBegin(OTTER_SRC_ARGS());
     {
@@ -16,7 +22,7 @@ int main(void)
         }
         otterTaskEnd();
 
-        otterSynchroniseTasks(otter_sync_children);
+        otterSynchroniseTasks(sync_mode);
 
     }
     otterThreadsEnd();

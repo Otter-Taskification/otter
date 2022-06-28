@@ -268,59 +268,6 @@ void otterLoopIterationEnd(void);
 
 
 /**
- * @brief Indicate the start of a region which should be executed by exactly one
- * thread in a team. 
- * 
- * 
- * ## Usage
- * 
- * - Must be matched by a `otterTaskSingleEnd()` call to indicate the end of the
- *   region.
- * 
- * 
- * ## Semantics
- * 
- * Creates a representation of this region and records a `single-begin` event.
- * 
- * 
- * ## OpenMP
- * 
- * This is analogous to the `#pragma omp single` construct i.e. this snippet:
- * 
- *     #pragma omp parallel
- *     {
- *         #pragma omp single
- *         {
- *             // Executted by one thread in the team
- *         }
- *     }
- * 
- * is analogous to this snippet:
- * 
- *     otterThreadsBegin();
- *         otterTaskSingleBegin();
- *             // Should be executed by one thread in the team.
- *         otterTaskSingleEnd();
- *     otterThreadEnd();
- * 
- * 
- */
-void otterTaskSingleBegin(void);
-
-
-/**
- * @brief Indicate the end of a region which should be executed by exactly one
- * thread in a team.
- * 
- * Counterpart to `otterTaskSingleBegin()`.
- * 
- * @see `otterTaskSingleBegin()`
- * 
- */
-void otterTaskSingleEnd(void);
-
-
-/**
  * @brief Indicate a synchronisation constraint on the children or descendants
  * of the encountering task
  * 

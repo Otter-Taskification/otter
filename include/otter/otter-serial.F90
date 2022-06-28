@@ -1,7 +1,6 @@
 #define fortran_otterTraceInitialise() fortran_otterTraceInitialise_i(__FILE__, "FORTRAN_FUNCTION", __LINE__)
 #define fortran_otterThreadsBegin() fortran_otterThreadsBegin_i(__FILE__, "FORTRAN_FUNCTION", __LINE__)
 #define fortran_otterTaskBegin() fortran_otterTaskBegin_i(__FILE__, "FORTRAN_FUNCTION", __LINE__)
-#define fortran_otterTaskSingleBegin() fortran_otterTaskSingleBegin_i(__FILE__, "FORTRAN_FUNCTION", __LINE__)
 #define fortran_otterLoopBegin() fortran_otterLoopBegin_i()
 #define fortran_otterLoopIterationBegin() fortran_otterLoopIterationBegin_i()
 #define fortran_otterSynchroniseTasks(ARG) fortran_otterSynchroniseTasks_i(ARG)

@@ -106,7 +106,7 @@ void otterTraceInitialise(const char* file, const char* func, const int line)
 void otterTraceFinalise(void)
 {
     // Finalise arhchive
-    
+    LOG_DEBUG("=== finalising archive ===");
 
     // initial task
     trace_event_leave(thread_data->location);
@@ -115,17 +115,45 @@ void otterTraceFinalise(void)
         as it never gets handed off to an enclosing parallel region to be
         written at parallel-end */
     trace_region_def_t *initial_task_region = NULL;
-    stack_pop(region_stack, (data_item_t*) &initial_task_region);
+    stack_pop(region_stack, NULL);
+    queue_pop(thread_data->location->rgn_defs, (data_item_t*) &initial_task_region);
     assert((initial_task_region->type == trace_region_task)
         && (initial_task_region->attr.task.type == otter_task_initial));
+    LOG_DEBUG("writing initial-task region definition from thread queue: %p", initial_task_region);
     trace_write_region_definition(initial_task_region);
     trace_destroy_task_region(initial_task_region);
+    initial_task_region = NULL;
 
     task_data_t *initial_task = NULL;
     stack_pop(task_stack, (data_item_t*) &initial_task);
     assert(initial_task->flags == otter_task_initial);
     task_destroy(initial_task);
     initial_task = NULL;
+
+    /*
+        If there are any region definitions left in the queue, this means
+        they have not been written to the trace. This can happen with the
+        otter-serial event source e.g. if a phase region is inserted outside
+        and parallel region.
+    */
+    size_t num_definitions = queue_length(thread_data->location->rgn_defs);
+    LOG_DEBUG_IF((num_definitions!=0), "definitions in thread queue: %lu", num_definitions);
+    trace_region_def_t *region = NULL;
+    while (queue_pop(thread_data->location->rgn_defs, (data_item_t*) &region)) {
+        LOG_DEBUG("writing region definition %p (%d)", region, region->type);
+        trace_write_region_definition(region);
+        switch (region->type) {
+            /*
+            Only phase regions may appear outside a parallel region.
+            */
+            case trace_region_phase:
+                trace_destroy_phase_region(region);
+                break;
+            default:
+                LOG_ERROR("unexpected region type %d", region->type);
+                abort();
+        }
+    }
 
     trace_event_thread_end(thread_data->location);
     thread_destroy(thread_data);
@@ -296,49 +324,6 @@ void otterTaskEnd(void)
     return;
 }
 
-void otterTaskSingleBegin()
-{
-    if (!tracingActive)
-    {
-        fprintf(stderr, "%s [INACTIVE]\n", __func__);
-        return;
-    }
-
-    // LOG_EVENT_CALL(file, func, line, __func__);
-
-    task_data_t *encountering_task = get_encountering_task();
-
-    trace_region_def_t *single = trace_new_workshare_region(
-        thread_data->location,
-        otter_work_single_executor,
-        1,
-        encountering_task->id
-    );
-
-    stack_push(region_stack, (data_item_t) {.ptr = single});
-
-    trace_event_enter(thread_data->location, single);
-
-    return;
-}
-
-void otterTaskSingleEnd(void)
-{
-    if (!tracingActive)
-    {
-        fprintf(stderr, "%s [INACTIVE]\n", __func__);
-        return;
-    }
-
-    
-    trace_region_def_t *single = NULL;
-    stack_pop(region_stack, (data_item_t*) &single);
-    assert((single->type == trace_region_workshare)
-        && (single->attr.wshare.type == otter_work_single_executor));
-    trace_event_leave(thread_data->location);
-    return;
-}
-
 void otterLoopBegin()
 {
     if (!tracingActive)
@@ -492,14 +477,52 @@ void otterTraceStop(void)
 
 void otterPhaseBegin(const char* name)
 {
+    if (!tracingActive)
+    {
+        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        return;
+    }
+
+    task_data_t *encountering_task = get_encountering_task();
+    trace_region_def_t *phase = trace_new_phase_region(
+        thread_data->location,
+        otter_phase_region_generic,
+        encountering_task->id,
+        name
+    );
+
+    stack_push(region_stack, (data_item_t) {.ptr = phase});
+
+    trace_event_enter(thread_data->location, phase);
+
+    return;
+
 }
 
 
 void otterPhaseSwitch(const char* name)
 {
+    if (!tracingActive)
+    {
+        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        return;
+    }
+    otterPhaseEnd();
+    otterPhaseBegin(name);
 }
 
 
 void otterPhaseEnd(void)
 {
+    if (!tracingActive)
+    {
+        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        return;
+    }
+
+    trace_region_def_t *phase = NULL;
+    stack_pop(region_stack, (data_item_t*) &phase);
+    assert((phase->type == trace_region_phase));
+    trace_event_leave(thread_data->location);
+    return;
 }

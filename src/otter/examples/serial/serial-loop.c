@@ -9,7 +9,7 @@ int main(void)
     otterTraceInitialise(OTTER_SRC_ARGS());
     otterThreadsBegin(OTTER_SRC_ARGS());
     {
-        otterTaskSingleBegin();
+        otterTaskBegin(OTTER_SRC_ARGS());
         {
             otterLoopBegin();
             for (j=0; j<LEN; j++)
@@ -20,7 +20,7 @@ int main(void)
             }
             otterLoopEnd();
         }
-        otterTaskSingleEnd();
+        otterTaskEnd();
         otterSynchroniseTasks(otter_sync_children);
 
         otterSynchroniseDescendantTasksBegin();

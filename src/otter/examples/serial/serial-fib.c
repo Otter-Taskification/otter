@@ -20,9 +20,10 @@ int main(int argc, char *argv[]) {
     otterThreadsBegin(OTTER_SRC_ARGS());
     {
         // Tag: wrap a task
-        otterTaskSingleBegin();
+        otterTaskBegin(OTTER_SRC_ARGS());
             fibn = fib(n);
-        otterTaskSingleEnd();
+        otterTaskEnd();
+        otterSynchroniseTasks(otter_sync_children);
     }
     // Tag: end of a region we want to parallelise
     otterThreadsEnd();

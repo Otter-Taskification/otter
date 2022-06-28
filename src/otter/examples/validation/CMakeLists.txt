@@ -44,6 +44,8 @@ add_validator_serial(taskwait-some)
 add_validator_serial(taskwait-descendants)
 add_validator_serial(taskgroup-some)
 add_validator_serial(single)
+add_validator_serial(phases)
+add_validator_serial(phases-and-tasks)
 
 add_validator_omp(parallel)
 add_validator_omp(parallel-nested)

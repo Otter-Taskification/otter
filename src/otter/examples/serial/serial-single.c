@@ -18,26 +18,26 @@ int main(void)
 
         otterTaskBegin(OTTER_SRC_ARGS()); otterTaskEnd();
 
-        otterTaskSingleBegin();
-        otterTaskSingleEnd();
+        otterTaskBegin(OTTER_SRC_ARGS());
+        otterTaskEnd();
         
         otterSynchroniseTasks(otter_sync_children);
         
         // This task is not synchronised by the taskwait above
-        otterTaskSingleBegin();
-        otterTaskSingleEnd();
+        otterTaskBegin(OTTER_SRC_ARGS());
+        otterTaskEnd();
         
         otterSynchroniseTasks(otter_sync_children);
         
         // This task is not synchronised by the taskwait above
-        otterTaskSingleBegin();
-        otterTaskSingleEnd();
+        otterTaskBegin(OTTER_SRC_ARGS());
+        otterTaskEnd();
         
         otterSynchroniseTasks(otter_sync_children);
         
         // This task is not synchronised by the taskwait above
-        otterTaskSingleBegin();
-        otterTaskSingleEnd();
+        otterTaskBegin(OTTER_SRC_ARGS());
+        otterTaskEnd();
 
     }
     otterThreadsEnd();

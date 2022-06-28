@@ -77,33 +77,6 @@ module otter_serial
         call otterTaskEnd()
     end subroutine fortran_otterTaskEnd
     
-    
-    subroutine fortran_otterTaskSingleBegin_i(filename, functionname, linenum)
-        use, intrinsic :: iso_c_binding
-        character(len = *) :: filename
-        character(len = *) :: functionname
-        integer :: linenum
-        interface
-            subroutine otterTaskSingleBegin(filename, functionname, linenum) bind(C, NAME="otterTaskSingleBegin")
-                use, intrinsic :: iso_c_binding
-                character(len=1, kind=c_char), dimension(*), intent(in) :: filename, functionname
-                integer(c_int), value :: linenum
-            end subroutine otterTaskSingleBegin
-        end interface
-    
-        call otterTaskSingleBegin(trim(filename), trim(functionname), Int(linenum, kind=c_int))
-    end subroutine fortran_otterTaskSingleBegin_i
-    
-    subroutine fortran_otterTaskSingleEnd()
-        use, intrinsic :: iso_c_binding
-        interface
-            subroutine otterTaskSingleEnd() bind(C, NAME="otterTaskSingleEnd")
-            end subroutine
-        end interface
-    
-        call otterTaskSingleEnd()
-     end subroutine fortran_otterTaskSingleEnd
-    
     subroutine fortran_otterLoopBegin_i()
         use, intrinsic :: iso_c_binding
         interface

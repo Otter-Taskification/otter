@@ -40,6 +40,9 @@ if (NOT OTTER_DEBUG_LEVELS)
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         message(STATUS "Debug levels: 3,0,0 (default)")
         set(OTTER_DEBUG_LEVELS "3,0,0" CACHE STRING "Debug levels for Otter components (default=3,0,0)" FORCE)
+    elseif(CMAKE_BUILD_TYPE STREQUAL "Verbose")
+        message(STATUS "Debug levels: 3,3,3 (verbose)")
+        set(OTTER_DEBUG_LEVELS "3,3,3" CACHE STRING "Debug levels for Otter components (default=3,0,0)" FORCE)
     else()
         message(STATUS "Debug levels: 0,0,0 (default)")
         set(OTTER_DEBUG_LEVELS "0,0,0" CACHE STRING "Debug levels for Otter components (default=0,0,0)" FORCE)
@@ -69,6 +72,10 @@ list(GET OTTER_DEBUG_LEVELS_LIST 2 OTTER_DEBUG_DTYPE)
 if (NOT OTTER_DEBUG_DTYPE MATCHES "^[0-9]+$")
     message(FATAL_ERROR "Invalid debug level: ${OTTER_DEBUG_DTYPE}")
 endif()
+
+message(STATUS "OTTER_DEBUG_CORE=${OTTER_DEBUG_CORE}")
+message(STATUS "OTTER_DEBUG_TRACE=${OTTER_DEBUG_TRACE}")
+message(STATUS "OTTER_DEBUG_DTYPE=${OTTER_DEBUG_DTYPE}")
 
 # Extract C compiler version as separate components
 execute_process (
@@ -213,6 +220,7 @@ add_library(otter-trace-ompt OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-workshare.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-master.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-sync.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-phase.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-task.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-archive.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-unique-refs.c
@@ -229,6 +237,7 @@ add_library(otter-trace-serial OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-workshare.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-master.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-sync.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-phase.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-task.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-archive.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-unique-refs.c

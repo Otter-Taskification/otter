@@ -3,17 +3,48 @@
 ## Unpublished
 
 ### Added
+- Nothing
 
-- Merged #3 from @LonelyCat124 which adds Fortran wrapper for otter-serial
+### Changed
+- Nothing
+
+### Deprecated
+- Nothing
+
+### Removed
+- Nothing
+
+### Fixed
+- Nothing
+
+## v0.2.0 [2022-06-28]
+
+### Added
+
+- Merged [#3](https://github.com/Otter-Taskification/otter/pull/3) from @LonelyCat124 which adds Fortran wrapper for `otter-serial`
+- Added to `otter-serial`:
+  - Add the `OTTER_SRC_ARGS` macro function to insert `__FILE__`, `__func__` and `__line__` args.
+  - Add the `otterPhase[Begin|End|Switch]` entrypoints which may be used to indicate named global algorithmic phases. Phases need not be nested within an `otterThreads[Begin|End]` block.
 
 ### Changed
 
-### Deprecated
+- Replace macros in `otter-serial.h` with functions.
+- Rename `otter-serial` API entrypoints:
+  - `otterParallel[Begin|End]` is now `otterThreads[Begin|End]`
+  - `otterSynchroniseChildTasks` is now `otterSynchroniseTasks`
+- `otterSynchroniseTasks` now requires an argument of type `otter_task_sync_t` to indicate whether to synchronise descendant tasks or only child tasks.
+- These API entrypoints now require file name, function name & line no. as arguments from user code:
+  - `otterTraceInitialise`
+  - `otterThreadsBegin`
+  - `otterTaskBegin`
+- Apply API updates to Fortran bindings.
 
 ### Removed
 
-### Fixed
-
+- Removed from `otter-serial`:
+    - Remove source location arguments from several entrypoints.
+    - Remove the `otterTaskSingle[Begin|End]` entrypoints.
+  
 ## v0.1.0 [2022-05-17]
 
 ### Added

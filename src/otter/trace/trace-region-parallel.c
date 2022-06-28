@@ -102,6 +102,10 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
         case trace_region_task:
             trace_destroy_task_region(r);
             break;
+
+        case trace_region_phase:
+            trace_destroy_phase_region(r);
+            break;
         
         default:
             LOG_ERROR("unknown region type %d", r->type);

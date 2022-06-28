@@ -31,10 +31,11 @@ typedef enum {
     trace_region_synchronise,
     trace_region_task,
 #if defined(USE_OMPT_MASKED)
-    trace_region_masked
+    trace_region_masked,
 #else
-    trace_region_master
+    trace_region_master,
 #endif
+    trace_region_phase
 } trace_region_type_t;
 
 typedef enum otter_thread_t {
@@ -66,6 +67,10 @@ typedef enum otter_sync_region_t {
     otter_sync_region_barrier_implicit_parallel = 9,
     otter_sync_region_barrier_teams = 10
 } otter_sync_region_t;
+
+typedef enum otter_phase_region_t {
+    otter_phase_region_generic = 1
+} otter_phase_region_t;
 
 typedef enum otter_task_flag_t {
     otter_task_initial    = 0x00000001,
@@ -135,12 +140,19 @@ typedef struct {
     int                 source_line_number;
 } trace_task_region_attr_t;
 
+/* Attributes of a phase region */
+typedef struct {
+    otter_phase_region_t    type;
+    otter_string_ref_t      name;
+} trace_phase_region_attr_t;
+
 typedef union {
     trace_parallel_region_attr_t    parallel;
     trace_wshare_region_attr_t      wshare;
     trace_master_region_attr_t      master;
     trace_sync_region_attr_t        sync;
     trace_task_region_attr_t        task;
+    trace_phase_region_attr_t       phase;
 } trace_region_attr_t;
 
 /* Store values needed to register region definition (tasks, parallel regions, 

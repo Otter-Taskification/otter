@@ -11,6 +11,7 @@
 #include "otter/trace-region-workshare.h"
 #include "otter/trace-region-master.h"
 #include "otter/trace-region-sync.h"
+#include "otter/trace-region-phase.h"
 
 /* Functions defined in trace-core.c */
 void trace_event_thread_begin(trace_location_def_t *self);

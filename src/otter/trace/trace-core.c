@@ -195,6 +195,22 @@ trace_write_region_definition(trace_region_def_t *rgn)
                 0, 0, 0); /* source file, begin line no., end line no. */
             break;
         }
+        case trace_region_phase:
+        {
+            OTF2_GlobalDefWriter_WriteRegion(Defs,
+                rgn->ref,
+                PHASE_TYPE_TO_STR_REF(rgn->attr.sync.type),
+                0, 0,
+                rgn->role,
+#if defined(OTTER_SERIAL_MODE)
+                OTF2_PARADIGM_USER,
+#else
+                OTF2_PARADIGM_OPENMP,
+#endif
+                OTF2_REGION_FLAG_NONE,
+                0, 0, 0); /* source file, begin line no., end line no. */
+            break;
+        }
         default:
         {
             LOG_ERROR("unexpected region type %d", rgn->type);
@@ -245,6 +261,8 @@ trace_add_common_event_attributes(
             trace_region_master
 #endif
         ? attr_label_ref[attr_region_type_master]   :
+        region_type == trace_region_phase ?
+            PHASE_TYPE_TO_STR_REF(region_attr.phase.type) :
         attr_label_ref[attr_region_type_task]
     );
     CHECK_OTF2_ERROR_CODE(r);
@@ -363,6 +381,8 @@ trace_event_enter(
             trace_region_master
 #endif        
          ? attr_label_ref[attr_event_type_master_begin] :
+        region->type == trace_region_phase ?
+            attr_label_ref[attr_event_type_phase_begin] :
         attr_label_ref[attr_event_type_task_enter]
     );
 
@@ -381,6 +401,7 @@ trace_event_enter(
 #else
     case trace_region_master: trace_add_master_attributes(region); break;
 #endif
+    case trace_region_phase: trace_add_phase_attributes(region); break;
     default:
         LOG_ERROR("unhandled region type %d", region->type);
         abort();
@@ -467,6 +488,8 @@ trace_event_leave(trace_location_def_t *self)
             trace_region_master
 #endif        
           ? attr_label_ref[attr_event_type_master_end] :
+        region->type == trace_region_phase ?
+            attr_label_ref[attr_event_type_phase_end] :
         attr_label_ref[attr_event_type_task_leave]
     );
 
@@ -484,7 +507,8 @@ trace_event_leave(trace_location_def_t *self)
     case trace_region_masked: trace_add_master_attributes(region); break;
 #else
     case trace_region_master: trace_add_master_attributes(region); break;
-#endif       
+#endif
+    case trace_region_phase: trace_add_phase_attributes(region); break;
     default:
         LOG_ERROR("unhandled region type %d", region->type);
         abort();

@@ -87,4 +87,8 @@
     status == otter_task_switch        ? attr_label_ref[attr_prior_task_status_switch]       : \
         0)
 
+#define PHASE_TYPE_TO_STR_REF(type)                                            \
+    (type == otter_phase_region_generic  ? attr_label_ref[attr_region_type_generic_phase]  : \
+        0)
+
 #endif // OTTER_TRACE_LOOKUP_MACROS_H

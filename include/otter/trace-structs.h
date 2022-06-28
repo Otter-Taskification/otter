@@ -17,6 +17,7 @@
 #include "otter/trace-region-master.h"
 #include "otter/trace-region-sync.h"
 #include "otter/trace-region-task.h"
+#include "otter/trace-region-phase.h"
 
 /* pretty-print region definitions */
 // void trace_region_pprint(FILE *fp, trace_region_def_t *r, const char func[], const int line);

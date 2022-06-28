@@ -58,6 +58,9 @@ INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, parent_task_id, "unique ID of the parent tas
 INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT32, task_flags, "flags set for this task")
 INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_has_dependences, "whether this task has dependences")
 
+/* Attributes relating to phase regions */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, phase_type, "type of synchronisation region")
+
 /* Attributes defined for all events */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, event_type, "type of event as defined by Otter")
 INCLUDE_LABEL(event_type,  thread_begin   )
@@ -74,6 +77,8 @@ INCLUDE_LABEL(event_type,  task_enter     )
 INCLUDE_LABEL(event_type,  task_leave     )
 INCLUDE_LABEL(event_type,  master_begin   )
 INCLUDE_LABEL(event_type,  master_end     )
+INCLUDE_LABEL(event_type,  phase_begin    )
+INCLUDE_LABEL(event_type,  phase_end      )
 
 /* Result of call to sched_getcpu() */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_INT32, cpu, "cpu on which the encountering thread is running")
@@ -132,6 +137,8 @@ INCLUDE_LABEL(region_type, barrier_explicit)
 INCLUDE_LABEL(region_type, barrier_implementation)
 INCLUDE_LABEL(region_type, taskwait)
 INCLUDE_LABEL(region_type, taskgroup)
+/* phase region sub-types */
+INCLUDE_LABEL(region_type, generic_phase)
 
 /* prior task status at task-schedule event */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, prior_task_status,  "status of the task that arrived at a task scheduling point")
@@ -147,6 +154,9 @@ INCLUDE_LABEL(prior_task_status,  switch        )
 INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT32, source_line_number, "the line number of the construct which caused this region to be created")
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, source_file_name, "the source file containing the construct which caused this region to be created")
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, source_func_name, "the name of the function containing the construct which caused this region to be created")
+
+/* phase name */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, phase_name, "the name of an algorithmic phase")
 
 #undef INCLUDE_LABEL
 #undef INCLUDE_ATTRIBUTE

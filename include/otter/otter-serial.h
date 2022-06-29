@@ -186,7 +186,7 @@ void otterThreadsEnd(void);
  * 
  * @param file The path to the source file containing this call.
  * @param func The name of the enclosing function.
- * @param line The line in @param file at which this call appears.
+ * @param line The line at which this call appears.
  */
 void otterTaskBegin(const char* file, const char* func, int line);
 
@@ -328,7 +328,7 @@ void otterLoopIterationEnd(void);
  *       }
  *       otterLoopEnd();
  *     
- *       otterSynchroniseTasks(sync_descendants);
+ *       otterSynchroniseTasks(otter_sync_descendants);
  *     
  *       otterLoopBegin(); for (...)
  *       {
@@ -338,14 +338,14 @@ void otterLoopIterationEnd(void);
  *       }
  *       otterLoopEnd();
  *     
- *       otterSynchroniseTasks(sync_children);
+ *       otterSynchroniseTasks(otter_sync_children);
  *     
  *     }
  * 
  * 
  * @param mode Indicate whether this barrier synchronises immediate children of
- * the encountering task (`sync_children`) or all descendants of the encountering
- * task (`sync_descendants`).
+ * the encountering task (`otter_sync_children`) or all descendants of the
+ * encountering task (`otter_sync_descendants`).
  * 
  */
 void otterSynchroniseTasks(otter_task_sync_t mode);
@@ -398,14 +398,12 @@ void otterSynchroniseDescendantTasksEnd(void);
 
 
 /**
- * @brief Start a new algorithmic phase [TODO]
+ * @brief Start a new algorithmic phase
  *
  * By default, all trace events fall into the same global phase. However, some
  * codes run through particular phases and will want to study these phases
  * independently. With the present routine you mark the begin of such a phase.
  * Each phase has to be given a unique name.
- * 
- * @warning This feature is not yet implemented.
  * 
  * 
  * ## Usage
@@ -429,13 +427,11 @@ void otterPhaseBegin( const char* name );
 
 
 /**
- * @brief End the present algorithmic phase [TODO]
+ * @brief End the present algorithmic phase
  * 
  * Indicates the end of the present algorithmic phase and return to the
  * encountering task.
- * 
- * @warning This feature is not yet implemented.
- * 
+  * 
  * @see `otterPhaseBegin()`
  * @see `otterPhaseSwitch()`
  * 
@@ -445,7 +441,6 @@ void otterPhaseEnd();
 
 /**
  * @brief End the present algorithmic phase and immediately proceed to another.
- * [TODO]
  * 
  * Indicates the end of the present algorithmic phase and the immediate start
  * of another.

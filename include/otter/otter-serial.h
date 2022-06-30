@@ -2,15 +2,12 @@
  * @file otter-serial.h
  * @author Adam Tuft (adam.s.tuft@durham.ac.uk)
  * @brief Public API for the `otter-serial` event source
- * @version 0.1.0
- * @date 2022-05-19
+ * @version 0.2.0
+ * @date 2022-06-28
  * 
  * @copyright Copyright (c) 2021, Adam Tuft. All rights reserved.
  * 
- * @todo finalise "simple trace" event source for use in single-threaded app (only with updates to current implementation of otter-serial)
- * @todo replace otterSynchroniseDescendantTasks[Begin|End] with macro/function barrier to synchronise child/descendant tasks
  * @todo (eventually) make otterParallel[Begin|End] optional (will require re-engineering otter-trace)
- * @todo (eventually) add the concept of "phases" -> probably depends on re-engineering of otter-trace
  * @todo (eventually) need to be able to start/stop tracing at will -> probably depends on re-engineering of otter-trace
  * @todo (long term) generic trace API that accepts diverse event sources from user code
  */

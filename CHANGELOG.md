@@ -6,7 +6,8 @@
 - Nothing
 
 ### Changed
-- Nothing
+- Improve debug messages in `otter-serial`.
+- Enforce mandatory events in `otter-serial` when tracing requested to stop tracing (future updates will make mandatory events optional).
 
 ### Deprecated
 - Nothing

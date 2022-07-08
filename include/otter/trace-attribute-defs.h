@@ -158,5 +158,8 @@ INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, source_func_name, "the name of the function 
 /* phase name */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, phase_name, "the name of an algorithmic phase")
 
+/* return address */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, task_create_ra, "return address of a task-create event")
+
 #undef INCLUDE_LABEL
 #undef INCLUDE_ATTRIBUTE

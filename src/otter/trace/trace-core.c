@@ -584,6 +584,11 @@ trace_event_task_create(
         attr_label_ref[attr_endpoint_discrete]
     );
 
+    /* return address */
+    OTF2_AttributeList_AddUint64(created_task->attributes, attr_task_create_ra,
+        created_task->attr.task.task_create_ra
+    );
+
     trace_add_task_attributes(created_task);
     
     OTF2_EvtWriter_ThreadTaskCreate(

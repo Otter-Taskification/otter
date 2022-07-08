@@ -9,6 +9,7 @@
 #include "otter/debug.h"
 #include "otter/otter-environment-variables.h"
 #include "otter/trace.h"
+#include "otter/trace-mmap.h"
 #include "otter/otter-serial.h"
 #include "otter/otter-structs.h"
 
@@ -68,6 +69,7 @@ void otterTraceInitialise(const char* file, const char* func, const int line)
     LOG_INFO("%-30s %s", ENV_VAR_APPEND_HOST,  opt.append_hostname?"Yes":"No");
 
     trace_initialise_archive(&opt);
+    trace_copy_proc_maps(&opt);
 
     region_stack = stack_create();
     task_stack = stack_create();

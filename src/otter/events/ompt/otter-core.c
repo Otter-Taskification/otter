@@ -21,6 +21,7 @@
 #include "otter/otter-entry.h"
 #include "otter/otter-environment-variables.h"
 #include "otter/trace.h"
+#include "otter/trace-mmap.h"
 // #include "otter/trace-structs.h"
 
 /* Static function prototypes */
@@ -83,6 +84,7 @@ tool_setup(
     LOG_INFO("%-30s %s", ENV_VAR_APPEND_HOST,  opt.append_hostname?"Yes":"No");
 
     trace_initialise_archive(&opt);
+    trace_copy_proc_maps(&opt);
 
     return &opt;
 }
@@ -300,6 +302,7 @@ on_ompt_callback_task_create(
     }
 
     LOG_DEBUG("[t=%lu] (event) task-create", thread_data->id);
+    LOG_DEBUG("[t=%lu] codeptr_ra %p", thread_data->id, codeptr_ra);
 
     /* get the task data of the parent, if it exists */
     task_data_t *parent_task_data = flags & ompt_task_initial ? 

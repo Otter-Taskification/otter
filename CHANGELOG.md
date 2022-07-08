@@ -3,7 +3,10 @@
 ## Unpublished
 
 ### Added
-- Nothing
+- Define the `task_create_ra` event attribute for *task-create* events to capture the address of code which creates a task.
+- `otter-ompt` records the *task-create* address as the `codeptr_ra` argument to the *task-create* callback.
+- `otter-serial` records the *task-create* address as the return pointer of the stack frame created by a call to `otterTaskBegin`.
+- Otter now copies the contents of `/proc/self/maps` to `aux/maps` in the trace output directory to allow later resolution of addresses into source locations.
 
 ### Changed
 - Improve debug messages in `otter-serial`.

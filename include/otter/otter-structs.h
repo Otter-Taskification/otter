@@ -48,7 +48,8 @@ task_data_t *new_task_data(
     unique_id_t            task_id,
     otter_task_flag_t      flags,
     int                    has_dependences,
-    otter_src_location_t  *src_location
+    otter_src_location_t  *src_location,
+    const void            *task_create_ra
 );
 void task_destroy(task_data_t *task_data);
 

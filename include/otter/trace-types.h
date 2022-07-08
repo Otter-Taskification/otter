@@ -138,6 +138,7 @@ typedef struct {
     otter_string_ref_t  source_file_name_ref;
     otter_string_ref_t  source_func_name_ref;
     int                 source_line_number;
+    const void         *task_create_ra;
 } trace_task_region_attr_t;
 
 /* Attributes of a phase region */

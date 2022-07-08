@@ -21,7 +21,8 @@ trace_new_task_region(
     unique_id_t            id,
     otter_task_flag_t      flags,
     int                    has_dependences,
-    otter_src_location_t  *src_location)
+    otter_src_location_t  *src_location,
+    const void            *task_create_ra)
 {
     /* Create a region representing a task. Add to the location's region
        definition queue. */
@@ -65,6 +66,8 @@ trace_new_task_region(
             .source_file_name_ref = src_location ? string_registry_insert(get_global_str_registry(), src_location->file) : 0,
             .source_func_name_ref = src_location ? string_registry_insert(get_global_str_registry(), src_location->func) : 0,
             .source_line_number = src_location ? src_location->line : 0,
+
+            .task_create_ra = task_create_ra
         }
     };
     new->encountering_task_id = new->attr.task.parent_id;

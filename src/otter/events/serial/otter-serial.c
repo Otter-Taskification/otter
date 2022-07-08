@@ -94,7 +94,8 @@ void otterTraceInitialise(const char* file, const char* func, const int line)
         get_unique_task_id(),
         otter_task_initial,
         0,
-        &src_location
+        &src_location,
+        NULL
     );
 
     stack_push(region_stack, (data_item_t) {.ptr = initial_task->region});
@@ -210,7 +211,8 @@ void otterThreadsBegin(const char* file, const char* func, const int line)
         get_unique_task_id(),
         otter_task_implicit,
         0,
-        &src_location
+        &src_location,
+        NULL
     );
 
     stack_push(region_stack, (data_item_t) {.ptr = implicit_task->region});
@@ -272,7 +274,8 @@ void otterTaskBegin(const char* file, const char* func, const int line)
         get_unique_task_id(),
         otter_task_explicit,
         0,
-        &src_location
+        &src_location,
+        NULL
     );
 
     stack_push(region_stack, (data_item_t) {.ptr = task->region});

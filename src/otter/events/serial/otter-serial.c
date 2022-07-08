@@ -177,8 +177,7 @@ void otterThreadsBegin(const char* file, const char* func, const int line)
 {
     if (!tracingActive)
     {
-        fprintf(stderr, "%s [INACTIVE]\n", __func__);
-        return;
+        LOG_WARN("recording mandatory event while tracing stopped");
     }    
 
     task_data_t *encountering_task = get_encountering_task();
@@ -224,8 +223,7 @@ void otterThreadsEnd(void)
 {
     if (!tracingActive)
     {
-        fprintf(stderr, "%s [INACTIVE]\n", __func__);
-        return;
+        LOG_WARN("recording mandatory event while tracing stopped");
     }
 
     
@@ -253,7 +251,7 @@ void otterTaskBegin(const char* file, const char* func, const int line)
 {
     if (!tracingActive)
     {
-        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        LOG_DEBUG("[INACTIVE]");
         return;
     }
 
@@ -294,11 +292,11 @@ void otterTaskEnd(void)
 {
     if (!tracingActive)
     {
-        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        LOG_DEBUG("[INACTIVE]");
         return;
     }
 
-    
+    LOG_DEBUG();
 
     task_data_t *task = NULL;
     trace_region_def_t *task_region = NULL;
@@ -328,11 +326,9 @@ void otterLoopBegin()
 {
     if (!tracingActive)
     {
-        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        LOG_DEBUG("[INACTIVE]");
         return;
     }
-
-    // LOG_EVENT_CALL(file, func, line, __func__);
 
     task_data_t *encountering_task = get_encountering_task();
 
@@ -354,7 +350,7 @@ void otterLoopEnd(void)
 {
     if (!tracingActive)
     {
-        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        LOG_DEBUG("[INACTIVE]");
         return;
     }
 
@@ -371,7 +367,7 @@ void otterLoopIterationBegin()
 {
     if (!tracingActive)
     {
-        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        LOG_DEBUG("[INACTIVE]");
         return;
     }
 
@@ -383,7 +379,7 @@ void otterLoopIterationEnd(void)
 {
     if (!tracingActive)
     {
-        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        LOG_DEBUG("[INACTIVE]");
         return;
     }
 
@@ -395,7 +391,7 @@ void otterSynchroniseTasks(otter_task_sync_t mode)
 {
     if (!tracingActive)
     {
-        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        LOG_DEBUG("[INACTIVE]");
         return;
     }
 
@@ -416,7 +412,7 @@ void otterSynchroniseDescendantTasksBegin()
 {
     if (!tracingActive)
     {
-        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        LOG_DEBUG("[INACTIVE]");
         return;
     }
 
@@ -437,7 +433,7 @@ void otterSynchroniseDescendantTasksEnd(void)
 {
     if (!tracingActive)
     {
-        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        LOG_DEBUG("[INACTIVE]");
         return;
     }
 
@@ -454,10 +450,10 @@ void otterTraceStart(void)
 {
     if (!tracingActive)
     {
-        fprintf(stderr, "%s: tracing interface started\n", __func__);
+        LOG_DEBUG("tracing interface started");
         tracingActive = true;
     } else {
-        fprintf(stderr, "%s: tracing interface already started\n", __func__);
+        LOG_DEBUG("tracing interface already active");
     }
     return;
 }
@@ -466,10 +462,10 @@ void otterTraceStop(void)
 {
     if (tracingActive)
     {
-        fprintf(stderr, "%s: tracing interface stopped\n", __func__);
+        LOG_DEBUG("tracing interface stopped");
         tracingActive = false;
     } else {
-        fprintf(stderr, "%s: tracing interface already stopped\n", __func__);
+        LOG_DEBUG("tracing interface already inactive");
     }
     return;
 }
@@ -479,9 +475,11 @@ void otterPhaseBegin(const char* name)
 {
     if (!tracingActive)
     {
-        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        LOG_DEBUG("[INACTIVE]");
         return;
     }
+
+    LOG_DEBUG("start phase: \"%s\"", name);
 
     task_data_t *encountering_task = get_encountering_task();
     trace_region_def_t *phase = trace_new_phase_region(
@@ -504,9 +502,12 @@ void otterPhaseSwitch(const char* name)
 {
     if (!tracingActive)
     {
-        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        LOG_DEBUG("[INACTIVE]");
         return;
     }
+
+    LOG_DEBUG("switching to phase: \"%s\"", name);
+
     otterPhaseEnd();
     otterPhaseBegin(name);
 }
@@ -516,9 +517,11 @@ void otterPhaseEnd(void)
 {
     if (!tracingActive)
     {
-        fprintf(stderr, "%s [INACTIVE]\n", __func__);
+        LOG_DEBUG("[INACTIVE]");
         return;
     }
+
+    LOG_DEBUG("end phase");
 
     trace_region_def_t *phase = NULL;
     stack_pop(region_stack, (data_item_t*) &phase);

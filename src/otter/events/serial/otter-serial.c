@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <limits.h>
+#include <execinfo.h>
 
 #include "otter/otter-version.h"
 #include "otter/general.h"
@@ -266,6 +267,12 @@ void otterTaskBegin(const char* file, const char* func, const int line)
     };
     LOG_EVENT_CALL(src_location.file, src_location.func, src_location.line, __func__);
 
+    void *return_address[2] = {0};
+    // backtrace() adds a stackframe, so want the one added due to the 
+    // otterTaskBegin call()
+    backtrace(&return_address, 2);
+    LOG_DEBUG("return_address %p", return_address[1]);
+
     task_data_t *encountering_task = get_encountering_task();
 
     task_data_t *task = new_task_data(
@@ -275,7 +282,7 @@ void otterTaskBegin(const char* file, const char* func, const int line)
         otter_task_explicit,
         0,
         &src_location,
-        NULL
+        return_address[1]
     );
 
     stack_push(region_stack, (data_item_t) {.ptr = task->region});

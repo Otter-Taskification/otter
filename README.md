@@ -74,4 +74,9 @@ All rights reserved.
 
 ## Acknowledgements
 
-Otter was conceived and developed as the subject of a final project and dissertation for the the [Scientific Computing and Data Analysis MSc](https://miscada.phyip3.dur.ac.uk/) (MISCADA) at Durham University, UK. The author is grateful for the guidance and support of his supervisor Prof. Tobias Weinzierl and for the invaluable assistance provided by Dr. Holger Schulz.
+Otter's development started as the subject of a final project and dissertation for the the [Scientific Computing and Data Analysis MSc](https://miscada.phyip3.dur.ac.uk/) (MISCADA) at Durham University, UK. 
+The current research is supported by EPSRC's Excalibur
+programme through its cross-cutting project EX20-9 \textit{Exposing Parallelism: Task Parallelism}
+(Grant ESA 10 CDEL).
+
+

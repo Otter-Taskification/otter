@@ -1,7 +1,7 @@
 /**
  * @file otter-task-context.c
  * @author Adam Tuft (adam.s.tuft@durham.ac.uk)
- * @brief Implementation of otterTaskContext opaque struct.
+ * @brief Implementation of otter_task_context opaque struct.
  * @version 0.2.0
  * @date 2022-10-03
  * 
@@ -21,7 +21,7 @@
 
 #define TASK_ID_UNDEFINED        OTF2_UNDEFINED_UINT64
 
-struct otterTaskContext
+struct otter_task_context
 {
     unique_id_t          task_context_id;
     unique_id_t          parent_task_context_id;
@@ -31,13 +31,13 @@ struct otterTaskContext
     OTF2_AttributeList  *attributes;
 };
 
-otterTaskContext *otterTaskContext_alloc(void)
+otter_task_context *otterTaskContext_alloc(void)
 {
     LOG_DEBUG("allocate task context");
-    return malloc(sizeof(otterTaskContext));
+    return malloc(sizeof(otter_task_context));
 }
 
-void otterTaskContext_init(otterTaskContext *task, otterTaskContext *parent)
+void otterTaskContext_init(otter_task_context *task, otter_task_context *parent)
 {
     assert(task != NULL);
     task->task_context_id = otterTaskContext_get_unique_id();
@@ -50,7 +50,7 @@ void otterTaskContext_init(otterTaskContext *task, otterTaskContext *parent)
     LOG_DEBUG("initialised task context: %lu", task->task_context_id);
 }
 
-void otterTaskContext_delete(otterTaskContext *task)
+void otterTaskContext_delete(otter_task_context *task)
 {
     LOG_DEBUG("delete task context: %lu", task->task_context_id);
     OTF2_AttributeList_Delete(task->attributes);
@@ -59,19 +59,19 @@ void otterTaskContext_delete(otterTaskContext *task)
 
 // Getters
 
-unique_id_t otterTaskContext_get_task_context_id(otterTaskContext *task)
+unique_id_t otterTaskContext_get_task_context_id(otter_task_context *task)
 {
     assert(task != NULL);
     return task->task_context_id;
 }
 
-unique_id_t otterTaskContext_get_parent_task_context_id(otterTaskContext *task)
+unique_id_t otterTaskContext_get_parent_task_context_id(otter_task_context *task)
 {
     assert(task != NULL);
     return task->parent_task_context_id;
 }
 
-OTF2_AttributeList *otterTaskContext_get_attribute_list(otterTaskContext *task)
+OTF2_AttributeList *otterTaskContext_get_attribute_list(otter_task_context *task)
 {
     assert(task != NULL);
     return task->attributes;

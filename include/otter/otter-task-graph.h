@@ -16,7 +16,7 @@
 #if !defined(OTTER_TASK_GRAPH_H)
 #define OTTER_TASK_GRAPH_H
 
-// Only want the otterTaskContext typedef rather than the interface itself.
+// Only want the otter_task_context typedef rather than the interface itself.
 // Interface only needed by the implementation of this event source.
 #include "otter/otter-task-context.h"
 
@@ -141,9 +141,9 @@ void otterTraceStop(void);
  * @param parent_task The context representing the parent task. If NULL, the new
  * task is created as an orphan task (i.e. with no parent).
  * 
- * @returns A pointer to a otterTaskContext which represents the new task
+ * @returns A pointer to a otter_task_context which represents the new task
  */
-otterTaskContext *otterTaskBegin(const char* file, const char* func, int line, otterTaskContext *parent_task);
+otter_task_context *otterTaskBegin(const char* file, const char* func, int line, otter_task_context *parent_task);
 
 
 /**
@@ -155,7 +155,7 @@ otterTaskContext *otterTaskBegin(const char* file, const char* func, int line, o
  *
  * @see `otterTaskBegin()`
  */
-void otterTaskEnd(otterTaskContext *task);
+void otterTaskEnd(otter_task_context *task);
 
 
 /**
@@ -188,7 +188,7 @@ void otterTaskEnd(otterTaskContext *task);
  * encountering task (`otter_sync_descendants`).
  * 
  */
-void otterSynchroniseTasks(otterTaskContext *task, otter_task_sync_t mode);
+void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode);
 
 
 /**

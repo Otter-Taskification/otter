@@ -88,9 +88,9 @@ void otterTraceStop(void)
     LOG_DEBUG("not currently implemented - ignored");
 }
 
-otterTaskContext *otterTaskBegin(const char* file, const char* func, int line, otterTaskContext *parent)
+otter_task_context *otterTaskBegin(const char* file, const char* func, int line, otter_task_context *parent)
 {
-    otterTaskContext *task = otterTaskContext_alloc();
+    otter_task_context *task = otterTaskContext_alloc();
     otterTaskContext_init(task, parent);
     LOG_DEBUG("[%lu] begin task%s",
         otterTaskContext_get_task_context_id(task),
@@ -100,7 +100,7 @@ otterTaskContext *otterTaskBegin(const char* file, const char* func, int line, o
     return task;
 }
 
-void otterTaskEnd(otterTaskContext *task)
+void otterTaskEnd(otter_task_context *task)
 {
     LOG_DEBUG("[%lu] end task", otterTaskContext_get_task_context_id(task));
     trace_graph_event_task_end(task);

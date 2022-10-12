@@ -9,7 +9,7 @@
 #include "otter/trace-check-error-code.h"
 #include "otter/queue.h"
 #include "otter/stack.h"
-#include "otter/string_value_registry.hpp"
+#include "otter/trace-string-registry.h"
 
 /* Defined in trace-archive.c */
 extern OTF2_StringRef attr_name_ref[n_attr_defined][2];
@@ -32,9 +32,15 @@ trace_new_phase_region(
         .rgn_stack = NULL,
         .attr.phase = {
             .type = type,
-            .name = phase_name ? string_registry_insert(get_global_str_registry(), phase_name) : 0
+            .name = 0
         }
     };
+
+    if (phase_name != NULL) {
+        new->attr.phase.name = trace_register_string_with_lock(phase_name);
+    } else {
+        new->attr.phase.name = 0;
+    }
 
     LOG_DEBUG("[t=%lu] created region for phase \"%s\" (%u) at %p",
         loc->id, phase_name, new->ref, new);

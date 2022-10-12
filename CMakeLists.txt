@@ -223,6 +223,7 @@ add_library(otter-trace-ompt OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-phase.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-task.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-archive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-string-registry.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-unique-refs.c
 )
 target_include_directories(otter-trace-ompt PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -240,6 +241,7 @@ add_library(otter-trace-serial OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-phase.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-task.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-archive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-string-registry.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-unique-refs.c
 )
 target_include_directories(otter-trace-serial PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)

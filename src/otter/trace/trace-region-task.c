@@ -8,7 +8,7 @@
 #include "otter/trace-check-error-code.h"
 #include "otter/queue.h"
 #include "otter/stack.h"
-#include "otter/string_value_registry.hpp"
+#include "otter/trace-string-registry.h"
 
 /* Defined in trace-archive.c */
 extern OTF2_StringRef attr_name_ref[n_attr_defined][2];
@@ -61,13 +61,22 @@ trace_new_task_region(
             .parent_type = parent_task_region != NULL ? 
                 parent_task_region->attr.task.type : OTF2_UNDEFINED_UINT32,
             .task_status     = 0 /* no status */,
-
-            .source_file_name_ref = src_location ? string_registry_insert(get_global_str_registry(), src_location->file) : 0,
-            .source_func_name_ref = src_location ? string_registry_insert(get_global_str_registry(), src_location->func) : 0,
-            .source_line_number = src_location ? src_location->line : 0,
+            .source_file_name_ref = 0,
+            .source_func_name_ref = 0,
+            .source_line_number = 0,
         }
     };
     new->encountering_task_id = new->attr.task.parent_id;
+
+    if (src_location != NULL) {
+        new->attr.task.source_file_name_ref = trace_register_string_with_lock(src_location->file);
+        new->attr.task.source_func_name_ref = trace_register_string_with_lock(src_location->func);
+        new->attr.task.source_line_number = src_location->line;
+    } else {
+        new->attr.task.source_file_name_ref = 0;
+        new->attr.task.source_func_name_ref = 0;
+        new->attr.task.source_line_number = 0;
+    }
 
     LOG_DEBUG("[t=%lu] created region %u for task %lu at %p",
         loc->id, new->ref, new->attr.task.id, new);

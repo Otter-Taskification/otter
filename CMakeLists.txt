@@ -264,8 +264,17 @@ target_compile_definitions(otter-trace-serial PRIVATE OTTER_SERIAL_MODE)
 # Trace component for task-graph event source
 add_library(otter-trace-task-graph OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-task-graph.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-core.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-location.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-parallel.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-workshare.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-master.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-sync.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-phase.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-task.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-archive.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-string-registry.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-unique-refs.c
 )
 target_include_directories(otter-trace-task-graph PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(otter-trace-task-graph PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_TRACE})

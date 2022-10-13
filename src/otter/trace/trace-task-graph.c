@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 
 #include <otf2/otf2.h>
+#include <time.h>
 #include "otter/debug.h"
 #include "otter/otter-common.h"
 #include "otter/otter-environment-variables.h"
@@ -12,6 +13,11 @@
 #include "otter/otter-task-context-interface.h"
 
 #define OTTER_DUMMY_OTF2_LOCATION_REF        0
+
+static uint64_t get_timestamp(void);
+
+/* Lookup tables mapping enum value to string ref */
+extern OTF2_StringRef attr_label_ref[n_attr_label_defined];
 
 void trace_graph_event_task_begin(otter_task_context *task)
 {
@@ -47,7 +53,7 @@ void trace_graph_event_task_begin(otter_task_context *task)
     err = OTF2_AttributeList_AddStringRef(
         attr,
         attr_endpoint,
-        attr_endpoint_enter
+        attr_label_ref[attr_endpoint_enter]
     );
     CHECK_OTF2_ERROR_CODE(err);
 
@@ -96,7 +102,7 @@ void trace_graph_event_task_end(otter_task_context *task)
     OTF2_AttributeList_AddStringRef(
         attr,
         attr_endpoint,
-        attr_endpoint_leave
+        attr_label_ref[attr_endpoint_leave]
     );
 
     // Record event
@@ -114,4 +120,12 @@ void trace_graph_event_task_end(otter_task_context *task)
         OTF2_UNDEFINED_UINT32, 0); /* creating thread, generation number */
 
     CHECK_OTF2_ERROR_CODE(err);
+}
+
+static uint64_t 
+get_timestamp(void)
+{
+    struct timespec time;
+    clock_gettime(CLOCK_MONOTONIC, &time);
+    return time.tv_sec * (uint64_t)1000000000 + time.tv_nsec;
 }

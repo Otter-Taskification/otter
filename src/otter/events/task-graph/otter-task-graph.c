@@ -20,8 +20,7 @@
 #include "otter/debug.h"
 #include "otter/otter-environment-variables.h"
 #include "otter/trace.h"
-// #include "otter/otter-serial.h"
-// #include "otter/otter-structs.h"
+#include "otter/otter-structs.h"
 #include "otter/otter-task-graph.h"
 #include "otter/otter-task-context-interface.h"
 
@@ -70,6 +69,11 @@ void otterTraceFinalise(void)
 {
     // Finalise arhchive
     LOG_DEBUG("=== finalising archive ===");
+
+    // Ensure a single location definition is written to the archive
+    thread_data_t *dummy_thread = new_thread_data(otter_thread_initial);
+    thread_destroy(dummy_thread);
+
     trace_finalise_archive();
     char trace_folder[PATH_MAX] = {0};
     realpath(opt.tracepath, &trace_folder[0]);

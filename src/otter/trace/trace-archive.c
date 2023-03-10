@@ -100,6 +100,8 @@ static void trace_write_string_ref(const char *s, OTF2_StringRef ref)
 bool
 trace_initialise_archive(otter_opt_t *opt)
 {
+    OTF2_ErrorCode ret = OTF2_SUCCESS;
+
     /* Determine filename & path from options */
     char archive_path[DEFAULT_NAME_BUF_SZ+1] = {0};
     static char archive_name[DEFAULT_NAME_BUF_SZ+1] = {0};
@@ -165,6 +167,23 @@ trace_initialise_archive(otter_opt_t *opt)
 
     /* get global definitions writer */
     Defs = OTF2_Archive_GetGlobalDefWriter(Archive);
+
+#if defined(OTTER_EVENT_MODEL_OMP) || defined(OTTER_EVENT_MODEL_SERIAL)
+    // otter-serial uses the OMP event model
+    const char* event_model = "OMP";
+#elif defined(OTTER_EVENT_MODEL_TASKGRAPH)
+    // otter-task-graph uses its own event model
+    const char* event_model = "TASKGRAPH";
+#else
+    const char* event_model = "UNKNOWN";
+#endif
+
+    ret = OTF2_Archive_SetProperty(Archive,
+        "OTTER::EVENT_MODEL",
+        event_model,
+        true
+    );
+    CHECK_OTF2_ERROR_CODE(ret);
 
     /* get clock resolution & current time for CLOCK_MONOTONIC */
     struct timespec res, tp;

@@ -239,6 +239,7 @@ add_library(otter-trace-ompt OBJECT
 )
 target_include_directories(otter-trace-ompt PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(otter-trace-ompt PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_TRACE})
+target_compile_definitions(otter-trace-ompt PRIVATE OTTER_EVENT_MODEL_OMP)
 set_property(TARGET otter-trace-ompt PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # Trace component for serial mode
@@ -257,6 +258,7 @@ add_library(otter-trace-serial OBJECT
 )
 target_include_directories(otter-trace-serial PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(otter-trace-serial PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_TRACE})
+target_compile_definitions(otter-trace-serial PRIVATE OTTER_EVENT_MODEL_SERIAL)
 set_property(TARGET otter-trace-serial PROPERTY POSITION_INDEPENDENT_CODE ON)
 # Add define to signify serial tracing mode
 target_compile_definitions(otter-trace-serial PRIVATE OTTER_SERIAL_MODE)
@@ -278,6 +280,7 @@ add_library(otter-trace-task-graph OBJECT
 )
 target_include_directories(otter-trace-task-graph PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(otter-trace-task-graph PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_TRACE})
+target_compile_definitions(otter-trace-task-graph PRIVATE OTTER_EVENT_MODEL_TASKGRAPH)
 set_property(TARGET otter-trace-task-graph PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # Datatypes component

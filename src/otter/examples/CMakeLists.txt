@@ -5,3 +5,4 @@ message(STATUS "Fortran Compiler ID: ${CMAKE_Fortran_COMPILER_ID}")
 
 add_subdirectory(omp)
 add_subdirectory(serial)
+add_subdirectory(task-graph)

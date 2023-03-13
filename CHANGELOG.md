@@ -1,12 +1,9 @@
 # Changelog
 
-## Unpublished
+<!-- ## Unpublished -->
 
-### Added
-- Define the `task_create_ra` event attribute for *task-create* events to capture the address of code which creates a task.
-- `otter-ompt` records the *task-create* address as the `codeptr_ra` argument to the *task-create* callback.
-- `otter-serial` records the *task-create* address as the return pointer of the stack frame created by a call to `otterTaskBegin`.
-- Otter now copies the contents of `/proc/self/maps` to `aux/maps` in the trace output directory to allow later resolution of addresses into source locations.
+<!-- ### Added
+- Nothing
 
 ### Changed
 - Improve debug messages in `otter-serial`.
@@ -19,7 +16,18 @@
 - Nothing
 
 ### Fixed
-- Nothing
+- Nothing -->
+
+## Unpublished [2022-03-13]
+
+### Added
+- New event source `otter-task-graph` to record annotated tasks and their dependencies. Accessed through `otter/otter-task-graph.h` and linked with `-lotter-task-graph`.
+- modulefile installed to `${CMAKE_INSTALL_PREFIX}/etc/modules/otter/otter`
+- CMake option `-DWITH_VALIDATION=[ON|OFF]` to build with validation examples, installed in `${CMAKE_INSTALL_PREFIX}/bin/otter-validator-*`
+- Define the `task_create_ra` event attribute for *task-create* events to capture the address of code which creates a task.
+- `otter-ompt` records the *task-create* address as the `codeptr_ra` argument to the *task-create* callback.
+- `otter-serial` records the *task-create* address as the return pointer of the stack frame created by a call to `otterTaskBegin`.
+- Otter now copies the contents of `/proc/self/maps` to `aux/maps` in the trace output directory to allow later resolution of addresses into source locations.
 
 ## v0.2.0 [2022-06-28]
 

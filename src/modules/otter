@@ -1,0 +1,35 @@
+#%Module1.0######################################################################
+##
+## otter modulefile
+##
+
+# Use env instead of getenv for compatibility with modules < 4.0
+if { [info exists ::env(OTTER_INSTALL_DIR) ] } {
+    set OTTER_ROOT $::env(OTTER_INSTALL_DIR)
+} else {
+    set OTTER_ROOT "~/local/apps/otter"
+}
+
+proc ModulesHelp { } {
+    puts stderr "  Load otter from the directory given by `OTTER_INSTALL_DIR`,"
+    puts stderr "  (default=~/local/apps/otter)"
+    puts stderr "  For example:"
+    puts stderr ""
+    puts stderr "  > export OTTER_INSTALL_DIR=/home/adam/local/apps/otter"
+    puts stderr "  > module whatis otter"
+    puts stderr "        otter: Load otter installation: /home/adam/local/apps/otter"
+    puts stderr ""
+}
+
+module-whatis   "Load otter installation: ${OTTER_ROOT}"
+
+# Add software to environment
+prepend-path PATH ${OTTER_ROOT}/bin
+prepend-path CPATH ${OTTER_ROOT}/include
+prepend-path OTTER_FORTRAN_INCLUDES ${OTTER_ROOT}/include/otter
+prepend-path LIBRARY_PATH ${OTTER_ROOT}/lib
+prepend-path LD_LIBRARY_PATH ${OTTER_ROOT}/lib
+
+# Add the OMPT plugin location
+setenv OTTER_OMPT_LIBRARY ${OTTER_ROOT}/lib/libotter-ompt.so
+setenv OTTER_EXAMPLES_DIR ${OTTER_ROOT}/bin

@@ -21,6 +21,7 @@
 #include "otter/debug.h"
 #include "otter/trace.h"
 #include "otter/trace-archive.h"
+#include "otter/trace-string-registry.h"
 #include "otter/trace-attributes.h"
 #include "otter/trace-unique-refs.h"
 #include "otter/trace-check-error-code.h"
@@ -38,7 +39,6 @@ OTF2_StringRef attr_label_ref[n_attr_label_defined] = {0};
 /* References to global archive & def writer */
 static OTF2_Archive *Archive = NULL;
 static OTF2_GlobalDefWriter *Defs = NULL;
-static string_registry *Registry = NULL;
 
 /* Mutexes for thread-safe access to Archive and Defs */
 static pthread_mutex_t lock_global_def_writer = PTHREAD_MUTEX_INITIALIZER;
@@ -64,11 +64,6 @@ OTF2_GlobalDefWriter *get_global_def_writer(void)
 OTF2_Archive *get_global_archive(void)
 {
     return Archive;
-}
-
-string_registry *get_global_str_registry(void)
-{
-    return Registry;
 }
 
 /* Pre- and post-flush callbacks required by OTF2 */
@@ -105,6 +100,8 @@ static void trace_write_string_ref(const char *s, OTF2_StringRef ref)
 bool
 trace_initialise_archive(otter_opt_t *opt)
 {
+    OTF2_ErrorCode ret = OTF2_SUCCESS;
+
     /* Determine filename & path from options */
     char archive_path[DEFAULT_NAME_BUF_SZ+1] = {0};
     static char archive_name[DEFAULT_NAME_BUF_SZ+1] = {0};
@@ -170,6 +167,23 @@ trace_initialise_archive(otter_opt_t *opt)
 
     /* get global definitions writer */
     Defs = OTF2_Archive_GetGlobalDefWriter(Archive);
+
+#if defined(OTTER_EVENT_MODEL_OMP) || defined(OTTER_EVENT_MODEL_SERIAL)
+    // otter-serial uses the OMP event model
+    const char* event_model = "OMP";
+#elif defined(OTTER_EVENT_MODEL_TASKGRAPH)
+    // otter-task-graph uses its own event model
+    const char* event_model = "TASKGRAPH";
+#else
+    const char* event_model = "UNKNOWN";
+#endif
+
+    ret = OTF2_Archive_SetProperty(Archive,
+        "OTTER::EVENT_MODEL",
+        event_model,
+        true
+    );
+    CHECK_OTF2_ERROR_CODE(ret);
 
     /* get clock resolution & current time for CLOCK_MONOTONIC */
     struct timespec res, tp;
@@ -263,9 +277,8 @@ trace_initialise_archive(otter_opt_t *opt)
             Type);
     #include "otter/trace-attribute-defs.h"
 
-    Registry = string_registry_make(
-        get_unique_str_ref,
-        trace_write_string_ref
+    trace_init_str_registry(
+        string_registry_make(get_unique_str_ref, trace_write_string_ref)
     );
 
     return true;
@@ -274,7 +287,7 @@ trace_initialise_archive(otter_opt_t *opt)
 bool
 trace_finalise_archive(void)
 {
-    string_registry_delete(Registry);
+    trace_destroy_str_registry();
 
     /* close event files */
     OTF2_Archive_CloseEvtFiles(Archive);

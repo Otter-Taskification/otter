@@ -360,7 +360,7 @@ install(FILES ${CMAKE_BINARY_DIR}/lib/fmod/otter_serial.mod DESTINATION include/
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/modules/otter DESTINATION etc/modules/otter)
 
 # otter-task-graph library
-set_target_properties(otter-task-graph PROPERTIES PUBLIC_HEADER "include/otter/otter-task-graph.h;include/otter/otter-task-context.h")
+set_target_properties(otter-task-graph PROPERTIES PUBLIC_HEADER "include/otter/otter-task-graph.h;include/otter/otter-task-context.h;include/otter/otter-task-graph-stub.h")
 install(TARGETS otter-task-graph LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include/otter)
 
 # Configure version header

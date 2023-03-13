@@ -26,6 +26,11 @@
 
 #define LOG_EVENT_CALL(file, func, line, ifunc) LOG_DEBUG("%s:%d in %s", file, line, func)
 
+static void log_not_implemented(const char* func)
+{
+    LOG_DEBUG("not currently implemented - ignored");
+}
+
 /* detect environment variables */
 static otter_opt_t opt = {
     .hostname         = NULL,
@@ -82,16 +87,6 @@ void otterTraceFinalise(void)
     return;
 }
 
-void otterTraceStart(void)
-{
-    LOG_DEBUG("not currently implemented - ignored");
-}
-
-void otterTraceStop(void)
-{
-    LOG_DEBUG("not currently implemented - ignored");
-}
-
 otter_task_context *otterTaskBegin(const char* file, const char* func, int line, otter_task_context *parent)
 {
     otter_task_context *task = otterTaskContext_alloc();
@@ -121,4 +116,24 @@ void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode)
     sync_attr.sync.encountering_task_id = otterTaskContext_get_task_context_id(task);
     trace_graph_synchronise_tasks(task, sync_attr);
     return;
+}
+
+void otterTraceStart(void) {
+    LOG_DEBUG("not currently implemented - ignored");
+}
+
+void otterTraceStop(void) {
+    LOG_DEBUG("not currently implemented - ignored");
+}
+
+void otterPhaseBegin( const char* name )  {
+    LOG_DEBUG("not currently implemented - ignored");
+}
+
+void otterPhaseEnd()  {
+    LOG_DEBUG("not currently implemented - ignored");
+}
+
+void otterPhaseSwitch( const char* name )  {
+    LOG_DEBUG("not currently implemented - ignored");
 }

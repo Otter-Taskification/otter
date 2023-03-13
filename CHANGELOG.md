@@ -1,8 +1,8 @@
 # Changelog
 
-## Unpublished
+<!-- ## Unpublished -->
 
-### Added
+<!-- ### Added
 - Nothing
 
 ### Changed
@@ -15,7 +15,14 @@
 - Nothing
 
 ### Fixed
-- Nothing
+- Nothing -->
+
+## Unpublished [2022-03-13]
+
+### Added
+- New event source `otter-task-graph` to record annotated tasks and their dependencies. Accessed through `otter/otter-task-graph.h` and linked with `-lotter-task-graph`.
+- modulefile installed to `${CMAKE_INSTALL_PREFIX}/etc/modules/otter/otter`
+- CMake option `-DWITH_VALIDATION=[ON|OFF]` to build with validation examples, installed in `${CMAKE_INSTALL_PREFIX}/bin/otter-validator-*`
 
 ## v0.2.0 [2022-06-28]
 

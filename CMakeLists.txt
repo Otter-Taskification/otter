@@ -355,6 +355,8 @@ install(TARGETS otter-serial LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION i
 # otter-serial Fortran module file
 install(FILES ${CMAKE_BINARY_DIR}/lib/fmod/otter_serial.mod DESTINATION include/otter)
 
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/modules/otter DESTINATION etc/modules/otter)
+
 # otter-task-graph library
 set_target_properties(otter-task-graph PROPERTIES PUBLIC_HEADER "include/otter/otter-task-graph.h;include/otter/otter-task-context.h")
 install(TARGETS otter-task-graph LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include/otter)

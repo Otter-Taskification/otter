@@ -61,20 +61,21 @@ void otterTaskContext_delete(otter_task_context *task)
 
 unique_id_t otterTaskContext_get_task_context_id(otter_task_context *task)
 {
-    assert(task != NULL);
-    return task->task_context_id;
+    // ! HACK ! only here to temporarily work around ExaHyPE not managing task pointers
+    // assert(task != NULL);
+    return task==NULL ? 0 : task->task_context_id;
 }
 
 unique_id_t otterTaskContext_get_parent_task_context_id(otter_task_context *task)
 {
-    assert(task != NULL);
-    return task->parent_task_context_id;
+    // assert(task != NULL);
+    return task==NULL ? 0 :  task->parent_task_context_id;
 }
 
 OTF2_AttributeList *otterTaskContext_get_attribute_list(otter_task_context *task)
 {
-    assert(task != NULL);
-    return task->attributes;
+    // assert(task != NULL);
+    return task==NULL ? OTF2_AttributeList_New() : task->attributes;
 }
 
 // Assign IDs

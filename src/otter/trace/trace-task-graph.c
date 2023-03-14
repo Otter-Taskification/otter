@@ -2,6 +2,7 @@
 
 #include <otf2/otf2.h>
 #include <time.h>
+#include <pthread.h>
 #include "otter/debug.h"
 #include "otter/otter-common.h"
 #include "otter/otter-environment-variables.h"
@@ -13,6 +14,23 @@
 #include "otter/otter-task-context-interface.h"
 
 #define OTTER_DUMMY_OTF2_LOCATION_REF        0
+
+/* Protects the shared dummy event writer object */
+static pthread_mutex_t lock_shared_evt_writer = PTHREAD_MUTEX_INITIALIZER;
+
+static OTF2_EvtWriter *get_shared_event_writer(void) {
+    LOG_DEBUG("locking shared event writer");
+    pthread_mutex_lock(&lock_shared_evt_writer);
+    return OTF2_Archive_GetEvtWriter(
+        get_global_archive(),
+        OTTER_DUMMY_OTF2_LOCATION_REF
+    );
+}
+
+static void release_shared_event_writer(void) {
+    LOG_DEBUG("releasing shared event writer");
+    pthread_mutex_unlock(&lock_shared_evt_writer);
+}
 
 static uint64_t get_timestamp(void);
 
@@ -84,10 +102,9 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_region_attr_t 
 
     // Record event
 
-    OTF2_EvtWriter *event_writer = OTF2_Archive_GetEvtWriter(
-        get_global_archive(),
-        OTTER_DUMMY_OTF2_LOCATION_REF
-    );
+    OTF2_EvtWriter *event_writer = NULL;
+
+    event_writer = get_shared_event_writer();
 
     OTF2_EvtWriter_ThreadTaskSwitch(
         event_writer,
@@ -95,6 +112,8 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_region_attr_t 
         get_timestamp(),
         OTF2_UNDEFINED_COMM,
         OTF2_UNDEFINED_UINT32, 0); /* creating thread, generation number */
+
+    release_shared_event_writer();
 
     CHECK_OTF2_ERROR_CODE(err);
 }
@@ -154,10 +173,7 @@ void trace_graph_event_task_end(otter_task_context *task)
 
     // Record event
 
-    OTF2_EvtWriter *event_writer = OTF2_Archive_GetEvtWriter(
-        get_global_archive(),
-        OTTER_DUMMY_OTF2_LOCATION_REF
-    );
+    OTF2_EvtWriter *event_writer = get_shared_event_writer();
 
     OTF2_EvtWriter_ThreadTaskSwitch(
         event_writer,
@@ -166,18 +182,14 @@ void trace_graph_event_task_end(otter_task_context *task)
         OTF2_UNDEFINED_COMM,
         OTF2_UNDEFINED_UINT32, 0); /* creating thread, generation number */
 
+    release_shared_event_writer();
+
     CHECK_OTF2_ERROR_CODE(err);
 }
 
 void trace_graph_synchronise_tasks(otter_task_context *task, trace_region_attr_t sync_attr)
 {
     LOG_DEBUG("record task-graph event: synchronise");
-
-    /* Get the event writer */
-    OTF2_EvtWriter *event_writer = OTF2_Archive_GetEvtWriter(
-        get_global_archive(),
-        OTTER_DUMMY_OTF2_LOCATION_REF
-    );
 
     /* Get the task's attribute list */
     OTF2_AttributeList* attributes = otterTaskContext_get_attribute_list(task);
@@ -202,12 +214,17 @@ void trace_graph_synchronise_tasks(otter_task_context *task, trace_region_attr_t
     /* Add the sync mode - children or descendants? */
     OTF2_AttributeList_AddUint8(attributes, attr_sync_descendant_tasks, sync_attr.sync.sync_descendant_tasks ? 1 : 0);
 
+    /* Get the event writer */
+    OTF2_EvtWriter *event_writer = get_shared_event_writer();
+
     OTF2_EvtWriter_Enter(
         event_writer,
         attributes,
         get_timestamp(),
         OTF2_UNDEFINED_REGION
     );
+
+    release_shared_event_writer();
 
 }
 

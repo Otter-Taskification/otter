@@ -83,7 +83,7 @@ void otterTraceFinalise(void)
     char trace_folder[PATH_MAX] = {0};
     realpath(opt.tracepath, &trace_folder[0]);
     fprintf(stderr, "%s%s/%s\n",
-        "OTTER_TRACE_FOLDER=", trace_folder, opt.archive_name);
+        "OTTER_TRACE_FOLDER:", trace_folder, opt.archive_name);
     return;
 }
 

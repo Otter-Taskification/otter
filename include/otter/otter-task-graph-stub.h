@@ -48,9 +48,9 @@
 #define otterTraceStop()
 #define otterTaskBegin(...) ((void*)0)
 #define otterTaskEnd(...)
-#define otterSynchroniseTasks()
-#define otterPhaseBegin()
+#define otterSynchroniseTasks(...)
+#define otterPhaseBegin(...)
 #define otterPhaseEnd()
-#define otterPhaseSwitch()
+#define otterPhaseSwitch(...)
 
 #endif // OTTER_TASK_GRAPH_STUB_H

@@ -26,6 +26,8 @@ int main(int argc, char *argv[]) {
         fibn = fib(n, root);
     }
 
+    otterSynchroniseTasks(root, otter_sync_children);
+
     otterTaskEnd(root);
     printf("f(%d) = %d\n", n, fibn);
     otterTraceFinalise();

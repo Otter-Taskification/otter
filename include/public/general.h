@@ -1,6 +1,8 @@
 #if !defined(OTTER_MACROS_GENERAL_H)
 #define OTTER_MACROS_GENERAL_H
 
+// TODO: these macros don't seem to be used anywhere, consider removing this file
+
 #define STR_EQUAL(a,b) (!strcmp(a,b))
 
 #define min(a,b) ((a)<(b)?(a):(b))

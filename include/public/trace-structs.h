@@ -1,6 +1,8 @@
 #if !defined(OTTER_TRACE_STRUCTS_H)
 #define OTTER_TRACE_STRUCTS_H
 
+// TODO: this file justs couples together various components - consider removing altogether!
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <pthread.h>

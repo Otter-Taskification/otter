@@ -1,6 +1,9 @@
 #if !defined(TRACE_ENUM_TYPES_H)
 #define TRACE_ENUM_TYPES_H
 
+// TODO: these enum constants are actually part of the interface to otter-trace.
+// Where they are exposed to the user, a module should wrap them in its own
+// enum type so as not to expose the internal interface between otter modules.
 
 /**
  * @brief Defines whether a task synchronisation construct should apply a 

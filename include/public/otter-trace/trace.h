@@ -1,6 +1,10 @@
 #if !defined(OTTER_TRACE_H)
 #define OTTER_TRACE_H
 
+// TODO: too much functionality is coupled together in this interface to otter-trace!!!
+// TODO: refactor file to only expose the subset of functionality needed
+// TODO: not all consumers of otter-trace use region definitions, for example.
+
 #include "otter/trace-enum-types.h"
 #include "otter/trace-types.h"
 #include "otter/trace-static-constants.h"

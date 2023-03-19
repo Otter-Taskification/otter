@@ -5,6 +5,9 @@
     Definitions common to multiple modules
  */
 
+// TODO: this file includes both private implementation details and some true cross-cutting
+// TODO: concernts => REFACTOR into multiple files.
+
 #include <stdint.h>
 #include <stdbool.h>
 

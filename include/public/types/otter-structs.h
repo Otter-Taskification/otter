@@ -1,6 +1,9 @@
 #if !defined(OTTER_STRUCTS_H)
 #define OTTER_STRUCTS_H
 
+// TODO: refactor these definitions into separate files to reduce coupling - not all these definitions
+// are needed by files that use otter-structs
+
 #include <stdint.h>
 #include <stdlib.h>
 // #include "otter/otter-ompt-header.h"

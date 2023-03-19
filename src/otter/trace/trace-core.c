@@ -586,7 +586,9 @@ trace_event_task_create(
 
     /* return address */
     OTF2_AttributeList_AddUint64(created_task->attributes, attr_task_create_ra,
-        created_task->attr.task.task_create_ra
+// https://releases.llvm.org/15.0.0/tools/clang/docs/ReleaseNotes.html#improvements-to-clang-s-diagnostics
+// The -Wint-conversion warning diagnostic for implicit int <-> pointer conversions now defaults to an error in all C language modes.
+        (uint64_t) created_task->attr.task.task_create_ra
     );
 
     trace_add_task_attributes(created_task);

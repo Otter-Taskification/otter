@@ -1,6 +1,8 @@
 #if !defined(OTTER_DATATYPES_COMMON_H)
 #define OTTER_DATATYPES_COMMON_H
 
+#include <stdint.h>
+
 typedef void (*data_destructor_t)(void *);
 
 typedef union {

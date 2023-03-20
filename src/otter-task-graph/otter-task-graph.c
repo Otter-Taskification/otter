@@ -16,7 +16,6 @@
 #include <limits.h>
 
 #include "public/otter-version.h"
-#include "public/general.h"
 #include "public/debug.h"
 #include "public/otter-environment-variables.h"
 #include "public/otter-trace/trace.h"

@@ -14,7 +14,6 @@
 #include <assert.h>
 #include "otf2/otf2.h"
 #include "public/otter-version.h"
-#include "public/general.h"
 #include "public/debug.h"
 #include "public/otter-common.h"
 #include "private/otter-task-graph/otter-task-context-interface.h"

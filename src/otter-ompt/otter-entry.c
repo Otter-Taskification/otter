@@ -2,7 +2,6 @@
 #include <stdlib.h>
 
 #include "public/otter-version.h"
-#include "public/general.h"
 #include "public/debug.h"
 #include "private/otter-ompt/callback.h"
 #include "private/otter-ompt/otter-ompt-header.h"

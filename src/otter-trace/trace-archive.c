@@ -17,14 +17,14 @@
 #include <otf2/otf2.h>
 #include <otf2/OTF2_Pthread_Locks.h>
 
-#include "otter/otter-version.h"
-#include "otter/debug.h"
-#include "otter/trace.h"
-#include "otter/trace-archive.h"
-#include "otter/trace-string-registry.h"
-#include "otter/trace-attributes.h"
-#include "otter/trace-unique-refs.h"
-#include "otter/trace-check-error-code.h"
+#include "public/otter-version.h"
+#include "public/debug.h"
+#include "public/otter-trace/trace.h"
+#include "private/otter-trace/trace-archive.h"
+#include "private/otter-trace/trace-string-registry.h"
+#include "private/otter-trace/trace-attributes.h"
+#include "private/otter-trace/trace-unique-refs.h"
+#include "private/otter-trace/trace-check-error-code.h"
 
 #define DEFAULT_LOCATION_GRP 0 // OTF2_UNDEFINED_LOCATION_GROUP
 #define DEFAULT_SYSTEM_TREE  0
@@ -266,7 +266,7 @@ trace_initialise_archive(otter_opt_t *opt)
     #define INCLUDE_LABEL(Name, Label)                                         \
         OTF2_GlobalDefWriter_WriteString(                                      \
             Defs, attr_label_ref[attr_##Name##_##Label], #Label);
-    #include "otter/trace-attribute-defs.h"
+    #include "private/otter-trace/trace-attribute-defs.h"
 
     /* define attributes which can be referred to later by the enum 
        attr_name_enum_t */
@@ -275,7 +275,7 @@ trace_initialise_archive(otter_opt_t *opt)
             attr_name_ref[attr_##Name][0],                                     \
             attr_name_ref[attr_##Name][1],                                     \
             Type);
-    #include "otter/trace-attribute-defs.h"
+    #include "private/otter-trace/trace-attribute-defs.h"
 
     trace_init_str_registry(
         string_registry_make(get_unique_str_ref, trace_write_string_ref)

@@ -1,4 +1,4 @@
-#include "otter/trace-mmap.h"
+#include "public/otter-trace/trace-mmap.h"
 
 #define CHAR_BUFF_SZ 1024
 

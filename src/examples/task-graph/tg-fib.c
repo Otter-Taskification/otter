@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <otter/otter-task-graph.h>
+#include "api/otter-task-graph/otter-task-graph.h"
 
 // Have to modify app code to accept otter task handles if tasks are nested :(
 int fib(int n, otter_task_context *parent);

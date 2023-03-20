@@ -10,18 +10,18 @@
 
 // #include <otf2/otf2.h>
 
-#include "otter/debug.h"
-#include "otter/callback.h"
+#include "public/debug.h"
+#include "private/otter-ompt/callback.h"
 
-#include "otter/otter-ompt-header.h"
+#include "private/otter-ompt/otter-ompt-header.h"
 
-#include "otter/otter-common.h"
-#include "otter/otter.h"
-#include "otter/otter-structs.h"
-#include "otter/otter-entry.h"
-#include "otter/otter-environment-variables.h"
-#include "otter/trace.h"
-#include "otter/trace-mmap.h"
+#include "public/otter-common.h"
+#include "private/otter-ompt/otter.h"
+#include "public/types/otter-structs.h"
+#include "private/otter-ompt/otter-entry.h"
+#include "public/otter-environment-variables.h"
+#include "public/otter-trace/trace.h"
+#include "public/otter-trace/trace-mmap.h"
 
 /* Static function prototypes */
 static void print_resource_usage(void);

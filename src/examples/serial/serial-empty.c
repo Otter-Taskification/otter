@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <otter/otter-serial.h>
+#include "api/otter-serial/otter-serial.h"
 
 int main(int argc, char *argv[]) {
 

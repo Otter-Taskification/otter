@@ -2,7 +2,7 @@
 #include <string>
 #include <functional>
 #include <gtest/gtest.h>
-#include <otter/string_value_registry.hpp>
+#include "public/types/string_value_registry.hpp"
 
 template<typename V>
 static V registry_label;

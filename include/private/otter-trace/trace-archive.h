@@ -12,7 +12,7 @@
 #include <stdbool.h>
 #include <otf2/otf2.h>
 #include "public/otter-common.h"
-#include "public/types/value_registry.hpp"
+#include "public/types/string_value_registry.hpp"
 
 pthread_mutex_t *global_def_writer_lock(void);
 pthread_mutex_t *global_archive_lock(void);

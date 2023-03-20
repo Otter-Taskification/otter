@@ -5,14 +5,14 @@
 #include <limits.h>
 #include <execinfo.h>
 
-#include "otter/otter-version.h"
-#include "otter/general.h"
-#include "otter/debug.h"
-#include "otter/otter-environment-variables.h"
-#include "otter/trace.h"
-#include "otter/trace-mmap.h"
-#include "otter/otter-serial.h"
-#include "otter/otter-structs.h"
+#include "public/otter-version.h"
+#include "public/general.h"
+#include "public/debug.h"
+#include "public/otter-environment-variables.h"
+#include "public/otter-trace/trace.h"
+#include "public/otter-trace/trace-mmap.h"
+#include "api/otter-serial/otter-serial.h"
+#include "public/types/otter-structs.h"
 
 #define LOG_EVENT_CALL(file, func, line, ifunc) LOG_DEBUG("%s:%d in %s", file, line, func)
 

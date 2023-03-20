@@ -7,7 +7,7 @@
 
 #include "public/otter-trace/trace-enum-types.h"
 #include "public/otter-trace/trace-types.h"
-#include "api/constants.h"
+// #include "api/constants.h"
 #include "public/otter-trace/trace-location.h"
 #include "private/otter-trace/trace-archive.h"
 #include "public/otter-trace/trace-region-parallel.h"

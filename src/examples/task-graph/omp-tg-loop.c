@@ -3,9 +3,9 @@
 #include <unistd.h>
 #include <omp.h>
 #ifdef Use_Otter
-#include <otter/otter-task-graph.h>
+#include "api/otter-task-graph/otter-task-graph.h"
 #else
-#include <otter/otter-task-graph-stub.h>
+#include "api/otter-task-graph/otter-task-graph-stub.h"
 #endif
 
 // Have to modify app code to accept otter task handles if tasks are nested :(

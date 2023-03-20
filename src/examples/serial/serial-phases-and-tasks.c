@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <otter/otter-serial.h>
+#include "api/otter-serial/otter-serial.h"
 
 void spawn_tasks_recursive(int tasks, int level)
 {

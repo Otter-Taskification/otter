@@ -1,14 +1,14 @@
 #include <stdlib.h>
 #include <pthread.h>
-#include "otter/trace-lookup-macros.h"
-#include "otter/trace-attributes.h"
-#include "otter/trace-archive.h"
-#include "otter/trace-structs.h"
-#include "otter/trace-region-parallel.h"
-#include "otter/trace-unique-refs.h"
-#include "otter/trace-check-error-code.h"
-#include "otter/queue.h"
-#include "otter/stack.h"
+#include "private/otter-trace/trace-lookup-macros.h"
+#include "private/otter-trace/trace-attributes.h"
+#include "private/otter-trace/trace-archive.h"
+#include "public/trace-structs.h"
+#include "public/otter-trace/trace-region-parallel.h"
+#include "private/otter-trace/trace-unique-refs.h"
+#include "private/otter-trace/trace-check-error-code.h"
+#include "public/types/queue.h"
+#include "public/types/stack.h"
 
 /* Defined in trace-archive.c */
 extern OTF2_StringRef attr_name_ref[n_attr_defined][2];

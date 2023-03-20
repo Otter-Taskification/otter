@@ -14,19 +14,20 @@
 #include <otf2/otf2.h>
 #include <otf2/OTF2_Pthread_Locks.h>
 
-#include "otter/debug.h"
-#include "otter/otter-common.h"
-#include "otter/otter-environment-variables.h"
-#include "otter/trace.h"
-#include "otter/trace-structs.h"
-#include "otter/trace-location.h"
-#include "otter/trace-attributes.h"
-#include "otter/trace-lookup-macros.h"
-#include "otter/trace-unique-refs.h"
-#include "otter/trace-check-error-code.h"
+#include "public/debug.h"
+#include "public/otter-common.h"
+#include "public/otter-environment-variables.h"
+#include "public/otter-trace/trace.h"
+#include "public/trace-structs.h"
+#include "public/otter-trace/trace-location.h"
+#include "private/otter-trace/trace-attributes.h"
+#include "private/otter-trace/trace-lookup-macros.h"
+#include "private/otter-trace/trace-unique-refs.h"
+#include "private/otter-trace/trace-check-error-code.h"
+#include "private/otter-trace/trace-static-constants.h"
 
-#include "otter/queue.h"
-#include "otter/stack.h"
+#include "public/types/queue.h"
+#include "public/types/stack.h"
 
 static uint64_t get_timestamp(void);
 

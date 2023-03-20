@@ -1,4 +1,4 @@
-#include "otter/otter-serial.h"
+#include "api/otter-serial/otter-serial.h"
 
 static const int LEN=5;
 

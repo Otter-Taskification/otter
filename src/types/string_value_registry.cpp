@@ -2,7 +2,7 @@
 #include <cassert>
 #include <string>
 #include <functional>
-#include "otter/string_value_registry.hpp"
+#include "public/types/string_value_registry.hpp"
 
 // Defines template & explicitly instantiates the specialisations required by public header
 template<>

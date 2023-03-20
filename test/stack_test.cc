@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <cstddef>
-#include "otter/stack.h"
+#include "public/types/stack.h"
 
 void mock_data_destructor(void *ptr);
 

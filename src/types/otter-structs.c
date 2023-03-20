@@ -1,10 +1,10 @@
 #include <stdint.h>
 #include <stdlib.h>
-// #include "otter/otter-ompt-header.h"
-#include "otter/otter.h"
-#include "otter/otter-structs.h"
-#include "otter/trace.h"
-#include "otter/trace-structs.h"
+#include "private/otter-ompt/otter.h"
+#include "public/types/otter-structs.h"
+#include "public/otter-trace/trace.h"
+#include "public/trace-structs.h"
+#include "private/otter-trace/trace-static-constants.h"
 
 /* Used as an array index to keep track of unique ids for different entities */
 typedef enum {

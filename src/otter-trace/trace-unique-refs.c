@@ -1,5 +1,5 @@
-#include "otter/trace-unique-refs.h"
-#include "otter/trace-types.h"
+#include "private/otter-trace/trace-unique-refs.h"
+#include "public/otter-trace/trace-types.h"
 
 static uint64_t
 get_unique_uint64_ref(trace_ref_type_t ref_type)

@@ -3,15 +3,15 @@
 #include <otf2/otf2.h>
 #include <time.h>
 #include <pthread.h>
-#include "otter/debug.h"
-#include "otter/otter-common.h"
-#include "otter/otter-environment-variables.h"
-#include "otter/trace.h"
-#include "otter/trace-attributes.h"
-#include "otter/trace-lookup-macros.h"
-#include "otter/trace-unique-refs.h"
-#include "otter/trace-check-error-code.h"
-#include "otter/otter-task-context-interface.h"
+#include "public/debug.h"
+#include "public/otter-common.h"
+#include "public/otter-environment-variables.h"
+#include "public/otter-trace/trace.h"
+#include "private/otter-trace/trace-attributes.h"
+#include "private/otter-trace/trace-lookup-macros.h"
+#include "private/otter-trace/trace-unique-refs.h"
+#include "private/otter-trace/trace-check-error-code.h"
+#include "private/otter-task-graph/otter-task-context-interface.h"
 
 #define OTTER_DUMMY_OTF2_LOCATION_REF        0
 

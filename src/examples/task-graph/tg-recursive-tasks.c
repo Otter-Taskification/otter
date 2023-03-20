@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <otter/otter-task-graph.h>
+#include "api/otter-task-graph/otter-task-graph.h"
 
 void spawn_tasks_recursive(int tasks, int level, otter_task_context *parent)
 {

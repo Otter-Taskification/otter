@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <otter/otter-serial.h>
+#include "api/otter-serial/otter-serial.h"
 
 int main(void)
 {

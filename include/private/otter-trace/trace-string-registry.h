@@ -2,7 +2,7 @@
 #define OTTER_TRACE_STRING_REGISTRY_H
 
 #include "public/otter-common.h"
-#include "public/types/value_registry.hpp"
+#include "public/types/string_value_registry.hpp"
 
 void trace_init_str_registry(string_registry *registry);
 void trace_destroy_str_registry(void);

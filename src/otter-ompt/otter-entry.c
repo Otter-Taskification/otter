@@ -1,13 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "otter/otter-version.h"
-#include "otter/general.h"
-#include "otter/debug.h"
-#include "otter/callback.h"
-#include "otter/otter-ompt-header.h"
-#include "otter/otter-entry.h"
-#include "otter/otter-environment-variables.h"
+#include "public/otter-version.h"
+#include "public/general.h"
+#include "public/debug.h"
+#include "private/otter-ompt/callback.h"
+#include "private/otter-ompt/otter-ompt-header.h"
+#include "private/otter-ompt/otter-entry.h"
+#include "public/otter-environment-variables.h"
 
 /* Entry & exit functions passed back to the OMP runtime */
 static int ompt_initialise(ompt_function_lookup_t, int, ompt_data_t *);

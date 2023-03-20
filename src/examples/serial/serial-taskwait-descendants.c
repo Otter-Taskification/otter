@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <otter/otter-serial.h>
+#include "api/otter-serial/otter-serial.h"
 #define LEN 5
 
 int main(int argc, char *argv[]) {

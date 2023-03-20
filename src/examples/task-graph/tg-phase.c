@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <otter/otter-task-graph.h>
+#include "api/otter-task-graph/otter-task-graph.h"
 
 int main(int argc, char* argv[]) {
 

@@ -60,6 +60,5 @@ void task_destroy(task_data_t *task_data);
 unique_id_t get_unique_parallel_id(void);
 unique_id_t get_unique_thread_id(void);
 unique_id_t get_unique_task_id(void);
-unique_id_t get_dummy_time(void);
 
 #endif // OTTER_STRUCTS_H

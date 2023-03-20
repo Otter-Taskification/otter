@@ -40,19 +40,4 @@
 #define implements_callback_master
 #include "otter/ompt-callback-prototypes.h"
 
-// /* Used as an array index to keep track of unique ids for different entities */
-// typedef enum unique_id_type_t {
-//     id_timestamp        ,
-//     id_parallel         ,
-//     id_thread           ,
-//     id_task             ,
-//     NUM_ID_TYPES
-// } unique_id_type_t;
-// #define get_unique_parallel_id() get_unique_id(id_parallel)
-// #define get_unique_thread_id()   get_unique_id(id_thread)
-// #define get_unique_task_id()     get_unique_id(id_task)
-// #define get_dummy_time()         get_unique_id(id_timestamp)
-
-// unique_id_t get_unique_id(unique_id_type_t id_type);
-
 #endif // OTTER_H

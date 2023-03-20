@@ -25,6 +25,6 @@
 
 !/docs/*.svg
 
-/include/otter-version.h
+/include/public/otter-version.h
 
 /*.sh

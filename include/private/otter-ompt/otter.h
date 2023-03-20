@@ -11,12 +11,12 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#include "otter/otter-ompt-header.h"
+#include "private/otter-ompt/otter-ompt-header.h"
 
-#include "otter/otter-common.h"
-#include "otter/otter-entry.h"
-#include "otter/stack.h"
-#include "otter/trace.h"
+#include "public/otter-common.h"
+#include "private/otter-ompt/otter-entry.h"
+#include "public/types/stack.h"
+#include "public/otter-trace/trace.h"
 
 /* A naming convention was chosen for the callbacks so that each callback is 
    named after the event in ompt.h which it handles. The struct passed to the
@@ -38,6 +38,6 @@
 #define implements_callback_work
 #define implements_callback_sync_region
 #define implements_callback_master
-#include "otter/ompt-callback-prototypes.h"
+#include "private/otter-ompt/ompt-callback-prototypes.h"
 
 #endif // OTTER_H

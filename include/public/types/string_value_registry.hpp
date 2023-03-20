@@ -3,7 +3,7 @@
 
 #include <string>
 #include <functional>
-#include "otter/value_registry_template_declarations.hpp"
+#include "public/types/value_registry_template_declarations.hpp"
 using string_registry = value_registry<std::string, uint32_t>;
 // using string_destroy_fn = std::function<void(const char *, uint32_t)>;
 

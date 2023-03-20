@@ -6,9 +6,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-// #include "otter/otter-ompt-header.h"
-// #include "otter/otter.h"
-#include "otter/trace.h"
+#include "public/otter-trace/trace.h"
 
 typedef struct thread_data_t {
     unique_id_t           id;

@@ -5,17 +5,17 @@
 // TODO: refactor file to only expose the subset of functionality needed
 // TODO: not all consumers of otter-trace use region definitions, for example.
 
-#include "otter/trace-enum-types.h"
-#include "otter/trace-types.h"
-#include "otter/trace-static-constants.h"
-#include "otter/trace-location.h"
-#include "otter/trace-archive.h"
-#include "otter/trace-region-parallel.h"
-#include "otter/trace-region-task.h"
-#include "otter/trace-region-workshare.h"
-#include "otter/trace-region-master.h"
-#include "otter/trace-region-sync.h"
-#include "otter/trace-region-phase.h"
+#include "public/otter-trace/trace-enum-types.h"
+#include "public/otter-trace/trace-types.h"
+#include "api/constants.h"
+#include "public/otter-trace/trace-location.h"
+#include "private/otter-trace/trace-archive.h"
+#include "public/otter-trace/trace-region-parallel.h"
+#include "public/otter-trace/trace-region-task.h"
+#include "public/otter-trace/trace-region-workshare.h"
+#include "public/otter-trace/trace-region-master.h"
+#include "public/otter-trace/trace-region-sync.h"
+#include "public/otter-trace/trace-region-phase.h"
 
 /* Functions defined in trace-core.c */
 void trace_event_thread_begin(trace_location_def_t *self);

@@ -5,11 +5,11 @@
 #include <stdbool.h>
 #include <otf2/otf2.h>
 
-#include "otter/otter-ompt-header.h"
-#include "otter/otter-common.h"
-#include "otter/queue.h"
-#include "otter/stack.h"
-#include "otter/trace.h"
+#include "private/otter-ompt/otter-ompt-header.h"
+#include "public/otter-common.h"
+#include "public/types/queue.h"
+#include "public/types/stack.h"
+#include "public/otter-trace/trace.h"
 
 /* Create new region */
 trace_region_def_t *

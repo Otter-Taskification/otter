@@ -3,10 +3,10 @@
 
 #include <pthread.h>
 #include <otf2/otf2.h>
-#include "otter/otter-common.h"
-#include "otter/queue.h"
-#include "otter/stack.h"
-#include "otter/otter-task-context.h"
+#include "public/otter-common.h"
+#include "public/types/queue.h"
+#include "public/types/stack.h"
+#include "api/otter-task-graph/otter-task-context.h"
 
 /* Different kinds of unique IDs */
 typedef enum trace_ref_type_t {

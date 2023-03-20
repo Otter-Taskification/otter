@@ -11,8 +11,8 @@
  * 
  */
 
-#include "otter/otter-common.h"
-#include "otter/otter-task-context.h"
+#include "public/otter-common.h"
+#include "api/otter-task-graph/otter-task-context.h"
 
 /**
  * @brief Allocate an uninitialised otter_task_context.

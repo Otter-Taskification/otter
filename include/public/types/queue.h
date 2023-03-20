@@ -10,8 +10,8 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
-#include "otter/debug.h"
-#include "otter/datatypes-common.h"
+#include "public/debug.h"
+#include "public/types/datatypes-common.h"
 
 typedef struct otter_queue_t otter_queue_t;
 

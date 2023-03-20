@@ -1,8 +1,8 @@
 #if !defined(OTTER_TRACE_STRING_REGISTRY_H)
 #define OTTER_TRACE_STRING_REGISTRY_H
 
-#include "otter/otter-common.h"
-#include "otter/string_value_registry.hpp"
+#include "public/otter-common.h"
+#include "public/types/value_registry.hpp"
 
 void trace_init_str_registry(string_registry *registry);
 void trace_destroy_str_registry(void);

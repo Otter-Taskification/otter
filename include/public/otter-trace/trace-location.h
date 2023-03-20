@@ -11,10 +11,10 @@
 #define OTTER_TRACE_LOCATION_H
 
 #include <otf2/otf2.h>
-#include "otter/otter-common.h"
-#include "otter/queue.h"
-#include "otter/stack.h"
-#include "otter/trace-types.h"
+#include "public/otter-common.h"
+#include "public/types/queue.h"
+#include "public/types/stack.h"
+#include "public/otter-trace/trace-types.h"
 
 /* Store values needed to register location definition (threads) with OTF2 */
 typedef struct {

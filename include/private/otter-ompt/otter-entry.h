@@ -1,8 +1,8 @@
 #if !defined(OTTER_ENTRY_H)
 #define OTTER_ENTRY_H
 
-#include "otter/otter-ompt-header.h"
-#include "otter/otter-common.h"
+#include "private/otter-ompt/otter-ompt-header.h"
+#include "public/otter-common.h"
 
 /* Define the struct used by otter-entry which is passed to otter for it to
    return pointers to its implemented OMP callbacks. Contains one field for each

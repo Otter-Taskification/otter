@@ -7,8 +7,8 @@
 #include <errno.h>
 #include <string.h>
 
-#include "otter/debug.h"
-#include "otter/otter-common.h"
+#include "public/debug.h"
+#include "public/otter-common.h"
 
 /**
  * @brief Copy the process' memory map from /proc/self/maps to aux/maps within

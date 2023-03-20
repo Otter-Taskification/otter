@@ -20,9 +20,11 @@
 #include "public/debug.h"
 #include "public/otter-environment-variables.h"
 #include "public/otter-trace/trace.h"
-#include "public/types/otter-structs.h"
 #include "api/otter-task-graph/otter-task-graph.h"
 #include "private/otter-task-graph/otter-task-context-interface.h"
+
+#include "public/otter-trace/trace-thread-data.h"
+
 
 #define LOG_EVENT_CALL(file, func, line, ifunc) LOG_DEBUG("%s:%d in %s", file, line, func)
 

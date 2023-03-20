@@ -193,7 +193,6 @@ endif()
 add_library(otter-events-ompt OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-ompt/otter-core.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-ompt/otter-entry.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/types/otter-structs.c
 )
 target_include_directories(otter-events-ompt PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(otter-events-ompt BEFORE PRIVATE ${CMAKE_C_FLAGS})
@@ -205,7 +204,6 @@ add_library(otter-events-serial OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-serial/otter-serial.c
     # Fortran entrypoints to otter-serial.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-serial/otter-serial.F90
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/types/otter-structs.c
 )
 target_include_directories(otter-events-serial PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(otter-events-serial BEFORE PRIVATE ${CMAKE_C_FLAGS})
@@ -216,7 +214,6 @@ set_property(TARGET otter-events-serial PROPERTY POSITION_INDEPENDENT_CODE ON)
 add_library(otter-events-task-graph OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-task-graph/otter-task-graph.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/types/otter-task-context.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/types/otter-structs.c
 )
 target_include_directories(otter-events-task-graph PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(otter-events-task-graph BEFORE PRIVATE ${CMAKE_C_FLAGS})
@@ -237,6 +234,9 @@ add_library(otter-trace-ompt OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-string-registry.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-unique-refs.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-mmap.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-data.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-thread-data.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-parallel-data.c
 )
 target_include_directories(otter-trace-ompt PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(otter-trace-ompt PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_TRACE})
@@ -257,6 +257,9 @@ add_library(otter-trace-serial OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-string-registry.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-unique-refs.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-mmap.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-data.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-thread-data.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-parallel-data.c
 )
 target_include_directories(otter-trace-serial PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(otter-trace-serial PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_TRACE})
@@ -279,6 +282,7 @@ add_library(otter-trace-task-graph OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-archive.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-string-registry.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-unique-refs.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-thread-data.c
 )
 target_include_directories(otter-trace-task-graph PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(otter-trace-task-graph PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_TRACE})

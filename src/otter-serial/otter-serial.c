@@ -12,7 +12,10 @@
 #include "public/otter-trace/trace.h"
 #include "public/otter-trace/trace-mmap.h"
 #include "api/otter-serial/otter-serial.h"
-#include "public/types/otter-structs.h"
+
+#include "public/otter-trace/trace-thread-data.h"
+#include "public/otter-trace/trace-task-data.h"
+#include "public/otter-trace/trace-parallel-data.h"
 
 #define LOG_EVENT_CALL(file, func, line, ifunc) LOG_DEBUG("%s:%d in %s", file, line, func)
 
@@ -270,7 +273,7 @@ void otterTaskBegin(const char* file, const char* func, const int line)
     void *return_address[2] = {0};
     // backtrace() adds a stackframe, so want the one added due to the 
     // otterTaskBegin call()
-    backtrace(&return_address, 2);
+    backtrace((void**)&return_address, 2);
     LOG_DEBUG("return_address %p", return_address[1]);
 
     task_data_t *encountering_task = get_encountering_task();

@@ -17,11 +17,13 @@
 
 #include "public/otter-common.h"
 #include "private/otter-ompt/otter.h"
-#include "public/types/otter-structs.h"
 #include "private/otter-ompt/otter-entry.h"
 #include "public/otter-environment-variables.h"
 #include "public/otter-trace/trace.h"
 #include "public/otter-trace/trace-mmap.h"
+#include "public/otter-trace/trace-thread-data.h"
+#include "public/otter-trace/trace-task-data.h"
+#include "public/otter-trace/trace-parallel-data.h"
 
 /* Static function prototypes */
 static void print_resource_usage(void);
@@ -121,12 +123,6 @@ print_resource_usage(void)
     PRINT_RUSAGE("block output operations", ru_oublock, "");
     #undef PRINT_RUSAGE
 
-    fprintf(stderr, "\n%35s: %8lu %s\n", "threads",
-        get_unique_thread_id(), "");
-    fprintf(stderr, "%35s: %8lu %s\n", "parallel regions",
-        get_unique_parallel_id(), "");
-    fprintf(stderr, "%35s: %8lu %s\n", "tasks",
-        get_unique_task_id(), "");
 }
 
 static void

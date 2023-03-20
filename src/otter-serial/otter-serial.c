@@ -1,6 +1,7 @@
 #define __USE_POSIX // HOST_NAME_MAX
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 #include <unistd.h>
 #include <limits.h>
 #include <execinfo.h>

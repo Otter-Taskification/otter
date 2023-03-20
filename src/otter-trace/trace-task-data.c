@@ -3,6 +3,10 @@
 #include "public/otter-trace/trace-region-task.h"
 #include "private/otter-trace/trace-get-unique-id.h"
 
+// TODO: otter-trace shouldn't be depending on OMPT concerns - refactor task_data_t so it doesn't depend on OMPT
+// Bits used by ompt_task_flag_t to indicate task type
+#define OMPT_TASK_TYPE_BITS 0x0F
+
 unique_id_t get_unique_task_id(void) {
     return get_unique_id();
 }

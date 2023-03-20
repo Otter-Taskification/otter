@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #if !defined(__USE_POSIX)
 #define __USE_POSIX // for HOST_NAME_MAX
 #endif

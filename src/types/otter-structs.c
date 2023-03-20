@@ -126,11 +126,6 @@ unique_id_t get_unique_task_id(void)
     return get_unique_id(id_task);
 }
 
-unique_id_t get_dummy_time(void)
-{
-    return get_unique_id(id_timestamp);
-}
-
 unique_id_t
 get_unique_id(unique_id_type_t id_type)
 {

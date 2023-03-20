@@ -56,21 +56,6 @@ target_link_libraries(
 )
 
 add_executable(
-    value_registry_test
-    value_registry_test.cpp
-)
-target_include_directories(
-    value_registry_test
-    PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/../include"
-)
-target_link_libraries(
-    value_registry_test
-    gtest_main
-    $<TARGET_OBJECTS:otter-dtype>
-)
-
-add_executable(
     string_registry_test
     string_value_registry_test.cpp
 )
@@ -88,5 +73,4 @@ target_link_libraries(
 include(GoogleTest)
 gtest_discover_tests(queue_test)
 gtest_discover_tests(stack_test)
-gtest_discover_tests(value_registry_test)
 gtest_discover_tests(string_registry_test)

@@ -28,7 +28,6 @@ struct otter_task_context
     uint64_t             task_create_time;
     uint64_t             task_start_time;
     uint64_t             task_end_time;
-    OTF2_AttributeList  *attributes;
 };
 
 otter_task_context *otterTaskContext_alloc(void)
@@ -41,7 +40,6 @@ void otterTaskContext_init(otter_task_context *task, otter_task_context *parent)
 {
     assert(task != NULL);
     task->task_context_id = otterTaskContext_get_unique_id();
-    task->attributes = OTF2_AttributeList_New();
     if (parent == NULL) {
         task->parent_task_context_id = TASK_ID_UNDEFINED;
     } else {
@@ -53,7 +51,6 @@ void otterTaskContext_init(otter_task_context *task, otter_task_context *parent)
 void otterTaskContext_delete(otter_task_context *task)
 {
     LOG_DEBUG("delete task context: %lu", task->task_context_id);
-    OTF2_AttributeList_Delete(task->attributes);
     free(task);
 }
 
@@ -70,12 +67,6 @@ unique_id_t otterTaskContext_get_parent_task_context_id(otter_task_context *task
 {
     // assert(task != NULL);
     return task==NULL ? 0 :  task->parent_task_context_id;
-}
-
-OTF2_AttributeList *otterTaskContext_get_attribute_list(otter_task_context *task)
-{
-    // assert(task != NULL);
-    return task==NULL ? OTF2_AttributeList_New() : task->attributes;
 }
 
 // Assign IDs

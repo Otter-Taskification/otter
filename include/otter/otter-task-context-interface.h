@@ -56,16 +56,6 @@ unique_id_t otterTaskContext_get_task_context_id(otter_task_context *task);
 unique_id_t otterTaskContext_get_parent_task_context_id(otter_task_context *task);
 
 /**
- * @brief Get the attribute list belonging to a task.
- * 
- * @param task The task whose attribute list should be returned.
- * @return OTF2_AttributeList* 
- */
-OTF2_AttributeList *otterTaskContext_get_attribute_list(otter_task_context *task);
-
-// Assign IDs
-
-/**
  * @brief Assign a new unique ID for a task context. Counts upwards by 1 each
  * time.
  * 

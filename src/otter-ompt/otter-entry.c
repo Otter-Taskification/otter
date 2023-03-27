@@ -3,9 +3,9 @@
 
 #include "public/otter-version.h"
 #include "public/debug.h"
-#include "private/otter-ompt/callback.h"
+#include "src/otter-ompt/callback.h"
 #include "private/otter-ompt/otter-ompt-header.h"
-#include "private/otter-ompt/otter-entry.h"
+#include "src/otter-ompt/otter-entry.h"
 #include "public/otter-environment-variables.h"
 
 /* Entry & exit functions passed back to the OMP runtime */

@@ -14,7 +14,7 @@
 #include "private/otter-ompt/otter-ompt-header.h"
 
 #include "public/otter-common.h"
-#include "private/otter-ompt/otter-entry.h"
+#include "src/otter-ompt/otter-entry.h"
 #include "public/types/stack.h"
 #include "public/otter-trace/trace.h"
 
@@ -38,6 +38,6 @@
 #define implements_callback_work
 #define implements_callback_sync_region
 #define implements_callback_master
-#include "private/otter-ompt/ompt-callback-prototypes.h"
+#include "src/otter-ompt/ompt-callback-prototypes.h"
 
 #endif // OTTER_H

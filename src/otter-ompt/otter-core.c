@@ -9,16 +9,14 @@
 #include <sys/time.h>       // getrusage
 #include <sys/resource.h>   // getrusage
 
-// #include <otf2/otf2.h>
-
 #include "public/debug.h"
-#include "private/otter-ompt/callback.h"
+#include "src/otter-ompt/callback.h"
 
 #include "private/otter-ompt/otter-ompt-header.h"
 
 #include "public/otter-common.h"
-#include "private/otter-ompt/otter.h"
-#include "private/otter-ompt/otter-entry.h"
+#include "src/otter-ompt/otter.h"
+#include "src/otter-ompt/otter-entry.h"
 #include "public/otter-environment-variables.h"
 #include "public/otter-trace/trace.h"
 #include "public/otter-trace/trace-mmap.h"

@@ -20,7 +20,7 @@
 #include "public/otter-environment-variables.h"
 #include "public/otter-trace/trace.h"
 #include "api/otter-task-graph/otter-task-graph.h"
-#include "private/otter-task-graph/otter-task-context-interface.h"
+#include "public/otter-trace/trace-task-context-interface.h"
 
 #include "public/otter-trace/trace-thread-data.h"
 

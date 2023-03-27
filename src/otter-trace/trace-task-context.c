@@ -12,11 +12,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <assert.h>
-#include "otf2/otf2.h"
+#include <otf2/otf2.h>
 #include "public/otter-version.h"
 #include "public/debug.h"
 #include "public/otter-common.h"
-#include "private/otter-task-graph/otter-task-context-interface.h"
+#include "public/otter-trace/trace-task-context-interface.h"
 
 #define TASK_ID_UNDEFINED        OTF2_UNDEFINED_UINT64
 

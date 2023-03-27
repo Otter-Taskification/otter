@@ -17,7 +17,7 @@
 #include "src/otter-trace/trace-attributes.h"
 #include "public/otter-trace/trace-location.h"
 #include "src/otter-trace/trace-archive.h"
-#include "private/otter-trace/trace-unique-refs.h"
+#include "src/otter-trace/trace-unique-refs.h"
 #include "src/otter-trace/trace-check-error-code.h"
 #include "src/otter-trace/trace-static-constants.h"
 #include "public/types/queue.h"

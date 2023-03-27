@@ -1,4 +1,4 @@
-#include "private/otter-trace/trace-unique-refs.h"
+#include "src/otter-trace/trace-unique-refs.h"
 #include "public/otter-trace/trace-types.h"
 
 static uint64_t

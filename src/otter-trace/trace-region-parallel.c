@@ -4,7 +4,7 @@
 #include "src/otter-trace/trace-attributes.h"
 #include "src/otter-trace/trace-archive.h"
 #include "public/otter-trace/trace-region-parallel.h"
-#include "private/otter-trace/trace-unique-refs.h"
+#include "src/otter-trace/trace-unique-refs.h"
 #include "src/otter-trace/trace-check-error-code.h"
 #include "public/types/queue.h"
 #include "public/types/stack.h"

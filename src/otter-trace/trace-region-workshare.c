@@ -3,7 +3,7 @@
 #include "src/otter-trace/trace-lookup-macros.h"
 #include "src/otter-trace/trace-attributes.h"
 #include "public/otter-trace/trace-region-workshare.h"
-#include "private/otter-trace/trace-unique-refs.h"
+#include "src/otter-trace/trace-unique-refs.h"
 #include "src/otter-trace/trace-check-error-code.h"
 #include "public/types/queue.h"
 #include "public/types/stack.h"

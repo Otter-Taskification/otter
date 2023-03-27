@@ -55,7 +55,7 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_region_attr_t 
     LOG_DEBUG("record task-graph event: task begin");
 
     // Add relevant attributes
-    OTF2_AttributeList *attr = otterTaskContext_get_attribute_list(task);
+    OTF2_AttributeList *attr = OTF2_AttributeList_New();
 
     unique_id_t task_id = otterTaskContext_get_task_context_id(task);
     unique_id_t parent_task_id = otterTaskContext_get_parent_task_context_id(task);
@@ -116,6 +116,8 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_region_attr_t 
     release_shared_event_writer();
 
     CHECK_OTF2_ERROR_CODE(err);
+
+    OTF2_AttributeList_Delete(attr);
 }
 
 void trace_graph_event_task_end(otter_task_context *task)
@@ -125,7 +127,7 @@ void trace_graph_event_task_end(otter_task_context *task)
     unique_id_t task_id = otterTaskContext_get_task_context_id(task);
 
     // Add attributes to task
-    OTF2_AttributeList *attr = otterTaskContext_get_attribute_list(task);
+    OTF2_AttributeList *attr = OTF2_AttributeList_New();
     
     /* Add attributes common to all enter/leave events */
     trace_add_common_event_attributes(
@@ -185,14 +187,15 @@ void trace_graph_event_task_end(otter_task_context *task)
     release_shared_event_writer();
 
     CHECK_OTF2_ERROR_CODE(err);
+    
+    OTF2_AttributeList_Delete(attr);
 }
 
 void trace_graph_synchronise_tasks(otter_task_context *task, trace_region_attr_t sync_attr)
 {
     LOG_DEBUG("record task-graph event: synchronise");
 
-    /* Get the task's attribute list */
-    OTF2_AttributeList* attributes = otterTaskContext_get_attribute_list(task);
+    OTF2_AttributeList *attributes = OTF2_AttributeList_New();
     
     /* Add attributes common to all enter/leave events */
     trace_add_common_event_attributes(
@@ -225,7 +228,8 @@ void trace_graph_synchronise_tasks(otter_task_context *task, trace_region_attr_t
     );
 
     release_shared_event_writer();
-
+    
+    OTF2_AttributeList_Delete(attributes);
 }
 
 static uint64_t 

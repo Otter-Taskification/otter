@@ -213,6 +213,7 @@ set_property(TARGET otter-events-serial PROPERTY POSITION_INDEPENDENT_CODE ON)
 # Task-graph event source
 add_library(otter-events-task-graph OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-task-graph/otter-task-graph.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-task-graph/otter-task-graph-cpp-wrapper.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/types/otter-task-context.c
 )
 target_include_directories(otter-events-task-graph PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -364,7 +365,7 @@ install(FILES ${CMAKE_BINARY_DIR}/lib/fmod/otter_serial.mod DESTINATION include/
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/modulefiles/otter DESTINATION etc/modulefiles/otter)
 
 # otter-task-graph library
-set_target_properties(otter-task-graph PROPERTIES PUBLIC_HEADER "include/api/otter-task-graph/otter-task-graph.h;include/api/otter-task-graph/otter-task-context.h;include/api/otter-task-graph/otter-task-graph-stub.h")
+set_target_properties(otter-task-graph PROPERTIES PUBLIC_HEADER "include/api/otter-task-graph/otter-task-graph.h;include/api/otter-task-graph/otter-task-context.h;include/api/otter-task-graph/otter-task-graph-stub.h;include/api/otter-task-graph/otter-task-graph-wrapper.hpp")
 install(TARGETS otter-task-graph LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include/otter)
 
 # Configure version header

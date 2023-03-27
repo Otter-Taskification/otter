@@ -18,7 +18,7 @@
 
 // Only want the otter_task_context typedef rather than the interface itself.
 // Interface only needed by the implementation of this event source.
-#include "api/otter-task-graph/otter-task-context.h"
+#include <otter/otter-task-context.h>
 
 /**
  * @brief Convenience macro function for use with functions that require file,

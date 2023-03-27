@@ -21,7 +21,7 @@
 #include "public/debug.h"
 #include "public/otter-trace/trace.h"
 #include "src/otter-trace/trace-archive.h"
-#include "private/otter-trace/trace-string-registry.h"
+#include "src/otter-trace/trace-string-registry.h"
 #include "src/otter-trace/trace-attributes.h"
 #include "private/otter-trace/trace-unique-refs.h"
 #include "src/otter-trace/trace-check-error-code.h"

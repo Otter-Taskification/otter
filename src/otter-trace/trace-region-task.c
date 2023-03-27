@@ -7,7 +7,7 @@
 #include "src/otter-trace/trace-check-error-code.h"
 #include "public/types/queue.h"
 #include "public/types/stack.h"
-#include "private/otter-trace/trace-string-registry.h"
+#include "src/otter-trace/trace-string-registry.h"
 
 /* Defined in trace-archive.c */
 extern OTF2_StringRef attr_name_ref[n_attr_defined][2];

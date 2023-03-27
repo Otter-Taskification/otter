@@ -58,6 +58,17 @@ namespace otter {
         Task& operator=(Task&& other)       = delete;   // move-assignment
 
         /**
+         * @brief Record a synchronisation constraint on the descendants of a
+         * task.
+         *
+         * @param mode: whether the synchronisation constraint applies to child
+         * tasks only or all descendant tasks.
+         */
+        void synchronise_tasks(otter_task_sync_t mode) {
+            otterSynchroniseTasks(m_task_context, mode);
+        }
+
+        /**
          * @brief Explicitly end the task, recording `otterTaskEnd` in the
          * trace. No effect if the task was already ended.
          * 

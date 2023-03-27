@@ -10,7 +10,7 @@
 #include "src/otter-trace/trace-attributes.h"
 #include "private/otter-trace/trace-lookup-macros.h"
 #include "private/otter-trace/trace-unique-refs.h"
-#include "private/otter-trace/trace-check-error-code.h"
+#include "src/otter-trace/trace-check-error-code.h"
 #include "private/otter-task-graph/otter-task-context-interface.h"
 
 #define OTTER_DUMMY_OTF2_LOCATION_REF        0

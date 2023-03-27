@@ -24,7 +24,7 @@
 #include "private/otter-trace/trace-string-registry.h"
 #include "src/otter-trace/trace-attributes.h"
 #include "private/otter-trace/trace-unique-refs.h"
-#include "private/otter-trace/trace-check-error-code.h"
+#include "src/otter-trace/trace-check-error-code.h"
 
 #define DEFAULT_LOCATION_GRP 0 // OTF2_UNDEFINED_LOCATION_GROUP
 #define DEFAULT_SYSTEM_TREE  0

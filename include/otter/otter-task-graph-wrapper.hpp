@@ -1,6 +1,5 @@
 #pragma once
 #include <otter/otter-task-graph.h>
-#include <stdio.h>
 
 /**
  * @brief Provides classes which wrap the otter-task-graph API.

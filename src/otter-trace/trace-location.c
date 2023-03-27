@@ -14,7 +14,7 @@
 #include <sched.h>
 #include <otf2/otf2.h>
 #include "private/otter-trace/trace-lookup-macros.h"
-#include "private/otter-trace/trace-attributes.h"
+#include "src/otter-trace/trace-attributes.h"
 #include "public/otter-trace/trace-location.h"
 #include "src/otter-trace/trace-archive.h"
 #include "private/otter-trace/trace-unique-refs.h"

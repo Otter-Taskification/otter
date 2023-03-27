@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include "private/otter-trace/trace-lookup-macros.h"
-#include "private/otter-trace/trace-attributes.h"
+#include "src/otter-trace/trace-attributes.h"
 #include "src/otter-trace/trace-archive.h"
 #include "public/otter-trace/trace-region-parallel.h"
 #include "private/otter-trace/trace-unique-refs.h"

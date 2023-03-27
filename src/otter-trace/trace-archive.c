@@ -266,7 +266,7 @@ trace_initialise_archive(otter_opt_t *opt)
     #define INCLUDE_LABEL(Name, Label)                                         \
         OTF2_GlobalDefWriter_WriteString(                                      \
             Defs, attr_label_ref[attr_##Name##_##Label], #Label);
-    #include "private/otter-trace/trace-attribute-defs.h"
+    #include "src/otter-trace/trace-attribute-defs.h"
 
     /* define attributes which can be referred to later by the enum 
        attr_name_enum_t */
@@ -275,7 +275,7 @@ trace_initialise_archive(otter_opt_t *opt)
             attr_name_ref[attr_##Name][0],                                     \
             attr_name_ref[attr_##Name][1],                                     \
             Type);
-    #include "private/otter-trace/trace-attribute-defs.h"
+    #include "src/otter-trace/trace-attribute-defs.h"
 
     trace_init_str_registry(
         string_registry_make(get_unique_str_ref, trace_write_string_ref)

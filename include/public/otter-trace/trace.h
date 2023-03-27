@@ -9,13 +9,19 @@
 #include "public/otter-trace/trace-types.h"
 // #include "api/constants.h"
 #include "public/otter-trace/trace-location.h"
-#include "private/otter-trace/trace-archive.h"
 #include "public/otter-trace/trace-region-parallel.h"
 #include "public/otter-trace/trace-region-task.h"
 #include "public/otter-trace/trace-region-workshare.h"
 #include "public/otter-trace/trace-region-master.h"
 #include "public/otter-trace/trace-region-sync.h"
 #include "public/otter-trace/trace-region-phase.h"
+
+/**************************/
+
+#include "public/otter-common.h"
+
+bool trace_initialise_archive(otter_opt_t *opt);
+bool trace_finalise_archive(void);
 
 /* Functions defined in trace-core.c */
 void trace_event_thread_begin(trace_location_def_t *self);

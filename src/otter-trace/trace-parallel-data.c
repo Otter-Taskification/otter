@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include "public/otter-trace/trace-parallel-data.h"
 #include "public/otter-trace/trace-region-parallel.h"
-#include "private/otter-trace/trace-get-unique-id.h"
+#include "src/otter-trace/trace-get-unique-id.h"
 
 parallel_data_t *
 new_parallel_data(

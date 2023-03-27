@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <pthread.h>
-#include "private/otter-trace/trace-lookup-macros.h"
+#include "src/otter-trace/trace-lookup-macros.h"
 #include "public/otter-trace/trace-enum-types.h"
 #include "src/otter-trace/trace-attributes.h"
 #include "public/otter-trace/trace-region-phase.h"

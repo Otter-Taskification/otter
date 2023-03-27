@@ -22,6 +22,7 @@ namespace otter {
      * 
      */
     class Task {
+
     public:
 
         /**
@@ -29,7 +30,7 @@ namespace otter {
          * recording `otterTaskBegin` in the trace.
          * 
          */
-        Task() : Task(nullptr) { }
+        Task(void);
 
         /**
          * @brief Construct a child task from its parent, recording 
@@ -37,9 +38,7 @@ namespace otter {
          * 
          * @return Task: the new child task.
          */
-        Task make_child() {
-            return Task(m_task_context);
-        }
+        Task make_child(void);
 
         /**
          * @brief Move-construct a new task by adopting the context from another
@@ -47,10 +46,7 @@ namespace otter {
          * 
          * @param other: the task whose context is moved into the new task.
          */
-        Task(Task&& other) : m_task_context{other.m_task_context} {
-            other.m_task_context = nullptr;
-            printf(">>> MOVE CONSTRUCTOR <<<\n");
-        }
+        Task(Task&& other);
 
         // Doesn't make sense to copy or move-assign a task:
         Task(const Task& other)             = delete;   // copy-constructor
@@ -64,30 +60,21 @@ namespace otter {
          * @param mode: whether the synchronisation constraint applies to child
          * tasks only or all descendant tasks.
          */
-        void synchronise_tasks(otter_task_sync_t mode) {
-            otterSynchroniseTasks(m_task_context, mode);
-        }
+        void synchronise_tasks(otter_task_sync_t mode);
 
         /**
          * @brief Explicitly end the task, recording `otterTaskEnd` in the
          * trace. No effect if the task was already ended.
          * 
          */
-        void end_task() {
-            if (m_task_context != nullptr) {
-                otterTaskEnd(m_task_context);
-                m_task_context = nullptr;
-            }
-        }
+        void end_task(void);
 
         /**
          * @brief Destroy the Task object, calling `task.end_task()` if the task
          * wasn't already ended.
          * 
          */
-        ~Task(void) {
-            end_task();
-        }
+        ~Task(void);
 
     private:
 
@@ -103,9 +90,7 @@ namespace otter {
          * 
          * @param parent 
          */
-        Task(otter_task_context* parent)
-            : m_task_context{otterTaskBegin(OTTER_SRC_ARGS(), parent)} {
-        }
+        Task(otter_task_context* parent);
     };
 
     /**
@@ -125,20 +110,14 @@ namespace otter {
          * 
          * @return Otter&
          */
-        static Otter& get_otter(void) {
-            static Otter _handle;
-            return _handle;
-        }
+        static Otter& get_otter(void);
         
         /**
          * @brief Delete the root task and finalise the Otter trace with
          * `otterTraceFinalise`.
          * 
          */
-        ~Otter() {
-            delete m_root_task;
-            otterTraceFinalise();
-        };
+        ~Otter(void);
 
         Otter(const Otter&)             = delete;
         Otter(Otter&&)                  = delete;
@@ -150,9 +129,7 @@ namespace otter {
          * 
          * @return Task& 
          */
-        Task& get_root_task() {
-            return *m_root_task;
-        }
+        Task& get_root_task(void);
 
     private:
 
@@ -161,10 +138,7 @@ namespace otter {
          * initialisation other than in the static `get` method.
          * 
          */
-        Otter() { 
-            otterTraceInitialise();
-            m_root_task = new otter::Task();
-        };
+        Otter(void);
 
         /**
          * @brief The handle to the trace's root task.

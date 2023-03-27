@@ -29,7 +29,7 @@
 #include "public/types/stack.h"
 
 // TODO: otter-trace shouldn't be depending on OMPT concerns - this is only needed for the pprint macros below
-#include "private/otter-ompt/otter-ompt-header.h"
+#include <omp-tools.h>
 // Bits used by ompt_task_flag_t to indicate task type
 #define OMPT_TASK_TYPE_BITS 0x0F
 

@@ -11,7 +11,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#include "private/otter-ompt/otter-ompt-header.h"
+#include <omp-tools.h>
 
 #include "public/otter-common.h"
 #include "src/otter-ompt/otter-entry.h"

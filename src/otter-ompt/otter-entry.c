@@ -4,7 +4,7 @@
 #include "public/otter-version.h"
 #include "public/debug.h"
 #include "src/otter-ompt/callback.h"
-#include "private/otter-ompt/otter-ompt-header.h"
+#include <omp-tools.h>
 #include "src/otter-ompt/otter-entry.h"
 #include "public/otter-environment-variables.h"
 

@@ -1,7 +1,7 @@
 #if !defined(OTTER_ENTRY_H)
 #define OTTER_ENTRY_H
 
-#include "private/otter-ompt/otter-ompt-header.h"
+#include <omp-tools.h>
 #include "public/otter-common.h"
 
 /* Define the struct used by otter-entry which is passed to otter for it to

@@ -12,7 +12,7 @@
 #include "public/debug.h"
 #include "src/otter-ompt/callback.h"
 
-#include "private/otter-ompt/otter-ompt-header.h"
+#include <omp-tools.h>
 
 #include "public/otter-common.h"
 #include "src/otter-ompt/otter.h"

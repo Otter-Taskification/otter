@@ -407,7 +407,7 @@ on_ompt_callback_implicit_task(
         task_data_t *implicit_task_data = new_task_data(
             thread_data->location,
             flags & ompt_task_implicit ?
-                encountering_task_data->region : NULL,
+                trace_task_get_region_def(encountering_task_data) : NULL,
             flags,
             0,
             NULL,
@@ -416,7 +416,7 @@ on_ompt_callback_implicit_task(
         task->ptr = implicit_task_data;
 
         /* Enter implicit task region */
-        trace_event_enter(thread_data->location, implicit_task_data->region);
+        trace_event_enter(thread_data->location, trace_task_get_region_def(implicit_task_data));
 
     } else {
 
@@ -424,7 +424,7 @@ on_ompt_callback_implicit_task(
 
         /* Update implicit task status */
         trace_event_task_schedule(thread_data->location,
-            implicit_task_data->region, ompt_task_complete);
+            trace_task_get_region_def(implicit_task_data), ompt_task_complete);
 
         /* Leave implicit task region */
         trace_event_leave(thread_data->location);
@@ -439,8 +439,8 @@ on_ompt_callback_implicit_task(
            written at parallel-end */
         if (flags & ompt_task_initial)
         {
-            trace_write_region_definition(implicit_task_data->region);
-            trace_destroy_task_region(implicit_task_data->region);
+            trace_write_region_definition(trace_task_get_region_def(implicit_task_data));
+            trace_destroy_task_region(trace_task_get_region_def(implicit_task_data));
         }
     }
     return;

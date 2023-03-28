@@ -5,6 +5,10 @@
 #include "public/otter-trace/trace-region-attr.h"
 #include "src/otter-trace/trace-region-types.h"
 
+// TODO: this struct is opaque except for some debug checking in otter-serial 
+// TODO: and otter-ompt. Need to clean up this debug checking and properly declare this
+// TODO: struct as publically opaque, then move this definition into src/otter-trace
+
 /* Store values needed to register region definition (tasks, parallel regions, 
    workshare constructs etc.) with OTF2 */
 typedef struct {

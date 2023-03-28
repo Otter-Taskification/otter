@@ -11,6 +11,10 @@
 #include "public/types/stack.h"
 #include "public/otter-trace/trace.h"
 
+// TODO: once trace_region_def_t properly declared as opaque, combine all
+// TODO: trace-region-*.h and trace-region-*.c into one header & src file which
+// TODO: implements all variants of trace_region_def_t.
+
 /* Create region */
 trace_region_def_t *
 trace_new_master_region(

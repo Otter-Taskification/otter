@@ -5,6 +5,9 @@
 #include "public/otter-trace/trace-types.h"
 #include "public/otter-trace/trace-task-data.h"
 
+// TODO: this struct is almost opaque - refactor any accesses into 
+// TODO: trace-parallel-data.c and declare as public opaque type.
+// TODO: need getters for region & encountering_task_data.
 typedef struct parallel_data_t {
     unique_id_t         id;
     unique_id_t         master_thread;

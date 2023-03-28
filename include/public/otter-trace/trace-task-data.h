@@ -5,6 +5,7 @@
 #include "public/otter-trace/trace-types.h"
 #include "public/otter-trace/trace-location.h"
 
+// TODO: make this struct fully opaque by adding getters and moving definition into trace-task-data.c
 typedef struct task_data_t {
     unique_id_t         id;
     otter_task_flag_t   type;

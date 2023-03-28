@@ -16,6 +16,10 @@
 #include "public/types/stack.h"
 #include "public/otter-trace/trace-types.h"
 
+// TODO: this struct is almost opaque except for some debug access in otter-ompt
+// TODO: and some manipulation of rgn_defs in otter-serial. Remove or refactor
+// TODO: these, then declare as a public opaque type and move into
+// TODO: src/otter-trace/trace-location.c
 /* Store values needed to register location definition (threads) with OTF2 */
 typedef struct {
     unique_id_t             id;

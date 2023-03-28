@@ -5,7 +5,6 @@
 #include "public/otter-trace/trace-types.h"
 #include "public/otter-trace/trace-location.h"
 
-// TODO: this struct is accessed in many places so it makes more sense to leave its definition as public
 typedef struct thread_data_t {
     unique_id_t           id;
     trace_location_def_t *location;

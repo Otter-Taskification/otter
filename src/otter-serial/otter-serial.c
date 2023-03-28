@@ -19,6 +19,8 @@
 #define LOG_EVENT_CALL(file, func, line, ifunc) LOG_DEBUG("%s:%d in %s", file, line, func)
 
 static thread_data_t *thread_data = NULL;
+static trace_location_def_t *location = NULL;
+static unique_id_t thread_id = 0;
 static otter_stack_t *region_stack = NULL;
 static otter_stack_t *task_stack = NULL;
 static otter_stack_t *parallel_stack = NULL;
@@ -80,7 +82,9 @@ void otterTraceInitialise(const char* file, const char* func, const int line)
     tracingActive = true;
 
     thread_data = new_thread_data(otter_thread_initial);
-    trace_event_thread_begin(thread_data->location);
+    location = thread_data->location;
+    thread_id = thread_data->id;
+    trace_event_thread_begin(location);
 
     otter_src_location_t src_location = {
         .file = file,
@@ -91,7 +95,7 @@ void otterTraceInitialise(const char* file, const char* func, const int line)
 
     // initial task
     task_data_t *initial_task = new_task_data(
-        thread_data->location,
+        location,
         NULL,
         otter_task_initial,
         0,
@@ -102,7 +106,7 @@ void otterTraceInitialise(const char* file, const char* func, const int line)
     stack_push(region_stack, (data_item_t) {.ptr = trace_task_get_region_def(initial_task)});
     stack_push(task_stack, (data_item_t) {.ptr = initial_task});
 
-    trace_event_enter(thread_data->location, trace_task_get_region_def(initial_task));
+    trace_event_enter(location, trace_task_get_region_def(initial_task));
 
     return;
 }
@@ -113,14 +117,14 @@ void otterTraceFinalise(void)
     LOG_DEBUG("=== finalising archive ===");
 
     // initial task
-    trace_event_leave(thread_data->location);
+    trace_event_leave(location);
 
     /* For initial-task-end event, must manually record region defintion
         as it never gets handed off to an enclosing parallel region to be
         written at parallel-end */
     trace_region_def_t *initial_task_region = NULL;
     stack_pop(region_stack, NULL);
-    trace_location_pop_region_def(thread_data->location, (data_item_t*) &initial_task_region);
+    trace_location_pop_region_def(location, (data_item_t*) &initial_task_region);
     assert((initial_task_region->type == trace_region_task)
         && (initial_task_region->attr.task.type == otter_task_initial));
     LOG_DEBUG("writing initial-task region definition from thread queue: %p", initial_task_region);
@@ -140,10 +144,10 @@ void otterTraceFinalise(void)
         otter-serial event source e.g. if a phase region is inserted outside
         and parallel region.
     */
-    size_t num_definitions = trace_location_get_num_region_def(thread_data->location);
+    size_t num_definitions = trace_location_get_num_region_def(location);
     LOG_DEBUG_IF((num_definitions!=0), "definitions in thread queue: %lu", num_definitions);
     trace_region_def_t *region = NULL;
-    while (trace_location_pop_region_def(thread_data->location, (data_item_t*) &region)) {
+    while (trace_location_pop_region_def(location, (data_item_t*) &region)) {
         LOG_DEBUG("writing region definition %p (%d)", region, region->type);
         trace_write_region_definition(region);
         switch (region->type) {
@@ -159,7 +163,7 @@ void otterTraceFinalise(void)
         }
     }
 
-    trace_event_thread_end(thread_data->location);
+    trace_event_thread_end(location);
     thread_destroy(thread_data);
     trace_finalise_archive();
 
@@ -187,7 +191,7 @@ void otterThreadsBegin(const char* file, const char* func, const int line)
     task_data_t *encountering_task = get_encountering_task();
 
     parallel_data_t *parallel_data = new_parallel_data(
-        thread_data->id,
+        thread_id,
         trace_task_get_id(encountering_task),
         encountering_task,
         0,
@@ -197,7 +201,7 @@ void otterThreadsBegin(const char* file, const char* func, const int line)
     stack_push(region_stack, (data_item_t) {.ptr = trace_parallel_get_region_def(parallel_data)});
     stack_push(parallel_stack, (data_item_t) {.ptr = parallel_data});
 
-    trace_event_enter(thread_data->location, trace_parallel_get_region_def(parallel_data));
+    trace_event_enter(location, trace_parallel_get_region_def(parallel_data));
 
     otter_src_location_t src_location = {
         .file = file,
@@ -207,7 +211,7 @@ void otterThreadsBegin(const char* file, const char* func, const int line)
     LOG_EVENT_CALL(src_location.file, src_location.func, src_location.line, __func__);
 
     task_data_t *implicit_task = new_task_data(
-        thread_data->location,
+        location,
         trace_task_get_region_def(encountering_task),
         otter_task_implicit,
         0,
@@ -218,7 +222,7 @@ void otterThreadsBegin(const char* file, const char* func, const int line)
     stack_push(region_stack, (data_item_t) {.ptr = trace_task_get_region_def(implicit_task)});
     stack_push(task_stack, (data_item_t) {.ptr = implicit_task});
 
-    trace_event_enter(thread_data->location, trace_task_get_region_def(implicit_task));
+    trace_event_enter(location, trace_task_get_region_def(implicit_task));
 
     return;
 }
@@ -240,13 +244,13 @@ void otterThreadsEnd(void)
     stack_pop(region_stack, (data_item_t*) &implicit_task_region);
     stack_pop(task_stack, (data_item_t*) &implicit_task);
     assert(trace_task_get_region_def(implicit_task) == implicit_task_region);
-    trace_event_leave(thread_data->location); // implicit task
+    trace_event_leave(location); // implicit task
     task_destroy(implicit_task);
 
     stack_pop(region_stack, (data_item_t*) &parallel_region);
     stack_pop(parallel_stack, (data_item_t*) &parallel_data);
     assert(trace_parallel_get_region_def(parallel_data) == parallel_region);
-    trace_event_leave(thread_data->location); // parallel
+    trace_event_leave(location); // parallel
     parallel_destroy(parallel_data);
     return;
 }
@@ -275,7 +279,7 @@ void otterTaskBegin(const char* file, const char* func, const int line)
     task_data_t *encountering_task = get_encountering_task();
 
     task_data_t *task = new_task_data(
-        thread_data->location,
+        location,
         trace_task_get_region_def(encountering_task),
         otter_task_explicit,
         0,
@@ -286,10 +290,10 @@ void otterTaskBegin(const char* file, const char* func, const int line)
     stack_push(region_stack, (data_item_t) {.ptr = trace_task_get_region_def(task)});
     stack_push(task_stack, (data_item_t) {.ptr = task});
 
-    trace_event_task_create(thread_data->location, trace_task_get_region_def(task));
+    trace_event_task_create(location, trace_task_get_region_def(task));
 
     trace_event_task_switch(
-        thread_data->location,
+        location,
         trace_task_get_region_def(encountering_task),
         otter_task_switch,
         trace_task_get_region_def(task)
@@ -321,7 +325,7 @@ void otterTaskEnd(void)
     task_data_t *encountering_task = get_encountering_task();
 
     trace_event_task_switch(
-        thread_data->location,
+        location,
         trace_task_get_region_def(task),
         otter_task_complete,
         trace_task_get_region_def(encountering_task)
@@ -343,7 +347,7 @@ void otterLoopBegin()
     task_data_t *encountering_task = get_encountering_task();
 
     trace_region_def_t *loop = trace_new_workshare_region(
-        thread_data->location,
+        location,
         otter_work_loop,
         1,
         trace_task_get_id(encountering_task)
@@ -351,7 +355,7 @@ void otterLoopBegin()
 
     stack_push(region_stack, (data_item_t) {.ptr = loop});
 
-    trace_event_enter(thread_data->location, loop);
+    trace_event_enter(location, loop);
 
     return;
 }
@@ -369,7 +373,7 @@ void otterLoopEnd(void)
     stack_pop(region_stack, (data_item_t*) &loop);
     assert((loop->type == trace_region_workshare)
         && (loop->attr.wshare.type == otter_work_loop));
-    trace_event_leave(thread_data->location);
+    trace_event_leave(location);
     return;
 }
 
@@ -408,13 +412,13 @@ void otterSynchroniseTasks(otter_task_sync_t mode)
     // LOG_EVENT_CALL(file, func, line, __func__);
     task_data_t *encountering_task = get_encountering_task();
     trace_region_def_t *taskwait = trace_new_sync_region(
-        thread_data->location,
+        location,
         otter_sync_region_taskwait,
         mode == otter_sync_descendants ? trace_sync_descendants : trace_sync_children,
         trace_task_get_id(encountering_task)
     );
-    trace_event_enter(thread_data->location, taskwait);
-    trace_event_leave(thread_data->location);
+    trace_event_enter(location, taskwait);
+    trace_event_leave(location);
     return;
 }
 
@@ -429,13 +433,13 @@ void otterSynchroniseDescendantTasksBegin()
     // LOG_EVENT_CALL(file, func, line, __func__);
     task_data_t *encountering_task = get_encountering_task();
     trace_region_def_t *taskgroup = trace_new_sync_region(
-        thread_data->location,
+        location,
         otter_sync_region_taskgroup,
         trace_sync_descendants,
         trace_task_get_id(encountering_task)
     );
     stack_push(region_stack, (data_item_t) {.ptr = taskgroup});
-    trace_event_enter(thread_data->location, taskgroup);
+    trace_event_enter(location, taskgroup);
     return;
 }
 
@@ -452,7 +456,7 @@ void otterSynchroniseDescendantTasksEnd(void)
     stack_pop(region_stack, (data_item_t*) &taskgroup);
     assert((taskgroup->type == trace_region_synchronise)
         && (taskgroup->attr.sync.type == otter_sync_region_taskgroup));
-    trace_event_leave(thread_data->location);
+    trace_event_leave(location);
     return;
 }
 
@@ -493,7 +497,7 @@ void otterPhaseBegin(const char* name)
 
     task_data_t *encountering_task = get_encountering_task();
     trace_region_def_t *phase = trace_new_phase_region(
-        thread_data->location,
+        location,
         otter_phase_region_generic,
         trace_task_get_id(encountering_task),
         name
@@ -501,7 +505,7 @@ void otterPhaseBegin(const char* name)
 
     stack_push(region_stack, (data_item_t) {.ptr = phase});
 
-    trace_event_enter(thread_data->location, phase);
+    trace_event_enter(location, phase);
 
     return;
 
@@ -536,6 +540,6 @@ void otterPhaseEnd(void)
     trace_region_def_t *phase = NULL;
     stack_pop(region_stack, (data_item_t*) &phase);
     assert((phase->type == trace_region_phase));
-    trace_event_leave(thread_data->location);
+    trace_event_leave(location);
     return;
 }

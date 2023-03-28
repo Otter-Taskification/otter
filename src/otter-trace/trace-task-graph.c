@@ -43,7 +43,7 @@ static void trace_add_common_event_attributes(
 /* Lookup tables mapping enum value to string ref */
 extern OTF2_StringRef attr_label_ref[n_attr_label_defined];
 
-void trace_graph_event_task_begin(otter_task_context *task, trace_region_attr_t task_attr)
+void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_attr_t task_attr)
 {
     /*
     Record event: OTF2_EvtWriter_ThreadTaskSwitch()
@@ -65,7 +65,7 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_region_attr_t 
         attr,
         parent_task_id,
         trace_region_task,
-        task_attr
+        (trace_region_attr_t) task_attr
     );
     
     // Event type
@@ -191,7 +191,7 @@ void trace_graph_event_task_end(otter_task_context *task)
     OTF2_AttributeList_Delete(attr);
 }
 
-void trace_graph_synchronise_tasks(otter_task_context *task, trace_region_attr_t sync_attr)
+void trace_graph_synchronise_tasks(otter_task_context *task, trace_sync_region_attr_t sync_attr)
 {
     LOG_DEBUG("record task-graph event: synchronise");
 
@@ -202,7 +202,7 @@ void trace_graph_synchronise_tasks(otter_task_context *task, trace_region_attr_t
         attributes,
         otterTaskContext_get_task_context_id(task),
         trace_region_synchronise,
-        sync_attr
+        (trace_region_attr_t) sync_attr
     );
 
     /* Add the event type attribute */
@@ -215,7 +215,7 @@ void trace_graph_synchronise_tasks(otter_task_context *task, trace_region_attr_t
         attr_label_ref[attr_endpoint_discrete]);
 
     /* Add the sync mode - children or descendants? */
-    OTF2_AttributeList_AddUint8(attributes, attr_sync_descendant_tasks, sync_attr.sync.sync_descendant_tasks ? 1 : 0);
+    OTF2_AttributeList_AddUint8(attributes, attr_sync_descendant_tasks, sync_attr.sync_descendant_tasks ? 1 : 0);
 
     /* Get the event writer */
     OTF2_EvtWriter *event_writer = get_shared_event_writer();

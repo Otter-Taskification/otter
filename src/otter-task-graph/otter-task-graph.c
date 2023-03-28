@@ -92,11 +92,11 @@ otter_task_context *otterTaskBegin(const char* file, const char* func, int line,
 {
     otter_task_context *task = otterTaskContext_alloc();
     otterTaskContext_init(task, parent);
-    trace_region_attr_t task_attr;
-    task_attr.task.type = otter_task_explicit;
-    task_attr.task.id = otterTaskContext_get_task_context_id(task);
-    task_attr.task.parent_id = parent==NULL ? (unique_id_t) (~0) : otterTaskContext_get_task_context_id(parent);
-    LOG_DEBUG("[%lu] begin task (child of %lu)", task_attr.task.id, task_attr.task.parent_id);
+    trace_task_region_attr_t task_attr;
+    task_attr.type = otter_task_explicit;
+    task_attr.id = otterTaskContext_get_task_context_id(task);
+    task_attr.parent_id = parent==NULL ? (unique_id_t) (~0) : otterTaskContext_get_task_context_id(parent);
+    LOG_DEBUG("[%lu] begin task (child of %lu)", task_attr.id, task_attr.parent_id);
     trace_graph_event_task_begin(task, task_attr);
     return task;
 }
@@ -111,10 +111,10 @@ void otterTaskEnd(otter_task_context *task)
 void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode)
 {
     LOG_DEBUG("synchronise tasks: %d", mode);
-    trace_region_attr_t sync_attr;
-    sync_attr.sync.type = otter_sync_region_taskwait;
-    sync_attr.sync.sync_descendant_tasks = mode == otter_sync_descendants ? true : false;
-    sync_attr.sync.encountering_task_id = otterTaskContext_get_task_context_id(task);
+    trace_sync_region_attr_t sync_attr;
+    sync_attr.type = otter_sync_region_taskwait;
+    sync_attr.sync_descendant_tasks = mode == otter_sync_descendants ? true : false;
+    sync_attr.encountering_task_id = otterTaskContext_get_task_context_id(task);
     trace_graph_synchronise_tasks(task, sync_attr);
     return;
 }

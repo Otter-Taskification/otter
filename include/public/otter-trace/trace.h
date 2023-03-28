@@ -49,9 +49,9 @@ void trace_event_task_switch(trace_location_def_t *self, trace_region_def_t *pri
 void trace_write_region_definition(trace_region_def_t *rgn);
 
 /* Functions defined in trace-task-graph.c */
-void trace_graph_event_task_begin(otter_task_context *task, trace_region_attr_t task_attr);
+void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_attr_t task_attr);
 void trace_graph_event_task_end(otter_task_context *task);
-void trace_graph_synchronise_tasks(otter_task_context *task, trace_region_attr_t sync_attr);
+void trace_graph_synchronise_tasks(otter_task_context *task, trace_sync_region_attr_t sync_attr);
 
 void trace_region_pprint(FILE *fp, trace_region_def_t *r, const char func[], const int line);
 

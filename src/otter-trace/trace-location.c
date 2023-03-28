@@ -13,15 +13,30 @@
 #include <pthread.h>
 #include <sched.h>
 #include <otf2/otf2.h>
+#include "public/otter-trace/trace-location.h"
+#include "public/types/queue.h"
+#include "public/types/stack.h"
 #include "src/otter-trace/trace-lookup-macros.h"
 #include "src/otter-trace/trace-attributes.h"
-#include "public/otter-trace/trace-location.h"
 #include "src/otter-trace/trace-archive.h"
 #include "src/otter-trace/trace-unique-refs.h"
 #include "src/otter-trace/trace-check-error-code.h"
 #include "src/otter-trace/trace-static-constants.h"
-#include "public/types/queue.h"
-#include "public/types/stack.h"
+
+typedef struct {
+    unique_id_t             id;
+    otter_thread_t          thread_type;
+    uint64_t                events;
+    otter_stack_t          *rgn_stack;
+    otter_queue_t          *rgn_defs;
+    otter_stack_t          *rgn_defs_stack;
+    OTF2_LocationRef        ref;
+    OTF2_LocationType       type;
+    OTF2_LocationGroupRef   location_group;
+    OTF2_AttributeList     *attributes;
+    OTF2_EvtWriter         *evt_writer;
+    OTF2_DefWriter         *def_writer;
+} trace_location_def_t;
 
 /* Defined in trace-archive.c */
 extern OTF2_StringRef attr_name_ref[n_attr_defined][2];
@@ -136,4 +151,14 @@ trace_write_location_definition(trace_location_def_t *loc)
     pthread_mutex_unlock(def_writer_lock);
 
     return;
+}
+
+bool
+trace_location_pop_region_def(trace_location_def_t *loc, data_item_t *dest) {
+    return queue_pop(loc->rgn_defs, dest);
+}
+
+size_t
+trace_location_get_num_region_def(trace_location_def_t *loc) {
+    return queue_length(loc->rgn_defs);
 }

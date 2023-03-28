@@ -210,19 +210,6 @@ on_ompt_callback_parallel_end(
         LOG_ERROR("parallel end: null pointer");
     } else {
         parallel_data_t *parallel_data = parallel->ptr;
-
-#if !defined(NDEBUG)
-        {
-            trace_region_def_t *_rgn = NULL;
-            stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
-#if DEBUG_LEVEL >= 3
-            if (_rgn->type != trace_region_parallel)
-                trace_region_pprint(stderr, _rgn, __func__, __LINE__);
-#endif
-            assert((_rgn->type == trace_region_parallel));
-        }
-#endif
-
         trace_event_leave(thread_data->location);
         /* reset flag */
         thread_data->is_master_thread = false;
@@ -349,19 +336,6 @@ on_ompt_callback_task_schedule(
         next_task_data->id
     );
 
-// This debug block currently turned off while there is a known challenge
-// with correctly managing region definitions at a task-schedule event
-#if !defined(NDEBUG) && 0
-    {
-        trace_region_def_t *_rgn = NULL;
-        stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
-#if DEBUG_LEVEL >= 3
-        trace_region_pprint(stderr, _rgn, __func__, __LINE__);
-        assert((_rgn->type == trace_region_task));
-#endif
-    }
-#endif
-
 #if defined(TASK_SCHEDULE_LEAVE_ENTER)
     // Deprecated
     if (prior_task_data->type == ompt_task_explicit 
@@ -446,19 +420,6 @@ on_ompt_callback_implicit_task(
 
     } else {
 
-#if !defined(NDEBUG)
-        {
-            trace_region_def_t *_rgn = NULL;
-            stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
-#if DEBUG_LEVEL >= 3
-            if (_rgn->type != trace_region_task)
-                trace_region_pprint(stderr, _rgn, __func__, __LINE__);
-#endif
-            assert((_rgn->type == trace_region_task));
-            assert((_rgn->attr.task.type == ompt_task_initial) || (_rgn->attr.task.type == ompt_task_implicit));
-        }
-#endif
-
         task_data_t *implicit_task_data = (task_data_t*)task->ptr;
 
         /* Update implicit task status */
@@ -528,22 +489,6 @@ on_ompt_callback_work(
             );
             trace_event_enter(thread_data->location, wshare_rgn);
         } else {
-
-        /* Assert that the region definition we are about to pop is a workshare
-           region */
-#if !defined(NDEBUG)
-        {
-            trace_region_def_t *_rgn = NULL;
-            stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
-#if DEBUG_LEVEL >= 3
-            if (_rgn->type != trace_region_workshare)
-                trace_region_pprint(stderr, _rgn, __func__, __LINE__);
-#endif
-            assert((_rgn->type == trace_region_workshare));
-        }
-#endif
-
-
             trace_event_leave(thread_data->location);
         }
     }
@@ -623,19 +568,6 @@ on_ompt_callback_sync_region(
         );
         trace_event_enter(thread_data->location, sync_rgn);
     } else {
-
-#if !defined(NDEBUG)
-        {
-            trace_region_def_t *_rgn = NULL;
-            stack_peek(thread_data->location->rgn_stack, (data_item_t*) &_rgn);
-#if DEBUG_LEVEL >= 3
-            if (_rgn->type != trace_region_synchronise)
-                trace_region_pprint(stderr, _rgn, __func__, __LINE__);
-#endif
-            assert((_rgn->type == trace_region_synchronise));
-        }
-#endif
-
         trace_event_leave(thread_data->location);
     }
     return;

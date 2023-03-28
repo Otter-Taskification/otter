@@ -121,8 +121,7 @@ void otterTraceFinalise(void)
         written at parallel-end */
     trace_region_def_t *initial_task_region = NULL;
     stack_pop(region_stack, NULL);
-    // TODO: refactor this dependency on trace_location_def_t implementation into trace-location.c e.g. `trace_location_pop_last_region(location, &task_region)`
-    queue_pop(thread_data->location->rgn_defs, (data_item_t*) &initial_task_region);
+    trace_location_pop_region_def(thread_data->location, (data_item_t*) &initial_task_region);
     assert((initial_task_region->type == trace_region_task)
         && (initial_task_region->attr.task.type == otter_task_initial));
     LOG_DEBUG("writing initial-task region definition from thread queue: %p", initial_task_region);
@@ -142,12 +141,10 @@ void otterTraceFinalise(void)
         otter-serial event source e.g. if a phase region is inserted outside
         and parallel region.
     */
-    // TODO: refactor into trace-location.c
-    size_t num_definitions = queue_length(thread_data->location->rgn_defs);
+    size_t num_definitions = trace_location_get_num_region_def(thread_data->location);
     LOG_DEBUG_IF((num_definitions!=0), "definitions in thread queue: %lu", num_definitions);
     trace_region_def_t *region = NULL;
-    // TODO: refactor into trace-location.c
-    while (queue_pop(thread_data->location->rgn_defs, (data_item_t*) &region)) {
+    while (trace_location_pop_region_def(thread_data->location, (data_item_t*) &region)) {
         LOG_DEBUG("writing region definition %p (%d)", region, region->type);
         trace_write_region_definition(region);
         switch (region->type) {

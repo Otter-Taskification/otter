@@ -16,25 +16,8 @@
 #include "public/types/stack.h"
 #include "public/otter-trace/trace-types.h"
 
-// TODO: this struct is almost opaque except for some debug access in otter-ompt
-// TODO: and some manipulation of rgn_defs in otter-serial. Remove or refactor
-// TODO: these, then declare as a public opaque type and move into
-// TODO: src/otter-trace/trace-location.c
-/* Store values needed to register location definition (threads) with OTF2 */
-typedef struct {
-    unique_id_t             id;
-    otter_thread_t          thread_type;
-    uint64_t                events;
-    otter_stack_t          *rgn_stack;
-    otter_queue_t          *rgn_defs;
-    otter_stack_t          *rgn_defs_stack;
-    OTF2_LocationRef        ref;
-    OTF2_LocationType       type;
-    OTF2_LocationGroupRef   location_group;
-    OTF2_AttributeList     *attributes;
-    OTF2_EvtWriter         *evt_writer;
-    OTF2_DefWriter         *def_writer;
-} trace_location_def_t;
+// Represents a location definition of an OTF2 trace
+typedef struct trace_location_def_t trace_location_def_t;
 
 /* Create new location */
 trace_location_def_t *trace_new_location_definition(
@@ -46,5 +29,7 @@ trace_location_def_t *trace_new_location_definition(
 void trace_destroy_location(trace_location_def_t *loc);
 void trace_add_thread_attributes(trace_location_def_t *self);
 void trace_write_location_definition(trace_location_def_t *loc);
+bool trace_location_pop_region_def(trace_location_def_t *loc, data_item_t *dest);
+size_t trace_location_get_num_region_def(trace_location_def_t *loc);
 
 #endif // OTTER_TRACE_LOCATION_H

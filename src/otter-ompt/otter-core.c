@@ -19,7 +19,6 @@
 #include "src/otter-ompt/otter-entry.h"
 #include "public/otter-environment-variables.h"
 #include "public/otter-trace/trace.h"
-#include "public/otter-trace/trace-mmap.h"
 #include "public/otter-trace/trace-thread-data.h"
 #include "public/otter-trace/trace-task-data.h"
 #include "public/otter-trace/trace-parallel-data.h"
@@ -84,8 +83,6 @@ tool_setup(
     LOG_INFO("%-30s %s", ENV_VAR_APPEND_HOST,  opt.append_hostname?"Yes":"No");
 
     trace_initialise_archive(&opt);
-    // TODO: move trace_copy_proc_maps into trace_initialise_archive
-    trace_copy_proc_maps(&opt);
 
     return &opt;
 }

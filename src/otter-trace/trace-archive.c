@@ -9,16 +9,22 @@
 #define _GNU_SOURCE
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <pthread.h>
 #include <time.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 #include <otf2/otf2.h>
 #include <otf2/OTF2_Pthread_Locks.h>
 
 #include "public/otter-version.h"
 #include "public/debug.h"
+#include "public/otter-common.h"
 #include "public/otter-trace/trace.h"
 #include "src/otter-trace/trace-archive.h"
 #include "src/otter-trace/trace-string-registry.h"
@@ -26,9 +32,19 @@
 #include "src/otter-trace/trace-unique-refs.h"
 #include "src/otter-trace/trace-check-error-code.h"
 
-#define DEFAULT_LOCATION_GRP 0 // OTF2_UNDEFINED_LOCATION_GROUP
-#define DEFAULT_SYSTEM_TREE  0
-#define DEFAULT_NAME_BUF_SZ  256
+static const OTF2_LocationGroupRef DEFAULT_LOCATION_GRP=0;
+static const OTF2_SystemTreeNodeRef DEFAULT_SYSTEM_TREE=0;
+static const size_t DEFAULT_NAME_BUF_SZ=256;
+static const size_t CHAR_BUFF_SZ=1024;
+
+/**
+ * @brief Copy the process' memory map from /proc/self/maps to aux/maps within
+ * the trace directory. This information can be used to match return addresses
+ * to source locations.
+ * 
+ * @param opt The runtime options passed to Otter.
+ */
+static void trace_copy_proc_maps(otter_opt_t *opt);
 
 static uint64_t get_timestamp(void);
 
@@ -281,7 +297,61 @@ trace_initialise_archive(otter_opt_t *opt)
         string_registry_make(get_unique_str_ref, trace_write_string_ref)
     );
 
+    trace_copy_proc_maps(opt);
+
     return true;
+}
+
+static void
+trace_copy_proc_maps(otter_opt_t *opt) {
+    char     oname[CHAR_BUFF_SZ] = {0};
+    FILE    *ifile               = NULL;
+    FILE    *ofile               = NULL;
+    char    *linebuff            = NULL;
+    size_t   linesize            = 0;
+
+    // TODO: consider separating concerns of setting up dirs and copying files
+    // TODO: as setting up environment should be done during initialisation.
+    // create aux files dir
+    snprintf(oname, CHAR_BUFF_SZ, "%s/%s/aux", opt->tracepath, opt->archive_name);
+    if (mkdir(oname, 0755) == -1) {
+        LOG_ERROR("(line %d) Error while making dir %s: %s", __LINE__, oname, strerror(errno));
+        goto exit_error;
+    } else {
+        LOG_DEBUG("created dir: %s", oname);
+    }
+
+    // open maps file
+    if ((ifile = fopen("/proc/self/maps", "r")) == NULL) {
+        LOG_ERROR("(line %d) Error opening file /proc/self/maps: %s", __LINE__, strerror(errno));
+        goto exit_error;
+    }
+
+    // open output
+    snprintf(oname, CHAR_BUFF_SZ, "%s/%s/aux/maps", opt->tracepath, opt->archive_name);
+    if ((ofile = fopen(oname, "w")) == NULL) {
+        LOG_ERROR("(line %d) Error opening file %s: %s", __LINE__, oname, strerror(errno));
+        goto exit_error;
+    }
+
+    // copy ifile -> ofile
+    while (getline(&linebuff, &linesize, ifile) > 0) {
+        size_t linelen = strlen(linebuff);
+        linebuff[linelen-1] = '\0'; // replace delimiting newline with null-byte for logging
+        LOG_DEBUG("/proc/self/maps: %s", linebuff);
+        if (fprintf(ofile, "%s\n", linebuff) < 0) {
+            LOG_ERROR("(line %d) Error writing to file %s: %s", __LINE__, oname, strerror(errno));
+            goto exit_error;
+        }
+    }
+
+    LOG_DEBUG("copied memory map to %s", oname);
+
+exit_error:
+    if(ifile)      fclose(ifile);
+    if(ofile)      fclose(ofile);
+    if(linebuff)   free(linebuff);
+    return;
 }
 
 bool

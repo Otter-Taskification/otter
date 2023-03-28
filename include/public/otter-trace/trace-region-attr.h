@@ -1,3 +1,18 @@
+/**
+ * @file trace-region-attr.h
+ * @author Adam Tuft
+ * @brief Defines the public attributes of various kinds of regions.
+ * @version 0.1
+ * @date 2023-03-28
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
+// TODO: for client code that uses trace_region_attr_t, allow it to pass a more 
+// TODO: specific attr struct and then cast to trace_region_attr_t for generic
+// TODO: internal attribute access.
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <pthread.h>

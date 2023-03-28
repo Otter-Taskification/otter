@@ -125,8 +125,6 @@ void otterTraceFinalise(void)
     trace_region_def_t *initial_task_region = NULL;
     stack_pop(region_stack, NULL);
     trace_location_pop_region_def(location, (data_item_t*) &initial_task_region);
-    assert((initial_task_region->type == trace_region_task)
-        && (initial_task_region->attr.task.type == otter_task_initial));
     LOG_DEBUG("writing initial-task region definition from thread queue: %p", initial_task_region);
     trace_write_region_definition(initial_task_region);
     trace_destroy_task_region(initial_task_region);
@@ -148,9 +146,10 @@ void otterTraceFinalise(void)
     LOG_DEBUG_IF((num_definitions!=0), "definitions in thread queue: %lu", num_definitions);
     trace_region_def_t *region = NULL;
     while (trace_location_pop_region_def(location, (data_item_t*) &region)) {
-        LOG_DEBUG("writing region definition %p (%d)", region, region->type);
+        trace_region_type_t region_type = trace_region_get_type(region);
+        LOG_DEBUG("writing region definition %p (%d)", region, region_type);
         trace_write_region_definition(region);
-        switch (region->type) {
+        switch (region_type) {
             /*
             Only phase regions may appear outside a parallel region.
             */
@@ -158,7 +157,7 @@ void otterTraceFinalise(void)
                 trace_destroy_phase_region(region);
                 break;
             default:
-                LOG_ERROR("unexpected region type %d", region->type);
+                LOG_ERROR("unexpected region type %d", region_type);
                 abort();
         }
     }
@@ -318,10 +317,6 @@ void otterTaskEnd(void)
     stack_pop(region_stack, (data_item_t*) &task_region);
     stack_pop(task_stack, (data_item_t*) &task);
 
-    assert((task_region->type == trace_region_task)
-        && (task_region->attr.task.type == otter_task_explicit));
-    assert(task_region == trace_task_get_region_def(task));
-
     task_data_t *encountering_task = get_encountering_task();
 
     trace_event_task_switch(
@@ -368,11 +363,8 @@ void otterLoopEnd(void)
         return;
     }
 
-    
     trace_region_def_t *loop = NULL;
     stack_pop(region_stack, (data_item_t*) &loop);
-    assert((loop->type == trace_region_workshare)
-        && (loop->attr.wshare.type == otter_work_loop));
     trace_event_leave(location);
     return;
 }
@@ -450,12 +442,9 @@ void otterSynchroniseDescendantTasksEnd(void)
         LOG_DEBUG("[INACTIVE]");
         return;
     }
-
     
     trace_region_def_t *taskgroup = NULL;
     stack_pop(region_stack, (data_item_t*) &taskgroup);
-    assert((taskgroup->type == trace_region_synchronise)
-        && (taskgroup->attr.sync.type == otter_sync_region_taskgroup));
     trace_event_leave(location);
     return;
 }
@@ -539,7 +528,6 @@ void otterPhaseEnd(void)
 
     trace_region_def_t *phase = NULL;
     stack_pop(region_stack, (data_item_t*) &phase);
-    assert((phase->type == trace_region_phase));
     trace_event_leave(location);
     return;
 }

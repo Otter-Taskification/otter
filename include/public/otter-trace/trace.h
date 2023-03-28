@@ -5,20 +5,11 @@
 // TODO: refactor file to only expose the subset of functionality needed
 // TODO: not all consumers of otter-trace use region definitions, for example.
 
-#include "public/otter-trace/trace-types.h"
-#include "public/otter-trace/trace-location.h"
-#include "public/otter-trace/trace-region-parallel.h"
-#include "public/otter-trace/trace-region-task.h"
-#include "public/otter-trace/trace-region-workshare.h"
-#include "public/otter-trace/trace-region-master.h"
-#include "public/otter-trace/trace-region-sync.h"
-#include "public/otter-trace/trace-region-phase.h"
-
-/**************************/
-
 #include "public/otter-common.h"
 #include "api/otter-task-graph/otter-task-context.h"
-
+#include "public/otter-trace/trace-types.h"
+#include "public/otter-trace/trace-location.h"
+#include "public/otter-trace/trace-region-def.h"
 
 /**
  * @brief Defines whether a task synchronisation construct should apply a 
@@ -32,7 +23,6 @@ typedef enum {
     trace_sync_children,
     trace_sync_descendants
 } trace_task_sync_t;
-
 
 bool trace_initialise_archive(otter_opt_t *opt);
 bool trace_finalise_archive(void);

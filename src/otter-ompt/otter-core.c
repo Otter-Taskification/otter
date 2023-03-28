@@ -181,8 +181,8 @@ on_ompt_callback_parallel_begin(
     /* assign space for this parallel region */
     parallel_data_t *parallel_data = new_parallel_data(
         thread_data->id,
-        // task_data ? task_data->id : OTF2_UNDEFINED_UINT64,
-        task_data->id,
+        // task_data ? trace_task_get_id(task_data) : OTF2_UNDEFINED_UINT64,
+        trace_task_get_id(task_data),
         task_data,
         requested_parallelism,
         flags);
@@ -289,16 +289,16 @@ on_ompt_callback_task_create(
 
     /* make space for the newly-created task */
     task_data_t *task_data = new_task_data(thread_data->location, 
-        parent_task_data ? parent_task_data->region : NULL, 
-        get_unique_task_id(), flags, has_dependences, NULL, codeptr_ra);
+        parent_task_data ? trace_task_get_region_def(parent_task_data) : NULL, 
+        flags, has_dependences, NULL, codeptr_ra);
 
     /* record the task-create event */
-    trace_event_task_create(thread_data->location, task_data->region);
+    trace_event_task_create(thread_data->location, trace_task_get_region_def(task_data));
 
     new_task->ptr = task_data;
 
     LOG_DEBUG_TASK_TYPE(thread_data->id, 
-        parent_task_data ? parent_task_data->id : 0L, task_data->id, flags);
+        parent_task_data ? trace_task_get_id(parent_task_data) : 0L, trace_task_get_id(task_data), flags);
     
     LOG_DEBUG("[t=%lu] END EVENT", thread_data->id);
     return;
@@ -331,9 +331,9 @@ on_ompt_callback_task_schedule(
 
     LOG_DEBUG("[t=%lu] (event) task-schedule %lu (%d) -> %lu",
         thread_data->id,
-        prior_task_data->id,
+        trace_task_get_id(prior_task_data),
         prior_task_status,
-        next_task_data->id
+        trace_task_get_id(next_task_data)
     );
 
 #if defined(TASK_SCHEDULE_LEAVE_ENTER)
@@ -342,7 +342,7 @@ on_ompt_callback_task_schedule(
         || prior_task_data->type == ompt_task_target)
     {
         trace_event_task_schedule(thread_data->location,
-            prior_task_data->region, prior_task_status);
+            trace_task_get_region_def(prior_task_data), prior_task_status);
         trace_event_leave(thread_data->location);
     }
 
@@ -351,16 +351,16 @@ on_ompt_callback_task_schedule(
     {
         /* reset status on task-entry */
         trace_event_task_schedule(thread_data->location,
-            prior_task_data->region, 0); /* no status */
-        trace_event_enter(thread_data->location, next_task_data->region);
+            trace_task_get_region_def(prior_task_data), 0); /* no status */
+        trace_event_enter(thread_data->location, trace_task_get_region_def(next_task_data));
     }
 #else
     // Default is to record task-switch event
     trace_event_task_switch(
         thread_data->location,
-        prior_task_data->region,
+        trace_task_get_region_def(prior_task_data),
         prior_task_status,
-        next_task_data->region
+        trace_task_get_region_def(next_task_data)
     );
 #endif
     
@@ -408,7 +408,6 @@ on_ompt_callback_implicit_task(
             thread_data->location,
             flags & ompt_task_implicit ?
                 encountering_task_data->region : NULL,
-            get_unique_task_id(),
             flags,
             0,
             NULL,
@@ -486,7 +485,7 @@ on_ompt_callback_work(
                     wstype == ompt_work_single_other ? otter_work_single_other :
                     wstype == ompt_work_taskloop ? otter_work_taskloop : 0,
                 count,
-                task_data->id
+                trace_task_get_id(task_data)
             );
             trace_event_enter(thread_data->location, wshare_rgn);
         } else {
@@ -521,7 +520,7 @@ on_ompt_callback_master(
     if (endpoint == ompt_scope_begin)
     {
         trace_region_def_t *master_rgn = trace_new_master_region(
-            thread_data->location, task_data->id);
+            thread_data->location, trace_task_get_id(task_data));
         trace_event_enter(thread_data->location, master_rgn);
     } else {
         trace_event_leave(thread_data->location);
@@ -565,7 +564,7 @@ on_ompt_callback_sync_region(
             thread_data->location,
             kind,
             kind == ompt_sync_region_taskgroup ? trace_sync_descendants : trace_sync_children,
-            task_data->id
+            trace_task_get_id(task_data)
         );
         trace_event_enter(thread_data->location, sync_rgn);
     } else {

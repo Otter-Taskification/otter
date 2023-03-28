@@ -3,6 +3,13 @@
 #include "public/otter-trace/trace-region-parallel.h"
 #include "src/otter-trace/trace-get-unique-id.h"
 
+typedef struct parallel_data_t {
+    unique_id_t         id;
+    unique_id_t         master_thread;
+    task_data_t        *encountering_task_data;
+    trace_region_def_t *region;
+} parallel_data_t;
+
 parallel_data_t *
 new_parallel_data(
     unique_id_t  thread_id,
@@ -32,4 +39,14 @@ void parallel_destroy(parallel_data_t *parallel_data)
 {
     free(parallel_data);
     return;
+}
+
+task_data_t *
+trace_parallel_get_task_data(parallel_data_t *parallel) {
+    return parallel->encountering_task_data;
+}
+
+trace_region_def_t *
+trace_parallel_get_region_def(parallel_data_t *parallel) {
+    return parallel->region;
 }

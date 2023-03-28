@@ -195,10 +195,10 @@ void otterThreadsBegin(const char* file, const char* func, const int line)
         0
     );
 
-    stack_push(region_stack, (data_item_t) {.ptr = parallel_data->region});
+    stack_push(region_stack, (data_item_t) {.ptr = trace_parallel_get_region_def(parallel_data)});
     stack_push(parallel_stack, (data_item_t) {.ptr = parallel_data});
 
-    trace_event_enter(thread_data->location, parallel_data->region);
+    trace_event_enter(thread_data->location, trace_parallel_get_region_def(parallel_data));
 
     otter_src_location_t src_location = {
         .file = file,
@@ -247,7 +247,7 @@ void otterThreadsEnd(void)
 
     stack_pop(region_stack, (data_item_t*) &parallel_region);
     stack_pop(parallel_stack, (data_item_t*) &parallel_data);
-    assert(parallel_data->region == parallel_region);
+    assert(trace_parallel_get_region_def(parallel_data) == parallel_region);
     trace_event_leave(thread_data->location); // parallel
     parallel_destroy(parallel_data);
     return;

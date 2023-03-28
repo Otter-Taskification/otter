@@ -1,5 +1,14 @@
+#include <stdint.h>
 #include "src/otter-trace/trace-unique-refs.h"
-#include "public/otter-trace/trace-types.h"
+
+/* Different kinds of unique IDs */
+typedef enum {
+    trace_region,
+    trace_string,
+    trace_location,
+    trace_other,
+    NUM_REF_TYPES // NOTE: must be last enum label
+} trace_ref_type_t;
 
 static uint64_t
 get_unique_uint64_ref(trace_ref_type_t ref_type)

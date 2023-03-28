@@ -1,46 +1,25 @@
+/**
+ * @file trace-types.h
+ * @author Adam Tuft
+ * @brief Defines various public enums for use by consumers of otter-trace.
+ * @version 0.1
+ * @date 2023-03-28
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #if !defined(OTTER_TRACE_TYPES_H)
 #define OTTER_TRACE_TYPES_H
 
-#include "public/otter-common.h"
-
-/* Different kinds of unique IDs */
-typedef enum trace_ref_type_t {
-    trace_region,
-    trace_string,
-    trace_location,
-    trace_other,
-    NUM_REF_TYPES // <- MUST BE LAST ENUM ITEM
-} trace_ref_type_t;
-
-/* Types of event endpoint */
 typedef enum {
-    trace_event_type_enter,
-    trace_event_type_leave,
-    trace_event_type_task_create
-} trace_event_type_t;
-
-/* Different kinds of regions supported */
-typedef enum {
-    trace_region_parallel,
-    trace_region_workshare,
-    trace_region_synchronise,
-    trace_region_task,
-#if defined(USE_OMPT_MASKED)
-    trace_region_masked,
-#else
-    trace_region_master,
-#endif
-    trace_region_phase
-} trace_region_type_t;
-
-typedef enum otter_thread_t {
     otter_thread_initial = 1,
     otter_thread_worker  = 2,
     otter_thread_other   = 3,
     otter_thread_unknown = 4
 } otter_thread_t;
 
-typedef enum otter_work_t {
+typedef enum {
     otter_work_loop            = 1,
     otter_work_sections        = 2,
     otter_work_single_executor = 3,
@@ -50,7 +29,7 @@ typedef enum otter_work_t {
     otter_work_taskloop        = 7
 } otter_work_t;
 
-typedef enum otter_sync_region_t {
+typedef enum {
     otter_sync_region_barrier                = 1,
     otter_sync_region_barrier_implicit       = 2,
     otter_sync_region_barrier_explicit       = 3,
@@ -63,11 +42,11 @@ typedef enum otter_sync_region_t {
     otter_sync_region_barrier_teams = 10
 } otter_sync_region_t;
 
-typedef enum otter_phase_region_t {
+typedef enum {
     otter_phase_region_generic = 1
 } otter_phase_region_t;
 
-typedef enum otter_task_flag_t {
+typedef enum {
     otter_task_initial    = 0x00000001,
     otter_task_implicit   = 0x00000002,
     otter_task_explicit   = 0x00000004,
@@ -80,7 +59,7 @@ typedef enum otter_task_flag_t {
     otter_task_merged     = 0x80000000
 } otter_task_flag_t;
 
-typedef enum otter_task_status_t {
+typedef enum {
     otter_task_complete      = 1,
     otter_task_yield         = 2,
     otter_task_cancel        = 3,
@@ -90,85 +69,5 @@ typedef enum otter_task_status_t {
     otter_task_switch        = 7,
     otter_taskwait_complete  = 8
 } otter_task_status_t;
-
-// TODO: these 4 includes are only needed for some implementation details in some structs
-#include <pthread.h>
-#include <otf2/otf2.h>
-#include "public/types/queue.h"
-#include "public/types/stack.h"
-
-// TODO: suspect all these structs are opqaue outside otter-trace i.e. not part of the interface to otter-trace. The only struct here which appears to be part of the interface is trace_region_def_t, as an opaque struct.
-
-/* Attributes of a parallel region */
-typedef struct {
-    unique_id_t     id;
-    unique_id_t     master_thread;
-    bool            is_league;
-    unsigned int    requested_parallelism;
-    unsigned int    ref_count;
-    unsigned int    enter_count;
-    pthread_mutex_t lock_rgn;
-    otter_queue_t  *rgn_defs;
-} trace_parallel_region_attr_t;
-
-/* Attributes of a workshare region */
-typedef struct {
-    otter_work_t    type;
-    uint64_t        count;
-} trace_wshare_region_attr_t;
-
-/* Attributes of a master region */
-typedef struct {
-    uint64_t        thread;
-} trace_master_region_attr_t;
-
-/* Attributes of a sync region */
-typedef struct {
-    otter_sync_region_t type;
-    bool                sync_descendant_tasks;
-    unique_id_t         encountering_task_id;
-} trace_sync_region_attr_t;
-
-/* Attributes of a task region */
-typedef struct {
-    unique_id_t         id;
-    otter_task_flag_t   type;               
-    otter_task_flag_t   flags;              
-    int                 has_dependences;
-    unique_id_t         parent_id;
-    otter_task_flag_t   parent_type;        
-    otter_task_status_t task_status;
-    otter_string_ref_t  source_file_name_ref;
-    otter_string_ref_t  source_func_name_ref;
-    int                 source_line_number;
-    const void         *task_create_ra;
-} trace_task_region_attr_t;
-
-/* Attributes of a phase region */
-typedef struct {
-    otter_phase_region_t    type;
-    otter_string_ref_t      name;
-} trace_phase_region_attr_t;
-
-typedef union {
-    trace_parallel_region_attr_t    parallel;
-    trace_wshare_region_attr_t      wshare;
-    trace_master_region_attr_t      master;
-    trace_sync_region_attr_t        sync;
-    trace_task_region_attr_t        task;
-    trace_phase_region_attr_t       phase;
-} trace_region_attr_t;
-
-/* Store values needed to register region definition (tasks, parallel regions, 
-   workshare constructs etc.) with OTF2 */
-typedef struct {
-    OTF2_RegionRef       ref;
-    OTF2_RegionRole      role;
-    OTF2_AttributeList  *attributes;
-    trace_region_type_t  type;
-    unique_id_t          encountering_task_id;
-    otter_stack_t       *rgn_stack;
-    trace_region_attr_t  attr;    
-} trace_region_def_t;
 
 #endif // OTTER_TRACE_TYPES_H

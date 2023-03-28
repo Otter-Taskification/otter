@@ -1,7 +1,7 @@
 #if !defined(OTTER_TRACE_UNIQUE_REFS_H)
 #define OTTER_TRACE_UNIQUE_REFS_H
 
-#include <otf2/otf2.h>
+#include <otf2/OTF2_GeneralDefinitions.h>
 
 // Implement unique references for various OTF2 constructs
 // Internal to otter-trace only

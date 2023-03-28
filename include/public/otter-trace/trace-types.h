@@ -1,12 +1,7 @@
 #if !defined(OTTER_TRACE_TYPES_H)
 #define OTTER_TRACE_TYPES_H
 
-#include <pthread.h>
-#include <otf2/otf2.h>
 #include "public/otter-common.h"
-#include "public/types/queue.h"
-#include "public/types/stack.h"
-#include "api/otter-task-graph/otter-task-context.h"
 
 /* Different kinds of unique IDs */
 typedef enum trace_ref_type_t {
@@ -95,6 +90,14 @@ typedef enum otter_task_status_t {
     otter_task_switch        = 7,
     otter_taskwait_complete  = 8
 } otter_task_status_t;
+
+// TODO: these 4 includes are only needed for some implementation details in some structs
+#include <pthread.h>
+#include <otf2/otf2.h>
+#include "public/types/queue.h"
+#include "public/types/stack.h"
+
+// TODO: suspect all these structs are opqaue outside otter-trace i.e. not part of the interface to otter-trace. The only struct here which appears to be part of the interface is trace_region_def_t, as an opaque struct.
 
 /* Attributes of a parallel region */
 typedef struct {

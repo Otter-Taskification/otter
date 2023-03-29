@@ -26,6 +26,8 @@
 #include "public/debug.h"
 #include "public/otter-common.h"
 #include "public/otter-trace/trace.h"
+
+#include "src/otter-trace/trace-timestamp.h"
 #include "src/otter-trace/trace-archive.h"
 #include "src/otter-trace/trace-string-registry.h"
 #include "src/otter-trace/trace-attributes.h"
@@ -45,8 +47,6 @@ static const size_t CHAR_BUFF_SZ=1024;
  * @param opt The runtime options passed to Otter.
  */
 static void trace_copy_proc_maps(otter_opt_t *opt);
-
-static uint64_t get_timestamp(void);
 
 /* Lookup tables mapping enum value to string ref */
 OTF2_StringRef attr_name_ref[n_attr_defined][2] = {0};
@@ -380,16 +380,4 @@ trace_finalise_archive(void)
     OTF2_Archive_Close(Archive);
 
     return true;
-}
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/*  TIMESTAMP & UNIQUE REFERENCES                                            */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-static uint64_t 
-get_timestamp(void)
-{
-    struct timespec time;
-    clock_gettime(CLOCK_MONOTONIC, &time);
-    return time.tv_sec * (uint64_t)1000000000 + time.tv_nsec;
 }

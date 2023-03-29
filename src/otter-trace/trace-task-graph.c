@@ -7,11 +7,13 @@
 #include "public/otter-common.h"
 #include "public/otter-environment-variables.h"
 #include "public/otter-trace/trace.h"
+#include "public/otter-trace/trace-task-context-interface.h"
+
+#include "src/otter-trace/trace-timestamp.h"
 #include "src/otter-trace/trace-attributes.h"
 #include "src/otter-trace/trace-lookup-macros.h"
 #include "src/otter-trace/trace-unique-refs.h"
 #include "src/otter-trace/trace-check-error-code.h"
-#include "public/otter-trace/trace-task-context-interface.h"
 
 #define OTTER_DUMMY_OTF2_LOCATION_REF        0
 
@@ -31,8 +33,6 @@ static void release_shared_event_writer(void) {
     LOG_DEBUG("releasing shared event writer");
     pthread_mutex_unlock(&lock_shared_evt_writer);
 }
-
-static uint64_t get_timestamp(void);
 
 static void trace_add_common_event_attributes(
     OTF2_AttributeList *attributes,
@@ -230,14 +230,6 @@ void trace_graph_synchronise_tasks(otter_task_context *task, trace_sync_region_a
     release_shared_event_writer();
     
     OTF2_AttributeList_Delete(attributes);
-}
-
-static uint64_t 
-get_timestamp(void)
-{
-    struct timespec time;
-    clock_gettime(CLOCK_MONOTONIC, &time);
-    return time.tv_sec * (uint64_t)1000000000 + time.tv_nsec;
 }
 
 static void

@@ -1,6 +1,4 @@
-// TODO: this file contains events for the OMPT event model as well as functions
-// TODO: for adding region attributes to an attribute list and writing a region
-// TODO: definition to a trace. Probably want to decouple these.
+// TODO: this file contains events for the OMPT event model as well as functions for adding region attributes to an attribute list and writing a region definition to a trace. Probably want to decouple these.
 
 // TODO: fix pointer to incomplete type (use getters instead)
 
@@ -28,14 +26,13 @@
 #include "public/otter-trace/trace.h"
 #include "public/otter-trace/trace-location.h"
 
+#include "src/otter-trace/trace-timestamp.h"
 #include "src/otter-trace/trace-attributes.h"
 #include "src/otter-trace/trace-archive.h"
 #include "src/otter-trace/trace-lookup-macros.h"
 #include "src/otter-trace/trace-unique-refs.h"
 #include "src/otter-trace/trace-check-error-code.h"
 #include "src/otter-trace/trace-static-constants.h"
-
-static uint64_t get_timestamp(void);
 
 /* apply a region's attributes to an event */
 static void trace_add_common_event_attributes(
@@ -521,16 +518,4 @@ trace_event_task_switch(
         OTF2_UNDEFINED_UINT32, 0); /* creating thread, generation number */
 
     return;
-}
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/*  TIMESTAMP & UNIQUE REFERENCES                                            */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-static uint64_t 
-get_timestamp(void)
-{
-    struct timespec time;
-    clock_gettime(CLOCK_MONOTONIC, &time);
-    return time.tv_sec * (uint64_t)1000000000 + time.tv_nsec;
 }

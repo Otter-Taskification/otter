@@ -48,16 +48,14 @@ trace_new_master_region(
         .encountering_task_id = encountering_task_id,
         .rgn_stack = NULL,
         .attr.master = {
-            .thread = loc->id
+            .thread = trace_location_get_id(loc)
         }
     };
 
     LOG_DEBUG("[t=%lu] created master region %u at %p",
-        loc->id, new->ref, new);
+        trace_location_get_id(loc), new->ref, new);
 
-    // TODO: refactor this into trace-location.c
-    /* Add region definition to location's region definition queue */
-    queue_push(loc->rgn_defs, (data_item_t) {.ptr = new});
+    trace_location_push_region_def(loc, (data_item_t) {.ptr=new});
 
     return new;    
 }
@@ -120,10 +118,9 @@ trace_new_phase_region(
     }
 
     LOG_DEBUG("[t=%lu] created region for phase \"%s\" (%u) at %p",
-        loc->id, phase_name, new->ref, new);
+        trace_location_get_id(loc), phase_name, new->ref, new);
 
-    /* Add region definition to location's region definition queue */
-    queue_push(loc->rgn_defs, (data_item_t) {.ptr = new});
+    trace_location_push_region_def(loc, (data_item_t) {.ptr=new});
 
     return new;
 }
@@ -150,10 +147,9 @@ trace_new_sync_region(
     };
 
     LOG_DEBUG("[t=%lu] created sync region %u at %p",
-        loc->id, new->ref, new);
+        trace_location_get_id(loc), new->ref, new);
 
-    /* Add region definition to location's region definition queue */
-    queue_push(loc->rgn_defs, (data_item_t) {.ptr = new});
+    trace_location_push_region_def(loc, (data_item_t) {.ptr=new});
 
     return new;
 }
@@ -176,7 +172,7 @@ trace_new_task_region(
        thread when the task is resumed */
 
     LOG_INFO_IF((parent_task_region == NULL),
-        "[t=%lu] parent task region is null", loc->id);
+        "[t=%lu] parent task region is null", trace_location_get_id(loc));
 
     LOG_DEBUG_IF((src_location), "got src_location(file=%s, func=%s, line=%d)\n", src_location->file, src_location->func, src_location->line);
 
@@ -215,10 +211,9 @@ trace_new_task_region(
     }
 
     LOG_DEBUG("[t=%lu] created region %u for task %lu at %p",
-        loc->id, new->ref, new->attr.task.id, new);
+        trace_location_get_id(loc), new->ref, new->attr.task.id, new);
 
-    /* Add region definition to location's region definition queue */
-    queue_push(loc->rgn_defs, (data_item_t) {.ptr = new});
+    trace_location_push_region_def(loc, (data_item_t) {.ptr=new});
 
     return new;
 }
@@ -245,10 +240,9 @@ trace_new_workshare_region(
     };
 
     LOG_DEBUG("[t=%lu] created workshare region %u at %p",
-        loc->id, new->ref, new);
+        trace_location_get_id(loc), new->ref, new);
 
-    /* Add region definition to location's region definition queue */
-    queue_push(loc->rgn_defs, (data_item_t) {.ptr = new});
+    trace_location_push_region_def(loc, (data_item_t) {.ptr=new});
 
     return new;
 }

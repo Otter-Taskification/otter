@@ -155,10 +155,23 @@ trace_write_location_definition(trace_location_def_t *loc)
 
 bool
 trace_location_pop_region_def(trace_location_def_t *loc, data_item_t *dest) {
+    /* Pop region definition from location's region definition queue */
     return queue_pop(loc->rgn_defs, dest);
 }
+
+bool
+trace_location_push_region_def(trace_location_def_t *loc, data_item_t item) {
+    /* Add region definition to location's region definition queue */
+    return queue_push(loc->rgn_defs, item);
+}
+
 
 size_t
 trace_location_get_num_region_def(trace_location_def_t *loc) {
     return queue_length(loc->rgn_defs);
+}
+
+unique_id_t
+trace_location_get_id(trace_location_def_t *loc) {
+    return loc->id;
 }

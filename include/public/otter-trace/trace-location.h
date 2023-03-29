@@ -30,6 +30,8 @@ void trace_destroy_location(trace_location_def_t *loc);
 void trace_add_thread_attributes(trace_location_def_t *self);
 void trace_write_location_definition(trace_location_def_t *loc);
 bool trace_location_pop_region_def(trace_location_def_t *loc, data_item_t *dest);
+bool trace_location_push_region_def(trace_location_def_t *loc, data_item_t item);
 size_t trace_location_get_num_region_def(trace_location_def_t *loc);
+unique_id_t trace_location_get_id(trace_location_def_t *loc);
 
 #endif // OTTER_TRACE_LOCATION_H

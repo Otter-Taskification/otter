@@ -2,6 +2,18 @@
  * @file trace-types.h
  * @author Adam Tuft
  * @brief Defines various public enums for use by consumers of otter-trace.
+ * 
+ * The types defined here are derived from those in the `omp-tools.h` header in
+ * the LLVM OpenMP implementation. The license for that work is avaiable here:
+ * 
+ * //===----------------------------------------------------------------------===//
+ * //
+ * // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+ * // See https://llvm.org/LICENSE.txt for license information.
+ * // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ * //
+ * //===----------------------------------------------------------------------===//
+ * 
  * @version 0.1
  * @date 2023-03-28
  * 
@@ -51,6 +63,7 @@ typedef enum {
     otter_task_implicit   = 0x00000002,
     otter_task_explicit   = 0x00000004,
     otter_task_target     = 0x00000008,
+    otter_task_type_mask  = 0x0000000F,
     otter_task_taskwait   = 0x00000010,
     otter_task_undeferred = 0x08000000,
     otter_task_untied     = 0x10000000,
@@ -69,5 +82,11 @@ typedef enum {
     otter_task_switch        = 7,
     otter_taskwait_complete  = 8
 } otter_task_status_t;
+typedef enum {
+  otter_parallel_invoker_program = 0x00000001,
+  otter_parallel_invoker_runtime = 0x00000002,
+  otter_parallel_league          = 0x40000000,
+  otter_parallel_team            = 0x80000000
+} otter_parallel_flag_t;
 
 #endif // OTTER_TRACE_TYPES_H

@@ -1,3 +1,9 @@
+// TODO: this file contains events for the OMPT event model as well as functions
+// TODO: for adding region attributes to an attribute list and writing a region
+// TODO: definition to a trace. Probably want to decouple these.
+
+// TODO: fix pointer to incomplete type (use getters instead)
+
 #define _GNU_SOURCE
 
 #include <stdlib.h>
@@ -81,40 +87,8 @@ extern OTF2_StringRef attr_label_ref[n_attr_label_defined];
 /*   WRITE DEFINITIONS                                                       */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-// void
-// trace_write_location_definition(trace_location_def_t *loc)
-// {
-//     if (loc == NULL)
-//     {
-//         LOG_ERROR("null pointer");
-//         return;
-//     }
-
-//     char location_name[DEFAULT_NAME_BUF_SZ + 1] = {0};
-//     OTF2_StringRef location_name_ref = get_unique_str_ref();
-//     snprintf(location_name, DEFAULT_NAME_BUF_SZ, "Thread %lu", loc->id);
-
-//     LOG_DEBUG("[t=%lu] locking global def writer", loc->id);
-//     pthread_mutex_lock(&lock_global_def_writer);
-
-//     OTF2_GlobalDefWriter_WriteString(Defs,
-//         location_name_ref,
-//         location_name);
-
-//     LOG_DEBUG("[t=%lu] writing location definition", loc->id);
-//     OTF2_GlobalDefWriter_WriteLocation(Defs,
-//         loc->ref,
-//         location_name_ref,
-//         loc->type,
-//         loc->events,
-//         loc->location_group);
-
-//     LOG_DEBUG("[t=%lu] unlocking global def writer", loc->id);
-//     pthread_mutex_unlock(&lock_global_def_writer);
-
-//     return;
-// }
-
+// TODO: move to trace-region-def.c as it requires access to trace_region_def_t internals
+// TODO: passing OTF2_GlobalDefWriter as an argument.
 void
 trace_write_region_definition(trace_region_def_t *rgn)
 {
@@ -305,6 +279,8 @@ trace_add_common_event_attributes(
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /*   WRITE EVENTS                                                            */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// TODO: lots of access of trace_location_def_t and trace_region_def_t internals to factor out
 
 void
 trace_event_thread_begin(trace_location_def_t *self)
@@ -744,6 +720,7 @@ get_timestamp(void)
     return time.tv_sec * (uint64_t)1000000000 + time.tv_nsec;
 }
 
+// TODO: move to trace-region-def.c
 /* pretty-print region definitions */
 void
 trace_region_pprint(

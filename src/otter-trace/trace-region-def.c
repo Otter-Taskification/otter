@@ -55,6 +55,7 @@ trace_new_master_region(
     LOG_DEBUG("[t=%lu] created master region %u at %p",
         loc->id, new->ref, new);
 
+    // TODO: refactor this into trace-location.c
     /* Add region definition to location's region definition queue */
     queue_push(loc->rgn_defs, (data_item_t) {.ptr = new});
 

@@ -2,11 +2,6 @@
 #include "public/otter-trace/trace-task-data.h"
 #include "public/otter-trace/trace-region-task.h"
 #include "src/otter-trace/trace-get-unique-id.h"
-
-// TODO: otter-trace shouldn't be depending on OMPT concerns - refactor task_data_t so it doesn't depend on OMPT
-// Bits used by ompt_task_flag_t to indicate task type
-#define OMPT_TASK_TYPE_BITS 0x0F
-
 typedef struct task_data_t {
     unique_id_t         id;
     otter_task_flag_t   type;
@@ -30,7 +25,7 @@ new_task_data(
     task_data_t *new = malloc(sizeof(*new));
     *new = (task_data_t) {
         .id     = get_unique_task_id(),
-        .type   = flags & OMPT_TASK_TYPE_BITS,
+        .type   = flags & otter_task_type_mask,
         .flags  = flags,
         .region = NULL
     };

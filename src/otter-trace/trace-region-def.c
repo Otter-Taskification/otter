@@ -182,7 +182,7 @@ trace_new_task_region(
         .rgn_stack = stack_create(),
         .attr.task = {
             .id              = id,
-            .type            = flags & 0xF, // TODO: replace magic number with const
+            .type            = flags & otter_task_type_mask,
             .flags           = flags,
             .has_dependences = has_dependences,
             .parent_id   = parent_task_region != NULL ? 

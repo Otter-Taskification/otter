@@ -1,8 +1,6 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <otf2/otf2.h>
-// TODO: remove dependency on ompt specifics
-#include <omp-tools.h>
 #include "public/types/queue.h"
 #include "public/types/stack.h"
 #include "public/otter-trace/trace.h"
@@ -43,11 +41,7 @@ trace_new_master_region(
         .ref        = get_unique_rgn_ref(),
         .role       = OTF2_REGION_ROLE_MASTER,
         .attributes = OTF2_AttributeList_New(),
-#if defined(USE_OMPT_MASKED)
-        .type       = trace_region_masked,
-#else
         .type       = trace_region_master,
-#endif
         .encountering_task_id = encountering_task_id,
         .rgn_stack = NULL,
         .attr.master = {
@@ -82,7 +76,7 @@ trace_new_parallel_region(
         .attr.parallel = {
             .id            = id,
             .master_thread = master,
-            .is_league     = flags & ompt_parallel_league ? true : false,
+            .is_league     = flags & otter_parallel_league ? true : false,
             .requested_parallelism = requested_parallelism,
             .ref_count     = 0,
             .enter_count   = 0,
@@ -188,7 +182,7 @@ trace_new_task_region(
         .rgn_stack = stack_create(),
         .attr.task = {
             .id              = id,
-            .type            = flags & 0xF,
+            .type            = flags & 0xF, // TODO: replace magic number with const
             .flags           = flags,
             .has_dependences = has_dependences,
             .parent_id   = parent_task_region != NULL ? 
@@ -300,11 +294,7 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
             trace_destroy_workshare_region(r);
             break;
 
-#if defined(USE_OMPT_MASKED)
-        case trace_region_masked:
-#else
         case trace_region_master:
-#endif
             trace_destroy_master_region(r);
             break;
         
@@ -459,19 +449,19 @@ trace_add_task_attributes(trace_region_def_t *rgn)
         rgn->attr.task.has_dependences);
     CHECK_OTF2_ERROR_CODE(r);
     r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_undeferred,
-        rgn->attr.task.flags & ompt_task_undeferred);
+        rgn->attr.task.flags & otter_task_undeferred);
     CHECK_OTF2_ERROR_CODE(r);
     r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_untied,
-        rgn->attr.task.flags & ompt_task_untied);
+        rgn->attr.task.flags & otter_task_untied);
     CHECK_OTF2_ERROR_CODE(r);
     r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_final,
-        rgn->attr.task.flags & ompt_task_final);
+        rgn->attr.task.flags & otter_task_final);
     CHECK_OTF2_ERROR_CODE(r);
     r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_mergeable,
-        rgn->attr.task.flags & ompt_task_mergeable);
+        rgn->attr.task.flags & otter_task_mergeable);
     CHECK_OTF2_ERROR_CODE(r);
     r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_merged,
-        rgn->attr.task.flags & ompt_task_merged);
+        rgn->attr.task.flags & otter_task_merged);
     CHECK_OTF2_ERROR_CODE(r);
     r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_prior_task_status,
         TASK_STATUS_TO_STR_REF(rgn->attr.task.task_status));
@@ -572,11 +562,7 @@ void trace_region_write_definition_impl(OTF2_GlobalDefWriter *writer, trace_regi
                 0, 0, 0); /* source file, begin line no., end line no. */
             break;
         }
-#if defined(USE_OMPT_MASKED)
-        case trace_region_masked:
-#else
         case trace_region_master:
-#endif
         {
             OTF2_GlobalDefWriter_WriteRegion(writer,
                 region->ref,
@@ -612,10 +598,10 @@ void trace_region_write_definition_impl(OTF2_GlobalDefWriter *writer, trace_regi
         {
             char task_name[DEFAULT_NAME_BUF_SZ+1] = {0};
             snprintf(task_name, DEFAULT_NAME_BUF_SZ, "%s task %lu",
-                region->attr.task.type == ompt_task_initial ? "initial" :
-                    region->attr.task.type == ompt_task_implicit ? "implicit" :
-                    region->attr.task.type == ompt_task_explicit ? "explicit" :
-                    region->attr.task.type == ompt_task_target   ? "target" : "??",
+                region->attr.task.type == otter_task_initial ? "initial" :
+                    region->attr.task.type == otter_task_implicit ? "implicit" :
+                    region->attr.task.type == otter_task_explicit ? "explicit" :
+                    region->attr.task.type == otter_task_target   ? "target" : "??",
                 region->attr.task.id);
             OTF2_StringRef task_name_ref = get_unique_str_ref();
             OTF2_GlobalDefWriter_WriteString(writer, task_name_ref, task_name);

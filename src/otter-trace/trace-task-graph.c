@@ -271,13 +271,8 @@ trace_add_common_event_attributes(
             SYNC_TYPE_TO_STR_REF(region_attr.sync.type) :
         region_type == trace_region_task ? 
             TASK_TYPE_TO_STR_REF(region_attr.task.type) :
-        region_type == 
-#if defined(USE_OMPT_MASKED)
-            trace_region_masked 
-#else
-            trace_region_master
-#endif
-        ? attr_label_ref[attr_region_type_master]   :
+        region_type == trace_region_master ?
+            attr_label_ref[attr_region_type_master]   :
         region_type == trace_region_phase ?
             PHASE_TYPE_TO_STR_REF(region_attr.phase.type) :
         attr_label_ref[attr_region_type_task]

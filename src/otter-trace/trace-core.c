@@ -21,51 +21,19 @@
 #include <otf2/OTF2_Pthread_Locks.h>
 
 #include "public/debug.h"
+#include "public/types/queue.h"
+#include "public/types/stack.h"
 #include "public/otter-common.h"
 #include "public/otter-environment-variables.h"
 #include "public/otter-trace/trace.h"
 #include "public/otter-trace/trace-location.h"
+
 #include "src/otter-trace/trace-attributes.h"
 #include "src/otter-trace/trace-archive.h"
 #include "src/otter-trace/trace-lookup-macros.h"
 #include "src/otter-trace/trace-unique-refs.h"
 #include "src/otter-trace/trace-check-error-code.h"
 #include "src/otter-trace/trace-static-constants.h"
-
-#include "public/types/queue.h"
-#include "public/types/stack.h"
-
-// TODO: otter-trace shouldn't be depending on OMPT concerns - this is only needed for the pprint macros below
-#include <omp-tools.h>
-// Bits used by ompt_task_flag_t to indicate task type
-#define OMPT_TASK_TYPE_BITS 0x0F
-
-// TODO: aim to factor out region definitions altogether so these are unecessary 
-#define OMPT_TASK_TYPE_TO_STR(type)                                            \
-    ((type) == ompt_task_initial  ? "ompt_task_initial":                       \
-     (type) == ompt_task_implicit ? "ompt_task_implicit":                      \
-     (type) == ompt_task_explicit ? "ompt_task_explicit":                      \
-     (type) == ompt_task_target   ? "ompt_task_target" : "unknown" )
-
-// TODO: aim to factor out region definitions altogether so these are unecessary 
-#define OMPT_SYNC_TYPE_TO_STR(type)                                                                  \
-    ((type) == ompt_sync_region_barrier                ? "ompt_sync_region_barrier" :                \
-     (type) == ompt_sync_region_barrier_implicit       ? "ompt_sync_region_barrier_implicit" :       \
-     (type) == ompt_sync_region_barrier_explicit       ? "ompt_sync_region_barrier_explicit" :       \
-     (type) == ompt_sync_region_barrier_implementation ? "ompt_sync_region_barrier_implementation" : \
-     (type) == ompt_sync_region_taskwait               ? "ompt_sync_region_taskwait" :               \
-     (type) == ompt_sync_region_taskgroup              ? "ompt_sync_region_taskgroup" :              \
-     (type) == ompt_sync_region_reduction              ? "ompt_sync_region_reduction" : "unknown")
-
-// TODO: aim to factor out region definitions altogether so these are unecessary 
-#define OMPT_WORK_TYPE_TO_STR(type)                                            \
-    ((type) == ompt_work_loop            ? "ompt_work_loop" :                  \
-     (type) == ompt_work_sections        ? "ompt_work_sections" :              \
-     (type) == ompt_work_single_executor ? "ompt_work_single_executor" :       \
-     (type) == ompt_work_single_other    ? "ompt_work_single_other" :          \
-     (type) == ompt_work_workshare       ? "ompt_work_workshare" :             \
-     (type) == ompt_work_distribute      ? "ompt_work_distribute" :            \
-     (type) == ompt_work_taskloop        ? "ompt_work_taskloop" : "unknown")
 
 static uint64_t get_timestamp(void);
 
@@ -130,13 +98,8 @@ trace_add_common_event_attributes(
             SYNC_TYPE_TO_STR_REF(region_attr.sync.type) :
         region_type == trace_region_task ? 
             TASK_TYPE_TO_STR_REF(region_attr.task.type) :
-        region_type == 
-#if defined(USE_OMPT_MASKED)
-            trace_region_masked 
-#else
-            trace_region_master
-#endif
-        ? attr_label_ref[attr_region_type_master]   :
+        region_type == trace_region_master ?
+            attr_label_ref[attr_region_type_master]   :
         region_type == trace_region_phase ?
             PHASE_TYPE_TO_STR_REF(region_attr.phase.type) :
         attr_label_ref[attr_region_type_task]
@@ -252,13 +215,8 @@ trace_event_enter(
             attr_label_ref[attr_event_type_workshare_begin] :
         region->type == trace_region_synchronise ?
             attr_label_ref[attr_event_type_sync_begin] :
-        region->type == 
-#if defined(USE_OMPT_MASKED)
-            trace_region_masked 
-#else
-            trace_region_master
-#endif        
-         ? attr_label_ref[attr_event_type_master_begin] :
+        region->type == trace_region_master ?
+            attr_label_ref[attr_event_type_master_begin] :
         region->type == trace_region_phase ?
             attr_label_ref[attr_event_type_phase_begin] :
         attr_label_ref[attr_event_type_task_enter]
@@ -274,11 +232,7 @@ trace_event_enter(
     case trace_region_workshare: trace_add_workshare_attributes(region); break;
     case trace_region_synchronise: trace_add_sync_attributes(region); break;
     case trace_region_task: trace_add_task_attributes(region); break;
-#if defined(USE_OMPT_MASKED)
-    case trace_region_masked: trace_add_master_attributes(region); break;
-#else
     case trace_region_master: trace_add_master_attributes(region); break;
-#endif
     case trace_region_phase: trace_add_phase_attributes(region); break;
     default:
         LOG_ERROR("unhandled region type %d", region->type);
@@ -359,13 +313,8 @@ trace_event_leave(trace_location_def_t *self)
             attr_label_ref[attr_event_type_workshare_end] :
         region->type == trace_region_synchronise ?
             attr_label_ref[attr_event_type_sync_end] :
-        region->type == 
-#if defined(USE_OMPT_MASKED)
-            trace_region_masked 
-#else
-            trace_region_master
-#endif        
-          ? attr_label_ref[attr_event_type_master_end] :
+        region->type == trace_region_master ? 
+            attr_label_ref[attr_event_type_master_end] :
         region->type == trace_region_phase ?
             attr_label_ref[attr_event_type_phase_end] :
         attr_label_ref[attr_event_type_task_leave]
@@ -381,11 +330,7 @@ trace_event_leave(trace_location_def_t *self)
     case trace_region_workshare: trace_add_workshare_attributes(region); break;
     case trace_region_synchronise: trace_add_sync_attributes(region); break;
     case trace_region_task: trace_add_task_attributes(region); break;
-#if defined(USE_OMPT_MASKED)
-    case trace_region_masked: trace_add_master_attributes(region); break;
-#else
     case trace_region_master: trace_add_master_attributes(region); break;
-#endif
     case trace_region_phase: trace_add_phase_attributes(region); break;
     default:
         LOG_ERROR("unhandled region type %d", region->type);
@@ -588,67 +533,4 @@ get_timestamp(void)
     struct timespec time;
     clock_gettime(CLOCK_MONOTONIC, &time);
     return time.tv_sec * (uint64_t)1000000000 + time.tv_nsec;
-}
-
-// TODO: move to trace-region-def.c
-/* pretty-print region definitions */
-void
-trace_region_pprint(
-    FILE                *fp,
-    trace_region_def_t  *r,
-    const char func[],
-    const int line)
-{
-    if (fp == NULL)
-        fp = stderr;
-
-    switch (r->type)
-    {
-    case trace_region_parallel:
-        fprintf(fp, "%s:%d: Parallel(id=%lu, master=%lu, ref_count=%u, enter_count=%u) in %s:%d\n",
-            __func__, __LINE__,
-            r->attr.parallel.id,
-            r->attr.parallel.master_thread,
-            r->attr.parallel.ref_count,
-            r->attr.parallel.enter_count,
-            func, line
-        );
-        break;
-    case trace_region_workshare:
-        fprintf(fp, "%s:%d: Work(type=%s, count=%lu) in %s:%d\n",
-            __func__, __LINE__,
-            OMPT_WORK_TYPE_TO_STR(r->attr.wshare.type),
-            r->attr.wshare.count,
-            func, line
-        );
-        break;
-    case trace_region_synchronise:
-        fprintf(fp, "%s:%d: Sync(type=%s) in %s:%d\n",
-            __func__, __LINE__,
-            OMPT_SYNC_TYPE_TO_STR(r->attr.sync.type),
-            func, line
-        );
-        break;
-    case trace_region_task:
-        fprintf(fp, "%s:%d: Task(id=%lu, type=%s) in %s:%d\n",
-            __func__, __LINE__,
-            r->attr.task.id,
-            OMPT_TASK_TYPE_TO_STR(OMPT_TASK_TYPE_BITS & r->attr.task.type),
-            func, line
-        );
-        break;
-#if defined(USE_OMPT_MASKED)
-    case trace_region_masked:
-        fprintf(fp, "%s:%d: Masked(thread=%lu) in %s:%d\n",
-#else
-    case trace_region_master:
-        fprintf(fp, "%s:%d: Master(thread=%lu) in %s:%d\n",
-#endif
-            __func__, __LINE__,
-            r->attr.master.thread,
-            func, line
-        );
-        break;
-    }
-    return;
 }

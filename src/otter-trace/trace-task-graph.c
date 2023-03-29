@@ -34,15 +34,6 @@ static void release_shared_event_writer(void) {
     pthread_mutex_unlock(&lock_shared_evt_writer);
 }
 
-static void trace_add_common_event_attributes(
-    OTF2_AttributeList *attributes,
-    unique_id_t encountering_task_id,
-    trace_region_type_t region_type,
-    trace_region_attr_t region_attr);
-
-/* Lookup tables mapping enum value to string ref */
-extern OTF2_StringRef attr_label_ref[n_attr_label_defined];
-
 void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_attr_t task_attr)
 {
     /*
@@ -230,46 +221,4 @@ void trace_graph_synchronise_tasks(otter_task_context *task, trace_sync_region_a
     release_shared_event_writer();
     
     OTF2_AttributeList_Delete(attributes);
-}
-
-static void
-trace_add_common_event_attributes(
-    OTF2_AttributeList *attributes,
-    unique_id_t encountering_task_id,
-    trace_region_type_t region_type,
-    trace_region_attr_t region_attr)
-{
-    OTF2_ErrorCode r = OTF2_SUCCESS;
-
-    /* CPU of encountering thread */
-    r = OTF2_AttributeList_AddInt32(attributes, attr_cpu, sched_getcpu());
-    CHECK_OTF2_ERROR_CODE(r);
-
-    /* Add encountering task ID */
-    r = OTF2_AttributeList_AddUint64(
-        attributes,
-        attr_encountering_task_id,
-        encountering_task_id
-    );
-    CHECK_OTF2_ERROR_CODE(r);
-
-    /* Add the region type */
-    r = OTF2_AttributeList_AddStringRef(attributes, attr_region_type,
-        region_type == trace_region_parallel ?
-            attr_label_ref[attr_region_type_parallel] :
-        region_type == trace_region_workshare ?
-            WORK_TYPE_TO_STR_REF(region_attr.wshare.type) :
-        region_type == trace_region_synchronise ?
-            SYNC_TYPE_TO_STR_REF(region_attr.sync.type) :
-        region_type == trace_region_task ? 
-            TASK_TYPE_TO_STR_REF(region_attr.task.type) :
-        region_type == trace_region_master ?
-            attr_label_ref[attr_region_type_master]   :
-        region_type == trace_region_phase ?
-            PHASE_TYPE_TO_STR_REF(region_attr.phase.type) :
-        attr_label_ref[attr_region_type_task]
-    );
-    CHECK_OTF2_ERROR_CODE(r);
-
-    return;
 }

@@ -33,21 +33,7 @@
 #include "src/otter-trace/trace-unique-refs.h"
 #include "src/otter-trace/trace-check-error-code.h"
 #include "src/otter-trace/trace-static-constants.h"
-
-/* apply a region's attributes to an event */
-static void trace_add_common_event_attributes(
-    OTF2_AttributeList *attributes,
-    unique_id_t encountering_task_id,
-    trace_region_type_t region_type,
-    trace_region_attr_t region_attr);
-
-/* Lookup tables mapping enum value to string ref */
-extern OTF2_StringRef attr_name_ref[n_attr_defined][2];
-extern OTF2_StringRef attr_label_ref[n_attr_label_defined];
-
-/* Mutexes for thread-safe access to Archive and Defs */
-// extern pthread_mutex_t lock_global_def_writer;
-// extern pthread_mutex_t lock_global_archive;
+#include "src/otter-trace/trace-common-event-attributes.h"
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /*   WRITE DEFINITIONS                                                       */
@@ -58,52 +44,6 @@ void
 trace_write_region_definition(trace_region_def_t *rgn)
 {
     trace_region_write_definition_impl(get_global_def_writer(), rgn);
-}
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/*   ADD LOCATION/REGION ATTRIBUTES BEFORE RECORDING EVENTS                  */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-static void
-trace_add_common_event_attributes(
-    OTF2_AttributeList *attributes,
-    unique_id_t encountering_task_id,
-    trace_region_type_t region_type,
-    trace_region_attr_t region_attr)
-{
-    OTF2_ErrorCode r = OTF2_SUCCESS;
-
-    /* CPU of encountering thread */
-    r = OTF2_AttributeList_AddInt32(attributes, attr_cpu, sched_getcpu());
-    CHECK_OTF2_ERROR_CODE(r);
-
-    /* Add encountering task ID */
-    r = OTF2_AttributeList_AddUint64(
-        attributes,
-        attr_encountering_task_id,
-        encountering_task_id
-    );
-    CHECK_OTF2_ERROR_CODE(r);
-
-    /* Add the region type */
-    r = OTF2_AttributeList_AddStringRef(attributes, attr_region_type,
-        region_type == trace_region_parallel ?
-            attr_label_ref[attr_region_type_parallel] :
-        region_type == trace_region_workshare ?
-            WORK_TYPE_TO_STR_REF(region_attr.wshare.type) :
-        region_type == trace_region_synchronise ?
-            SYNC_TYPE_TO_STR_REF(region_attr.sync.type) :
-        region_type == trace_region_task ? 
-            TASK_TYPE_TO_STR_REF(region_attr.task.type) :
-        region_type == trace_region_master ?
-            attr_label_ref[attr_region_type_master]   :
-        region_type == trace_region_phase ?
-            PHASE_TYPE_TO_STR_REF(region_attr.phase.type) :
-        attr_label_ref[attr_region_type_task]
-    );
-    CHECK_OTF2_ERROR_CODE(r);
-
-    return;
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -198,10 +138,10 @@ trace_event_enter(
 
     /* Add attributes common to all enter/leave events */
     trace_add_common_event_attributes(
-        region->attributes,
-        region->encountering_task_id,
-        region->type,
-        region->attr
+        trace_region_get_attribute_list(region),
+        trace_region_get_encountering_task_id(region),
+        trace_region_get_type(region),
+        trace_region_get_attributes(region)
     );
 
     /* Add the event type attribute */
@@ -296,10 +236,10 @@ trace_event_leave(trace_location_def_t *self)
 
     /* Add attributes common to all enter/leave events */
     trace_add_common_event_attributes(
-        region->attributes,
-        region->encountering_task_id,
-        region->type,
-        region->attr
+        trace_region_get_attribute_list(region),
+        trace_region_get_encountering_task_id(region),
+        trace_region_get_type(region),
+        trace_region_get_attributes(region)
     );
 
     /* Add the event type attribute */
@@ -387,10 +327,10 @@ trace_event_task_create(
     trace_region_def_t   *created_task)
 {
     trace_add_common_event_attributes(
-        created_task->attributes,
-        created_task->encountering_task_id,
-        created_task->type,
-        created_task->attr
+        trace_region_get_attribute_list(created_task),
+        trace_region_get_encountering_task_id(created_task),
+        trace_region_get_type(created_task),
+        trace_region_get_attributes(created_task)
     );
 
     /* task-create */
@@ -456,10 +396,10 @@ trace_event_task_switch(
     stack_transfer(self->rgn_stack, next_task->rgn_stack);
 
     trace_add_common_event_attributes(
-        prior_task->attributes,
-        prior_task->attr.task.id,
-        prior_task->type,
-        prior_task->attr
+        trace_region_get_attribute_list(prior_task),
+        trace_region_get_encountering_task_id(prior_task),
+        trace_region_get_type(prior_task),
+        trace_region_get_attributes(prior_task)
     );
 
     // Record the reason the task-switch event ocurred

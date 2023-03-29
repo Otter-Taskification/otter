@@ -12,6 +12,7 @@
 #include "src/otter-trace/trace-lookup-macros.h"
 #include "src/otter-trace/trace-string-registry.h"
 #include "src/otter-trace/trace-unique-refs.h"
+#include "src/otter-trace/trace-common-event-attributes.h"
 
 /* Store values needed to register region definition (tasks, parallel regions, 
    workshare constructs etc.) with OTF2 */
@@ -25,9 +26,6 @@ typedef struct {
     trace_region_attr_t  attr;    
 } trace_region_def_t;
 
-/* Defined in trace-archive.c */
-extern OTF2_StringRef attr_name_ref[n_attr_defined][2];
-extern OTF2_StringRef attr_label_ref[n_attr_label_defined];
 
 // Constructors
 
@@ -498,6 +496,24 @@ trace_add_workshare_attributes(trace_region_def_t *rgn)
 
 
 // Getters
+
+OTF2_AttributeList *
+trace_region_get_attribute_list(trace_region_def_t *region)
+{
+    return region->attributes;
+}
+
+unique_id_t 
+trace_region_get_encountering_task_id(trace_region_def_t *region)
+{
+    return region->encountering_task_id;
+}
+
+trace_region_attr_t 
+trace_region_get_attributes(trace_region_def_t *region)
+{
+    return region->attr;
+}
 
 trace_region_type_t
 trace_region_get_type(trace_region_def_t *region)

@@ -1,6 +1,8 @@
 #if !defined(OTTER_TRACE_REGION_DEF_H)
 #define OTTER_TRACE_REGION_DEF_H
 
+#include <otf2/OTF2_AttributeList.h>
+
 #include "public/types/stack.h"
 #include "public/otter-common.h"
 #include "public/otter-trace/trace-types.h"
@@ -84,7 +86,10 @@ void trace_add_workshare_attributes(trace_region_def_t *rgn);
 
 // Getters
 
+OTF2_AttributeList *trace_region_get_attribute_list(trace_region_def_t *region);
+unique_id_t trace_region_get_encountering_task_id(trace_region_def_t *region);
 trace_region_type_t trace_region_get_type(trace_region_def_t *region);
+trace_region_attr_t trace_region_get_attributes(trace_region_def_t *region);
 
 
 // Write region definition to a trace

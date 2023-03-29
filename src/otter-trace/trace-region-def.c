@@ -1,5 +1,8 @@
 #include <stdlib.h>
 #include <pthread.h>
+#include <otf2/otf2.h>
+// TODO: remove dependency on ompt specifics
+#include <omp-tools.h>
 #include "public/types/queue.h"
 #include "public/types/stack.h"
 #include "public/otter-trace/trace.h"
@@ -507,6 +510,145 @@ trace_add_workshare_attributes(trace_region_def_t *rgn)
 // Getters
 
 trace_region_type_t
-trace_region_get_type(trace_region_def_t *region) {
+trace_region_get_type(trace_region_def_t *region)
+{
     return region->type;
+}
+
+
+// Write region definition to a trace
+
+void trace_region_write_definition_impl(OTF2_GlobalDefWriter *writer, trace_region_def_t *region)
+{
+    if (region == NULL)
+    {
+        LOG_ERROR("null pointer");
+        return;
+    }
+
+    LOG_DEBUG("writing region definition %3u (type=%3d, role=%3u) %p",
+        region->ref, region->type, region->role, region);
+
+    OTF2_GlobalDefWriter *writer = get_global_def_writer();
+
+    switch (region->type)
+    {
+        case trace_region_parallel:
+        {
+            char region_name[DEFAULT_NAME_BUF_SZ+1] = {0};
+            snprintf(region_name, DEFAULT_NAME_BUF_SZ, "Parallel Region %lu",
+                region->attr.parallel.id);
+            OTF2_StringRef region_name_ref = get_unique_str_ref();
+            OTF2_GlobalDefWriter_WriteString(writer,
+                region_name_ref,
+                region_name);
+            OTF2_GlobalDefWriter_WriteRegion(writer,
+                region->ref,
+                region_name_ref,
+                0, 0,   /* canonical name, description */
+                region->role,
+#if defined(OTTER_SERIAL_MODE)
+                OTF2_PARADIGM_USER,
+#else
+                OTF2_PARADIGM_OPENMP,
+#endif
+                OTF2_REGION_FLAG_NONE,
+                0, 0, 0); /* source file, begin line no., end line no. */
+            break;
+        }
+        case trace_region_workshare:
+        {
+            OTF2_GlobalDefWriter_WriteRegion(writer,
+                region->ref,
+                WORK_TYPE_TO_STR_REF(region->attr.wshare.type),
+                0, 0,
+                region->role,
+#if defined(OTTER_SERIAL_MODE)
+                OTF2_PARADIGM_USER,
+#else
+                OTF2_PARADIGM_OPENMP,
+#endif
+                OTF2_REGION_FLAG_NONE,
+                0, 0, 0); /* source file, begin line no., end line no. */
+            break;
+        }
+#if defined(USE_OMPT_MASKED)
+        case trace_region_masked:
+#else
+        case trace_region_master:
+#endif
+        {
+            OTF2_GlobalDefWriter_WriteRegion(writer,
+                region->ref,
+                attr_label_ref[attr_region_type_master],
+                0, 0,
+                region->role,
+#if defined(OTTER_SERIAL_MODE)
+                OTF2_PARADIGM_USER,
+#else
+                OTF2_PARADIGM_OPENMP,
+#endif
+                OTF2_REGION_FLAG_NONE,
+                0, 0, 0); /* source file, begin line no., end line no. */
+            break;
+        }
+        case trace_region_synchronise:
+        {
+            OTF2_GlobalDefWriter_WriteRegion(writer,
+                region->ref,
+                SYNC_TYPE_TO_STR_REF(region->attr.sync.type),
+                0, 0,
+                region->role,
+#if defined(OTTER_SERIAL_MODE)
+                OTF2_PARADIGM_USER,
+#else
+                OTF2_PARADIGM_OPENMP,
+#endif
+                OTF2_REGION_FLAG_NONE,
+                0, 0, 0); /* source file, begin line no., end line no. */
+            break;
+        }
+        case trace_region_task:
+        {
+            char task_name[DEFAULT_NAME_BUF_SZ+1] = {0};
+            snprintf(task_name, DEFAULT_NAME_BUF_SZ, "%s task %lu",
+                region->attr.task.type == ompt_task_initial ? "initial" :
+                    region->attr.task.type == ompt_task_implicit ? "implicit" :
+                    region->attr.task.type == ompt_task_explicit ? "explicit" :
+                    region->attr.task.type == ompt_task_target   ? "target" : "??",
+                region->attr.task.id);
+            OTF2_StringRef task_name_ref = get_unique_str_ref();
+            OTF2_GlobalDefWriter_WriteString(writer, task_name_ref, task_name);
+            OTF2_GlobalDefWriter_WriteRegion(writer,
+                region->ref,
+                task_name_ref,
+                0, 0,   /* canonical name, description */
+                region->role,
+                OTF2_PARADIGM_OPENMP,
+                OTF2_REGION_FLAG_NONE,
+                0, 0, 0); /* source file, begin line no., end line no. */
+            break;
+        }
+        case trace_region_phase:
+        {
+            OTF2_GlobalDefWriter_WriteRegion(writer,
+                region->ref,
+                PHASE_TYPE_TO_STR_REF(region->attr.sync.type),
+                0, 0,
+                region->role,
+#if defined(OTTER_SERIAL_MODE)
+                OTF2_PARADIGM_USER,
+#else
+                OTF2_PARADIGM_OPENMP,
+#endif
+                OTF2_REGION_FLAG_NONE,
+                0, 0, 0); /* source file, begin line no., end line no. */
+            break;
+        }
+        default:
+        {
+            LOG_ERROR("unexpected region type %d", region->type);
+        }
+    }
+    return;
 }

@@ -113,6 +113,7 @@ static void trace_write_string_ref(const char *s, OTF2_StringRef ref)
     CHECK_OTF2_ERROR_CODE(r);
 }
 
+// TODO: separate initialisation of archive from initialisation of otter-trace environment e.g. preparation for copying trace_copy_proc_maps
 bool
 trace_initialise_archive(otter_opt_t *opt)
 {
@@ -310,8 +311,7 @@ trace_copy_proc_maps(otter_opt_t *opt) {
     char    *linebuff            = NULL;
     size_t   linesize            = 0;
 
-    // TODO: consider separating concerns of setting up dirs and copying files
-    // TODO: as setting up environment should be done during initialisation.
+    // TODO: consider separating concerns of setting up dirs and copying files as setting up environment should be done during initialisation.
     // create aux files dir
     snprintf(oname, CHAR_BUFF_SZ, "%s/%s/aux", opt->tracepath, opt->archive_name);
     if (mkdir(oname, 0755) == -1) {

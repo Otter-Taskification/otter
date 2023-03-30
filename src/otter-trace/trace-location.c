@@ -13,6 +13,7 @@
 #include <pthread.h>
 #include <sched.h>
 #include <otf2/otf2.h>
+#include "public/debug.h"
 #include "public/otter-trace/trace-location.h"
 #include "public/types/queue.h"
 #include "public/types/stack.h"
@@ -153,18 +154,19 @@ trace_write_location_definition(trace_location_def_t *loc)
     return;
 }
 
+/**
+ * @brief Get the next region definition in the location's queue.
+ */
 bool
-trace_location_pop_region_def(trace_location_def_t *loc, data_item_t *dest) {
-    /* Pop region definition from location's region definition queue */
-    return queue_pop(loc->rgn_defs, dest);
+trace_location_get_region_def(trace_location_def_t *loc, trace_region_def_t **rgn) {
+    return queue_pop(loc->rgn_defs, (data_item_t*) rgn);
 }
 
 bool
-trace_location_push_region_def(trace_location_def_t *loc, data_item_t item) {
+trace_location_store_region_def(trace_location_def_t *loc, trace_region_def_t *rgn) {
     /* Add region definition to location's region definition queue */
-    return queue_push(loc->rgn_defs, item);
+    return queue_push(loc->rgn_defs, (data_item_t) {.ptr = rgn});
 }
-
 
 size_t
 trace_location_get_num_region_def(trace_location_def_t *loc) {
@@ -174,4 +176,104 @@ trace_location_get_num_region_def(trace_location_def_t *loc) {
 unique_id_t
 trace_location_get_id(trace_location_def_t *loc) {
     return loc->id;
+}
+
+void
+trace_location_get_otf2(
+    trace_location_def_t *loc,
+    OTF2_AttributeList **attributes,
+    OTF2_EvtWriter **evt_writer,
+    OTF2_DefWriter **def_writer)
+{
+    if (attributes) *attributes = loc->attributes;
+    if (evt_writer) *evt_writer = loc->evt_writer;
+    if (def_writer) *def_writer = loc->def_writer;
+    return;
+}
+
+void
+trace_location_inc_event_count(trace_location_def_t *loc)
+{
+    loc->events++;
+    return;
+}
+
+/**
+ * @brief Indicate to a location that it is entering a new region which will
+ * inherit from this location all region definitions it encounters inside this
+ * region.
+ * 
+ * Definitions for regions encountered inside this region will be stored and
+ * should be handed off to said region upon leaving it.
+ * 
+ * @param loc 
+ */
+void
+trace_location_enter_region_def_scope(trace_location_def_t *loc)
+{
+    stack_push(loc->rgn_defs_stack, (data_item_t) {.ptr = loc->rgn_defs});
+    loc->rgn_defs = queue_create();
+    return;
+}
+
+/**
+ * @brief Indicate to a location that it is leaving a region which inherits all
+ * region definitions stored by the location during this region.
+ * 
+ * @param loc 
+ * @param rgn 
+ */
+void
+trace_location_leave_region_def_scope(trace_location_def_t *loc, trace_region_def_t *rgn)
+{
+    if (!queue_append(trace_region_get_rgn_def_queue(rgn), loc->rgn_defs)) {
+        LOG_ERROR("error appending items to queue");
+    }
+    queue_destroy(loc->rgn_defs, false, NULL);
+    stack_pop(loc->rgn_defs_stack, (data_item_t*) &loc->rgn_defs);
+}
+
+void
+trace_location_enter_region(trace_location_def_t *loc, trace_region_def_t *rgn)
+{
+    stack_push(loc->rgn_stack, (data_item_t) {.ptr = rgn});
+}
+
+void
+trace_location_leave_region(trace_location_def_t *loc, trace_region_def_t **rgn)
+{
+    if (stack_is_empty(loc->rgn_stack))
+    {
+        LOG_ERROR("stack is empty");
+        abort();
+    }
+    stack_pop(loc->rgn_stack, (data_item_t*) &rgn);
+}
+
+void
+trace_location_get_active_regions_from_task(trace_location_def_t *loc, trace_region_def_t *task)
+{
+    // Only valid if task is a task region
+    otter_stack_t *dest = loc->rgn_stack;
+    otter_stack_t *src  = trace_region_get_task_rgn_stack(task);
+    LOG_ERROR_IF(
+        (stack_is_empty(dest) == false),
+        "location's region stack not empty"
+    );
+    stack_transfer(dest, src);
+    return;
+}
+
+void
+trace_location_store_active_regions_in_task(trace_location_def_t *loc, trace_region_def_t *task)
+{
+    // Only valid if task is a task region
+    otter_stack_t *dest = trace_region_get_task_rgn_stack(task);
+    otter_stack_t *src  = loc->rgn_stack;
+    LOG_ERROR_IF(
+        (stack_is_empty(dest) == false),
+        "task's region stack not empty"
+    );
+    stack_transfer(dest, src);
+    return;
 }

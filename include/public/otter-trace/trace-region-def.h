@@ -4,6 +4,7 @@
 #include <otf2/OTF2_AttributeList.h>
 
 #include "public/types/stack.h"
+#include "public/types/queue.h"
 #include "public/otter-common.h"
 #include "public/otter-trace/trace-types.h"
 #include "public/otter-trace/trace-region-attr.h"
@@ -90,7 +91,8 @@ OTF2_AttributeList *trace_region_get_attribute_list(trace_region_def_t *region);
 unique_id_t trace_region_get_encountering_task_id(trace_region_def_t *region);
 trace_region_type_t trace_region_get_type(trace_region_def_t *region);
 trace_region_attr_t trace_region_get_attributes(trace_region_def_t *region);
-
+otter_queue_t *trace_region_get_rgn_def_queue(trace_region_def_t *region);
+otter_stack_t *trace_region_get_task_rgn_stack(trace_region_def_t *region);
 
 // Write region definition to a trace
 

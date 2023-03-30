@@ -124,7 +124,7 @@ void otterTraceFinalise(void)
         written at parallel-end */
     trace_region_def_t *initial_task_region = NULL;
     stack_pop(region_stack, NULL);
-    trace_location_pop_region_def(location, (data_item_t*) &initial_task_region);
+    trace_location_get_region_def(location, &initial_task_region);
     LOG_DEBUG("writing initial-task region definition from thread queue: %p", initial_task_region);
     trace_write_region_definition(initial_task_region);
     trace_destroy_task_region(initial_task_region);
@@ -145,7 +145,7 @@ void otterTraceFinalise(void)
     size_t num_definitions = trace_location_get_num_region_def(location);
     LOG_DEBUG_IF((num_definitions!=0), "definitions in thread queue: %lu", num_definitions);
     trace_region_def_t *region = NULL;
-    while (trace_location_pop_region_def(location, (data_item_t*) &region)) {
+    while (trace_location_get_region_def(location, &region)) {
         trace_region_type_t region_type = trace_region_get_type(region);
         LOG_DEBUG("writing region definition %p (%d)", region, region_type);
         trace_write_region_definition(region);

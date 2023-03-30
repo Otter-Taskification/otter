@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <otf2/otf2.h>
+#include <assert.h>
 #include "public/types/queue.h"
 #include "public/types/stack.h"
 #include "public/otter-trace/trace.h"
@@ -50,7 +51,7 @@ trace_new_master_region(
     LOG_DEBUG("[t=%lu] created master region %u at %p",
         trace_location_get_id(loc), new->ref, new);
 
-    trace_location_push_region_def(loc, (data_item_t) {.ptr=new});
+    trace_location_store_region_def(loc, new);
 
     return new;    
 }
@@ -115,7 +116,7 @@ trace_new_phase_region(
     LOG_DEBUG("[t=%lu] created region for phase \"%s\" (%u) at %p",
         trace_location_get_id(loc), phase_name, new->ref, new);
 
-    trace_location_push_region_def(loc, (data_item_t) {.ptr=new});
+    trace_location_store_region_def(loc, new);
 
     return new;
 }
@@ -144,7 +145,7 @@ trace_new_sync_region(
     LOG_DEBUG("[t=%lu] created sync region %u at %p",
         trace_location_get_id(loc), new->ref, new);
 
-    trace_location_push_region_def(loc, (data_item_t) {.ptr=new});
+    trace_location_store_region_def(loc, new);
 
     return new;
 }
@@ -208,7 +209,7 @@ trace_new_task_region(
     LOG_DEBUG("[t=%lu] created region %u for task %lu at %p",
         trace_location_get_id(loc), new->ref, new->attr.task.id, new);
 
-    trace_location_push_region_def(loc, (data_item_t) {.ptr=new});
+    trace_location_store_region_def(loc, new);
 
     return new;
 }
@@ -237,7 +238,7 @@ trace_new_workshare_region(
     LOG_DEBUG("[t=%lu] created workshare region %u at %p",
         trace_location_get_id(loc), new->ref, new);
 
-    trace_location_push_region_def(loc, (data_item_t) {.ptr=new});
+    trace_location_store_region_def(loc, new);
 
     return new;
 }
@@ -521,6 +522,21 @@ trace_region_get_type(trace_region_def_t *region)
     return region->type;
 }
 
+otter_queue_t *
+trace_region_get_rgn_def_queue(trace_region_def_t *region)
+{
+    // This operation is only valid for parallel regions
+    assert(region->type == trace_region_parallel);
+    return region->attr.parallel.rgn_defs;
+}
+
+otter_stack_t *
+trace_region_get_task_rgn_stack(trace_region_def_t *region)
+{
+    // This operation is only valid for task regions
+    assert(region->type == trace_region_task);
+    return region->rgn_stack;
+}
 
 // Write region definition to a trace
 

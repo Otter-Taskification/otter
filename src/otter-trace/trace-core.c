@@ -55,50 +55,60 @@ trace_write_region_definition(trace_region_def_t *rgn)
 void
 trace_event_thread_begin(trace_location_def_t *self)
 {
+    OTF2_AttributeList *attributes = NULL;
+    OTF2_EvtWriter *evt_writer = NULL;
+    OTF2_DefWriter *def_writer = NULL;
+    trace_location_get_otf2(self, &attributes, &evt_writer, &def_writer);
+
     trace_add_thread_attributes(self);
     OTF2_AttributeList_AddStringRef(
-        self->attributes,
+        attributes,
         attr_event_type,
         attr_label_ref[attr_event_type_thread_begin]
     );
     OTF2_AttributeList_AddStringRef(
-        self->attributes,
+        attributes,
         attr_endpoint,
         attr_label_ref[attr_endpoint_enter]
     );
     OTF2_EvtWriter_ThreadBegin(
-        self->evt_writer,
-        self->attributes,
+        evt_writer,
+        attributes,
         get_timestamp(),
         OTF2_UNDEFINED_COMM,
-        self->id
+        trace_location_get_id(self)
     );
-    self->events++;
+    trace_location_inc_event_count(self);
     return;
 }
 
 void
 trace_event_thread_end(trace_location_def_t *self)
 {
+    OTF2_AttributeList *attributes = NULL;
+    OTF2_EvtWriter *evt_writer = NULL;
+    OTF2_DefWriter *def_writer = NULL;
+    trace_location_get_otf2(self, &attributes, &evt_writer, &def_writer);
+
     trace_add_thread_attributes(self);
     OTF2_AttributeList_AddStringRef(
-        self->attributes,
+        attributes,
         attr_event_type,
         attr_label_ref[attr_event_type_thread_end]
     );
     OTF2_AttributeList_AddStringRef(
-        self->attributes,
+        attributes,
         attr_endpoint,
         attr_label_ref[attr_endpoint_leave]
     );
     OTF2_EvtWriter_ThreadEnd(
-        self->evt_writer,    
-        self->attributes, 
+        evt_writer,    
+        attributes, 
         get_timestamp(), 
         OTF2_UNDEFINED_COMM, 
-        self->id
+        trace_location_get_id(self)
     );
-    self->events++;
+    trace_location_inc_event_count(self);
     return;
 }
 
@@ -109,34 +119,17 @@ trace_event_enter(
 {
     LOG_ERROR_IF((region == NULL), "null region pointer");
 
-    LOG_DEBUG("[t=%lu] enter region %p", self->id, region);
-
-#if !defined(NDEBUG) && DEBUG_LEVEL>=3
-    trace_region_pprint(stderr, region, __func__, __LINE__);
-#endif
-
-    #if DEBUG_LEVEL >= 4
-    stack_print(self->rgn_stack);
-    #endif
+    OTF2_EvtWriter *evt_writer = NULL;
+    trace_location_get_otf2(self, NULL, &evt_writer, NULL);
 
     if (region->type == trace_region_parallel)
     {
-
-        // TODO: move into trace-location.c e.g. trace_location_push_new_def_queue(self);
-        /* Set up new region definitions queue for the new parallel region */
-        stack_push(self->rgn_defs_stack, (data_item_t) {.ptr = self->rgn_defs});
-        LOG_DEBUG("[t=%lu] pushed region definitions queue %p",
-            self->id, self->rgn_defs);
-        self->rgn_defs = queue_create();
+        trace_location_enter_region_def_scope(self);
 
         // TODO: move into trace-region-def.c e.g. trace_region_parallel_lock(region);
         /* Parallel regions must be accessed atomically as they are shared 
            between threads */
-        LOG_DEBUG("[t=%lu] acquiring mutex %p",
-            self->id, &region->attr.parallel.lock_rgn);
         pthread_mutex_lock(&region->attr.parallel.lock_rgn);
-        LOG_DEBUG("[t=%lu] acquired mutex %p",
-            self->id, &region->attr.parallel.lock_rgn);
     }
 
     /* Add attributes common to all enter/leave events */
@@ -182,64 +175,37 @@ trace_event_enter(
     }
     
     /* Record the event */
-    OTF2_EvtWriter_Enter(self->evt_writer, attributes, get_timestamp(), region->ref);
+    OTF2_EvtWriter_Enter(evt_writer, attributes, get_timestamp(), region->ref);
 
-    // TODO: move into trace-location.c
-    /* Push region onto location's region stack */
-    stack_push(self->rgn_stack, (data_item_t) {.ptr = region});
+    trace_location_enter_region(self, region);
 
     if (region->type == trace_region_parallel)
     {
         // TODO: move into trace-region-def.c e.g. trace_region_parallel_inc_refcount(region) and trace_region_parallel_unlock(region);
         region->attr.parallel.ref_count++;
         region->attr.parallel.enter_count++;
-        LOG_INFO("[t=%lu] releasing mutex %p (ref count of parallel region %lu"
-            " is %u)",
-            self->id, &region->attr.parallel.lock_rgn,
-            region->attr.parallel.id, region->attr.parallel.ref_count);
         pthread_mutex_unlock(&region->attr.parallel.lock_rgn);
     }
 
-    self->events++;
+    trace_location_inc_event_count(self);
     return;
 }
 
 void
 trace_event_leave(trace_location_def_t *self)
 {
-    #if DEBUG_LEVEL >= 4
-    stack_print(self->rgn_stack);
-    #endif
-
-    if (stack_is_empty(self->rgn_stack))
-    {
-        LOG_ERROR("stack is empty");
-        abort();
-    }
-
-    /* For the region-end event, the region was previously pushed onto the 
-       location's region stack so should now be at the top (as long as regions
-       are correctly nested) */
     trace_region_def_t *region = NULL;
-    // TODO: move into trace-location.c
-    stack_pop(self->rgn_stack, (data_item_t*) &region);
+    trace_location_leave_region(self, &region);
 
-    LOG_DEBUG("[t=%lu] leave region %p", self->id, region);
-
-#if !defined(NDEBUG) && DEBUG_LEVEL>=3
-    trace_region_pprint(stderr, region, __func__, __LINE__);
-#endif
+    OTF2_EvtWriter *evt_writer = NULL;
+    trace_location_get_otf2(self, NULL, &evt_writer, NULL);
 
     if (region->type == trace_region_parallel)
     {
         // TODO: move into trace-region-def.c
         /* Parallel regions must be accessed atomically as they are shared 
            between threads */
-        LOG_DEBUG("[t=%lu] acquiring mutex %p",
-            self->id, &region->attr.parallel.lock_rgn);
         pthread_mutex_lock(&region->attr.parallel.lock_rgn);
-        LOG_DEBUG("[t=%lu] acquired mutex %p",
-            self->id, &region->attr.parallel.lock_rgn);
     }
 
     /* Add attributes common to all enter/leave events */
@@ -285,40 +251,15 @@ trace_event_leave(trace_location_def_t *self)
     }
 
     /* Record the event */
-    OTF2_EvtWriter_Leave(self->evt_writer, attributes, get_timestamp(), region->ref);
+    OTF2_EvtWriter_Leave(evt_writer, attributes, get_timestamp(), region->ref);
     
     /* Parallel regions must be cleaned up by the last thread to leave */
     if (region->type == trace_region_parallel)
     {
-        /* Give the location's region definitions to the parallel region */
-        LOG_DEBUG("[t=%lu] appending %lu region definitions to "
-            "parallel region queue %p", self->id, queue_length(self->rgn_defs),
-            region->attr.parallel.rgn_defs);
-
-        // TODO: does this operation make more sense in trace-region-def.c or trace-lcation.c? Maybe use getters here instead...
-        if (!queue_append(region->attr.parallel.rgn_defs, self->rgn_defs))
-            LOG_ERROR("error appending items to queue");
-
-        /* Destroy region definitions queue */
-        LOG_DEBUG("[t=%lu] destroying region definitions queue %p",
-            self->id, self->rgn_defs);
-        // TODO: move into trace-location.c
-        queue_destroy(self->rgn_defs, false, NULL);
-        self->rgn_defs = NULL;
-
-        // TODO: move into trace-location.c
-        /* Pop queue of enclosing parallel region (if there is one) */
-        stack_pop(self->rgn_defs_stack, (data_item_t*) &self->rgn_defs);
-        LOG_DEBUG("[t=%lu] popped region definitions queue %p",
-            self->id, self->rgn_defs);
+        trace_location_leave_region_def_scope(self, region);
 
         // TODO: move into trace-region-def.c -> e.g. trace_region_finalise_parallel(region);
         region->attr.parallel.ref_count--;
-
-        LOG_INFO("[t=%lu] releasing mutex %p (ref count of parallel region %lu"
-            " is %u)",
-            self->id, &region->attr.parallel.lock_rgn,
-            region->attr.parallel.id, region->attr.parallel.ref_count);
 
         /* Check the ref count atomically __before__ unlocking */
         if (region->attr.parallel.ref_count == 0)
@@ -329,51 +270,52 @@ trace_event_leave(trace_location_def_t *self)
             pthread_mutex_unlock(&region->attr.parallel.lock_rgn);
         }
     }
-    
-    // TODO: move into trace-location.c
-    self->events++;
+    trace_location_inc_event_count(self);
     return;
 }
 
 void
 trace_event_task_create(
     trace_location_def_t *self, 
-    trace_region_def_t   *created_task)
+    trace_region_def_t   *region)
 {
+    OTF2_EvtWriter *evt_writer = NULL;
+    trace_location_get_otf2(self, NULL, &evt_writer, NULL);
+
     trace_add_common_event_attributes(
-        trace_region_get_attribute_list(created_task),
-        trace_region_get_encountering_task_id(created_task),
-        trace_region_get_type(created_task),
-        trace_region_get_attributes(created_task)
+        trace_region_get_attribute_list(region),
+        trace_region_get_encountering_task_id(region),
+        trace_region_get_type(region),
+        trace_region_get_attributes(region)
     );
 
     /* task-create */
-    OTF2_AttributeList_AddStringRef(created_task->attributes, attr_event_type,
+    OTF2_AttributeList_AddStringRef(region->attributes, attr_event_type,
         attr_label_ref[attr_event_type_task_create]);
 
     /* discrete event (no duration) */
     OTF2_AttributeList_AddStringRef(
-        created_task->attributes,
+        region->attributes,
         attr_endpoint,
         attr_label_ref[attr_endpoint_discrete]
     );
 
     /* return address */
-    OTF2_AttributeList_AddUint64(created_task->attributes, attr_task_create_ra,
+    OTF2_AttributeList_AddUint64(region->attributes, attr_task_create_ra,
 // https://releases.llvm.org/15.0.0/tools/clang/docs/ReleaseNotes.html#improvements-to-clang-s-diagnostics
 // The -Wint-conversion warning diagnostic for implicit int <-> pointer conversions now defaults to an error in all C language modes.
-        (uint64_t) created_task->attr.task.task_create_ra
+        (uint64_t) region->attr.task.task_create_ra
     );
 
-    trace_add_task_attributes(created_task);
+    trace_add_task_attributes(region);
     
     OTF2_EvtWriter_ThreadTaskCreate(
-        self->evt_writer,
-        created_task->attributes,
+        evt_writer,
+        region->attributes,
         get_timestamp(),
         OTF2_UNDEFINED_COMM,
         OTF2_UNDEFINED_UINT32, 0); /* creating thread, generation number */
-    self->events++;
+    trace_location_inc_event_count(self);
     return;
 }
 
@@ -401,13 +343,14 @@ trace_event_task_switch(
     // Transfer thread's active region stack to prior_task->rgn_stack
     // Transfer next_task->rgn_stack to thread
     // Record event with details of tasks swapped & prior_status
+    
+    OTF2_EvtWriter *evt_writer = NULL;
+    trace_location_get_otf2(self, NULL, &evt_writer, NULL);
 
     prior_task->attr.task.task_status = prior_status;
-    LOG_ERROR_IF((stack_is_empty(prior_task->rgn_stack) == false),
-        "prior task %lu region stack not empty",
-        prior_task->attr.task.id);
-    stack_transfer(prior_task->rgn_stack, self->rgn_stack);
-    stack_transfer(self->rgn_stack, next_task->rgn_stack);
+
+    trace_location_store_active_regions_in_task(self, prior_task);
+    trace_location_get_active_regions_from_task(self, next_task);
 
     trace_add_common_event_attributes(
         trace_region_get_attribute_list(prior_task),
@@ -465,7 +408,7 @@ trace_event_task_switch(
     );
 
     OTF2_EvtWriter_ThreadTaskSwitch(
-        self->evt_writer,
+        evt_writer,
         prior_task->attributes,
         get_timestamp(),
         OTF2_UNDEFINED_COMM,

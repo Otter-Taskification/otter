@@ -5,6 +5,7 @@
 #include "public/otter-trace/trace-types.h"
 #include "public/otter-trace/trace-location.h"
 
+// TODO: can this struct be made opaque?
 typedef struct thread_data_t {
     unique_id_t           id;
     trace_location_def_t *location;

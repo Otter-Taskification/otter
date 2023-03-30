@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include "public/otter-trace/trace-task-data.h"
-#include "public/otter-trace/trace-region-task.h"
-#include "src/otter-trace/trace-get-unique-id.h"
+#include "otter-trace/trace-get-unique-id.h"
 typedef struct task_data_t {
     unique_id_t         id;
     otter_task_flag_t   type;

@@ -7,13 +7,13 @@
 #include "public/otter-trace/trace.h"
 #include "public/otter-trace/trace-region-def.h"
 
-#include "src/otter-trace/trace-archive.h"
-#include "src/otter-trace/trace-attributes.h"
-#include "src/otter-trace/trace-check-error-code.h"
-#include "src/otter-trace/trace-lookup-macros.h"
-#include "src/otter-trace/trace-string-registry.h"
-#include "src/otter-trace/trace-unique-refs.h"
-#include "src/otter-trace/trace-common-event-attributes.h"
+#include "otter-trace/trace-archive.h"
+#include "otter-trace/trace-attributes.h"
+#include "otter-trace/trace-check-error-code.h"
+#include "otter-trace/trace-lookup-macros.h"
+#include "otter-trace/trace-string-registry.h"
+#include "otter-trace/trace-unique-refs.h"
+#include "otter-trace/trace-common-event-attributes.h"
 
 /* Store values needed to register region definition (tasks, parallel regions, 
    workshare constructs etc.) with OTF2 */

@@ -2,9 +2,9 @@
 #include "public/otter-common.h"
 #include "public/otter-trace/trace-region-attr.h"
 
-#include "src/otter-trace/trace-attributes.h"
-#include "src/otter-trace/trace-region-types.h"
-#include "src/otter-trace/trace-check-error-code.h"
+#include "otter-trace/trace-attributes.h"
+#include "otter-trace/trace-region-types.h"
+#include "otter-trace/trace-check-error-code.h"
 
 /* Lookup tables mapping enum value to string ref */
 extern OTF2_StringRef attr_name_ref[n_attr_defined][2];

@@ -8,7 +8,7 @@
 #include "public/otter-common.h"
 #include "public/otter-trace/trace-types.h"
 #include "public/otter-trace/trace-region-attr.h"
-#include "src/otter-trace/trace-region-types.h"
+#include "otter-trace/trace-region-types.h"
 
 typedef struct trace_region_def_t trace_region_def_t;
 

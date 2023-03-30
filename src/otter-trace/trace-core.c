@@ -20,14 +20,14 @@
 #include "public/otter-trace/trace.h"
 #include "public/otter-trace/trace-location.h"
 
-#include "src/otter-trace/trace-timestamp.h"
-#include "src/otter-trace/trace-attributes.h"
-#include "src/otter-trace/trace-archive.h"
-#include "src/otter-trace/trace-lookup-macros.h"
-#include "src/otter-trace/trace-unique-refs.h"
-#include "src/otter-trace/trace-check-error-code.h"
-#include "src/otter-trace/trace-static-constants.h"
-#include "src/otter-trace/trace-common-event-attributes.h"
+#include "otter-trace/trace-timestamp.h"
+#include "otter-trace/trace-attributes.h"
+#include "otter-trace/trace-archive.h"
+#include "otter-trace/trace-lookup-macros.h"
+#include "otter-trace/trace-unique-refs.h"
+#include "otter-trace/trace-check-error-code.h"
+#include "otter-trace/trace-static-constants.h"
+#include "otter-trace/trace-common-event-attributes.h"
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /*   WRITE DEFINITIONS                                                       */

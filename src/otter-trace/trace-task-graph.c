@@ -9,11 +9,11 @@
 #include "public/otter-trace/trace.h"
 #include "public/otter-trace/trace-task-context-interface.h"
 
-#include "src/otter-trace/trace-timestamp.h"
-#include "src/otter-trace/trace-attributes.h"
-#include "src/otter-trace/trace-lookup-macros.h"
-#include "src/otter-trace/trace-unique-refs.h"
-#include "src/otter-trace/trace-check-error-code.h"
+#include "otter-trace/trace-timestamp.h"
+#include "otter-trace/trace-attributes.h"
+#include "otter-trace/trace-lookup-macros.h"
+#include "otter-trace/trace-unique-refs.h"
+#include "otter-trace/trace-check-error-code.h"
 
 #define OTTER_DUMMY_OTF2_LOCATION_REF        0
 

@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <assert.h>
-#include "src/otter-trace/trace-string-registry.h"
+#include "otter-trace/trace-string-registry.h"
 
 /* Reference to global string registry */
 static string_registry *Registry = NULL;

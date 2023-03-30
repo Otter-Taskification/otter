@@ -8,20 +8,17 @@
 #include <unistd.h>         // gethostname
 #include <sys/time.h>       // getrusage
 #include <sys/resource.h>   // getrusage
-
-#include "public/debug.h"
-#include "src/otter-ompt/callback.h"
-
 #include <omp-tools.h>
-
+#include "public/debug.h"
 #include "public/otter-common.h"
-#include "src/otter-ompt/otter.h"
-#include "src/otter-ompt/otter-entry.h"
 #include "public/otter-environment-variables.h"
 #include "public/otter-trace/trace.h"
 #include "public/otter-trace/trace-thread-data.h"
 #include "public/otter-trace/trace-task-data.h"
 #include "public/otter-trace/trace-parallel-data.h"
+#include "otter-ompt/callback.h"
+#include "otter-ompt/otter.h"
+#include "otter-ompt/otter-entry.h"
 
 /* Static function prototypes */
 static void print_resource_usage(void);

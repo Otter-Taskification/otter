@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "src/otter-trace/trace-unique-refs.h"
+#include "otter-trace/trace-unique-refs.h"
 
 /* Different kinds of unique IDs */
 typedef enum {

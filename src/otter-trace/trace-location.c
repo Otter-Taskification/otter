@@ -17,12 +17,12 @@
 #include "public/otter-trace/trace-location.h"
 #include "public/types/queue.h"
 #include "public/types/stack.h"
-#include "src/otter-trace/trace-lookup-macros.h"
-#include "src/otter-trace/trace-attributes.h"
-#include "src/otter-trace/trace-archive.h"
-#include "src/otter-trace/trace-unique-refs.h"
-#include "src/otter-trace/trace-check-error-code.h"
-#include "src/otter-trace/trace-static-constants.h"
+#include "otter-trace/trace-lookup-macros.h"
+#include "otter-trace/trace-attributes.h"
+#include "otter-trace/trace-archive.h"
+#include "otter-trace/trace-unique-refs.h"
+#include "otter-trace/trace-check-error-code.h"
+#include "otter-trace/trace-static-constants.h"
 
 typedef struct {
     unique_id_t             id;

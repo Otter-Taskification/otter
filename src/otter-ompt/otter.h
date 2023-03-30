@@ -14,9 +14,9 @@
 #include <omp-tools.h>
 
 #include "public/otter-common.h"
-#include "src/otter-ompt/otter-entry.h"
 #include "public/types/stack.h"
 #include "public/otter-trace/trace.h"
+#include "otter-ompt/otter-entry.h"
 
 /* A naming convention was chosen for the callbacks so that each callback is 
    named after the event in ompt.h which it handles. The struct passed to the
@@ -38,6 +38,6 @@
 #define implements_callback_work
 #define implements_callback_sync_region
 #define implements_callback_master
-#include "src/otter-ompt/ompt-callback-prototypes.h"
+#include "otter-ompt/ompt-callback-prototypes.h"
 
 #endif // OTTER_H

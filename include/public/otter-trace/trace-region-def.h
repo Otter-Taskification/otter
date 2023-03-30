@@ -77,6 +77,7 @@ void trace_destroy_workshare_region(trace_region_def_t *rgn);
 
 // Add attributes
 
+void trace_add_region_type_attributes(trace_region_def_t *rgn);
 void trace_add_master_attributes(trace_region_def_t *rgn);
 void trace_add_parallel_attributes(trace_region_def_t *rgn);
 void trace_add_phase_attributes(trace_region_def_t *rgn);
@@ -88,12 +89,18 @@ void trace_add_workshare_attributes(trace_region_def_t *rgn);
 // Getters
 
 OTF2_AttributeList *trace_region_get_attribute_list(trace_region_def_t *region);
+OTF2_RegionRef trace_region_get_ref(trace_region_def_t *region);
 unique_id_t trace_region_get_encountering_task_id(trace_region_def_t *region);
 trace_region_type_t trace_region_get_type(trace_region_def_t *region);
 trace_region_attr_t trace_region_get_attributes(trace_region_def_t *region);
 otter_queue_t *trace_region_get_rgn_def_queue(trace_region_def_t *region);
 otter_stack_t *trace_region_get_task_rgn_stack(trace_region_def_t *region);
 unsigned int trace_region_get_shared_ref_count(trace_region_def_t *region);
+
+
+// Setters
+
+void trace_region_set_task_status(trace_region_def_t *region, otter_task_status_t status);
 
 
 // Lock and unlock shared regions

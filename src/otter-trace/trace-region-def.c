@@ -373,6 +373,25 @@ trace_destroy_workshare_region(trace_region_def_t *rgn)
 // Add attributes
 
 void
+trace_add_region_type_attributes(trace_region_def_t *rgn)
+{
+    switch (rgn->type) {
+    case trace_region_parallel:
+        trace_add_parallel_attributes(rgn);  break;
+    case trace_region_workshare:
+        trace_add_workshare_attributes(rgn); break;
+    case trace_region_synchronise:
+        trace_add_sync_attributes(rgn);      break;
+    case trace_region_task:
+        trace_add_task_attributes(rgn);      break;
+    case trace_region_master:
+        trace_add_master_attributes(rgn);    break;
+    case trace_region_phase:
+        trace_add_phase_attributes(rgn);     break;
+    }
+}
+
+void
 trace_add_master_attributes(trace_region_def_t *rgn)
 {
     OTF2_ErrorCode r = OTF2_SUCCESS;
@@ -504,6 +523,12 @@ trace_region_get_attribute_list(trace_region_def_t *region)
     return region->attributes;
 }
 
+OTF2_RegionRef
+trace_region_get_ref(trace_region_def_t *region)
+{
+    return region->ref;
+}
+
 unique_id_t 
 trace_region_get_encountering_task_id(trace_region_def_t *region)
 {
@@ -543,6 +568,16 @@ trace_region_get_shared_ref_count(trace_region_def_t *region)
 {
     assert(trace_region_is_shared(region));
     return region->attr.parallel.ref_count;
+}
+
+
+// Setters
+
+void
+trace_region_set_task_status(trace_region_def_t *region, otter_task_status_t status)
+{
+    assert(region->type == trace_region_task);
+    region->attr.task.task_status = status;
 }
 
 // Lock and unlock shared regions

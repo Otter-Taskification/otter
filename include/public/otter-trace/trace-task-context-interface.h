@@ -11,8 +11,10 @@
  * 
  */
 
+#pragma once
+
 #include "public/otter-common.h"
-#include "api/otter-task-graph/otter-task-context.h"
+#include "api/otter-task-graph/otter-task-graph.h" // for otter_task_context typedef
 
 /**
  * @brief Allocate an uninitialised otter_task_context.

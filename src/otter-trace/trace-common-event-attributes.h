@@ -1,7 +1,10 @@
+#define _GNU_SOURCE // for sched_getcpu
+#include <sched.h>
 #include <otf2/otf2.h>
 #include "public/otter-common.h"
 #include "public/otter-trace/trace-region-attr.h"
 
+#include "otter-trace/trace-lookup-macros.h"
 #include "otter-trace/trace-attributes.h"
 #include "otter-trace/trace-region-types.h"
 #include "otter-trace/trace-check-error-code.h"

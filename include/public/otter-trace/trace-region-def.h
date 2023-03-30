@@ -1,6 +1,8 @@
 #if !defined(OTTER_TRACE_REGION_DEF_H)
 #define OTTER_TRACE_REGION_DEF_H
 
+#include <otf2/OTF2_GeneralDefinitions.h>
+#include <otf2/OTF2_GlobalDefWriter.h>
 #include <otf2/OTF2_AttributeList.h>
 
 #include "public/types/stack.h"
@@ -16,8 +18,8 @@ typedef struct trace_region_def_t trace_region_def_t;
 
 trace_region_def_t *
 trace_new_master_region(
-    trace_location_def_t *loc,
-    unique_id_t           encountering_task_id
+    unique_id_t thread_id,
+    unique_id_t encountering_task_id
 );
 
 trace_region_def_t *
@@ -31,7 +33,6 @@ trace_new_parallel_region(
 
 trace_region_def_t *
 trace_new_phase_region(
-    trace_location_def_t *loc,
     otter_phase_region_t  type,
     unique_id_t           encountering_task_id,
     const char           *phase_name
@@ -39,7 +40,6 @@ trace_new_phase_region(
 
 trace_region_def_t *
 trace_new_sync_region(
-    trace_location_def_t *loc,
     otter_sync_region_t   stype,
     trace_task_sync_t     task_sync_mode,
     unique_id_t           encountering_task_id
@@ -47,7 +47,6 @@ trace_new_sync_region(
 
 trace_region_def_t *
 trace_new_task_region(
-    trace_location_def_t *loc,
     trace_region_def_t   *parent_task_region,
     unique_id_t           task_id,
     otter_task_flag_t     flags,
@@ -58,7 +57,6 @@ trace_new_task_region(
 
 trace_region_def_t *
 trace_new_workshare_region(
-    trace_location_def_t *loc,
     otter_work_t          wstype,
     uint64_t              count,
     unique_id_t           encountering_task_id
@@ -115,6 +113,5 @@ void trace_region_dec_ref_count(trace_region_def_t *region);
 // Write region definition to a trace
 
 void trace_region_write_definition_impl(OTF2_GlobalDefWriter *writer, trace_region_def_t *region);
-
 
 #endif // OTTER_TRACE_REGION_DEF_IMPL_H

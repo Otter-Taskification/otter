@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <vector>
-#include <otter/otter-task-graph-wrapper.hpp>
+#include "api/otter-task-graph/otter-task-graph-wrapper.hpp"
 
 using namespace otter;
 

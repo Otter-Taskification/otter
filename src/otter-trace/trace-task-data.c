@@ -29,7 +29,6 @@ new_task_data(
         .region = NULL
     };
     new->region = trace_new_task_region(
-        loc, 
         parent_task_region, 
         new->id,
         flags, 

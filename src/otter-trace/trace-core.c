@@ -17,7 +17,7 @@
 #include "public/types/stack.h"
 #include "public/otter-common.h"
 #include "public/otter-environment-variables.h"
-#include "public/otter-trace/trace.h"
+#include "public/otter-trace/trace-ompt.h"
 #include "public/otter-trace/trace-location.h"
 
 #include "otter-trace/trace-timestamp.h"
@@ -187,15 +187,15 @@ trace_event_leave(trace_location_def_t *self)
 
     trace_region_type_t region_type = trace_region_get_type(region);
 
+    OTF2_AttributeList *attributes = trace_region_get_attribute_list(region);
+
     /* Add attributes common to all enter/leave events */
     trace_add_common_event_attributes(
-        trace_region_get_attribute_list(region),
+        attributes,
         trace_region_get_encountering_task_id(region),
         region_type,
         trace_region_get_attributes(region)
     );
-
-    OTF2_AttributeList *attributes = trace_region_get_attribute_list(region);
 
     OTF2_StringRef event_type = OTF2_UNDEFINED_STRING;
     OTF2_StringRef endpoint = attr_label_ref[attr_endpoint_leave];

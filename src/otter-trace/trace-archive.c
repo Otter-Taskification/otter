@@ -25,8 +25,9 @@
 #include "public/otter-version.h"
 #include "public/debug.h"
 #include "public/otter-common.h"
-#include "public/otter-trace/trace.h"
+#include "public/otter-trace/trace-ompt.h"
 
+#include "otter-trace/trace-static-constants.h"
 #include "otter-trace/trace-timestamp.h"
 #include "otter-trace/trace-archive.h"
 #include "otter-trace/trace-string-registry.h"
@@ -34,9 +35,6 @@
 #include "otter-trace/trace-unique-refs.h"
 #include "otter-trace/trace-check-error-code.h"
 
-static const OTF2_LocationGroupRef DEFAULT_LOCATION_GRP=0;
-static const OTF2_SystemTreeNodeRef DEFAULT_SYSTEM_TREE=0;
-static const size_t DEFAULT_NAME_BUF_SZ=256;
 static const size_t CHAR_BUFF_SZ=1024;
 
 /**

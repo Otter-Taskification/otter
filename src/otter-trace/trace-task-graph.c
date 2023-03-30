@@ -6,9 +6,12 @@
 #include "public/debug.h"
 #include "public/otter-common.h"
 #include "public/otter-environment-variables.h"
-#include "public/otter-trace/trace.h"
+#include "public/otter-trace/trace-task-graph.h"
 #include "public/otter-trace/trace-task-context-interface.h"
 
+#include "otter-trace/trace-archive.h"
+#include "otter-trace/trace-common-event-attributes.h"
+#include "otter-trace/trace-lookup-macros.h"
 #include "otter-trace/trace-timestamp.h"
 #include "otter-trace/trace-attributes.h"
 #include "otter-trace/trace-lookup-macros.h"

@@ -24,7 +24,7 @@
 #include "otter-trace/trace-check-error-code.h"
 #include "otter-trace/trace-static-constants.h"
 
-typedef struct {
+typedef struct trace_location_def_t {
     unique_id_t             id;
     otter_thread_t          thread_type;
     uint64_t                events;

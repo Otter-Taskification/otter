@@ -12,7 +12,7 @@
 #include "public/debug.h"
 #include "public/otter-common.h"
 #include "public/otter-environment-variables.h"
-#include "public/otter-trace/trace.h"
+#include "public/otter-trace/trace-ompt.h"
 #include "public/otter-trace/trace-thread-data.h"
 #include "public/otter-trace/trace-task-data.h"
 #include "public/otter-trace/trace-parallel-data.h"
@@ -281,16 +281,22 @@ on_ompt_callback_task_create(
     LOG_DEBUG("[t=%lu] codeptr_ra %p", thread_data->id, codeptr_ra);
 
     /* get the task data of the parent, if it exists */
-    task_data_t *parent_task_data = flags & ompt_task_initial ? 
-        NULL : (task_data_t*) encountering_task->ptr;
+    task_data_t *parent_task_data = NULL;
+    if (flags & ompt_task_initial) {
+        parent_task_data = (task_data_t*) encountering_task->ptr;
+    }
+
+    trace_region_def_t *parent_task_region = NULL;
+    if (parent_task_data != NULL) {
+        parent_task_region = trace_task_get_region_def(parent_task_data);
+    }
 
     /* make space for the newly-created task */
-    task_data_t *task_data = new_task_data(thread_data->location, 
-        parent_task_data ? trace_task_get_region_def(parent_task_data) : NULL, 
-        flags, has_dependences, NULL, codeptr_ra);
+    task_data_t *task_data = new_task_data(thread_data->location, parent_task_region, flags, has_dependences, NULL, codeptr_ra);
 
-    /* record the task-create event */
-    trace_event_task_create(thread_data->location, trace_task_get_region_def(task_data));
+    trace_region_def_t *task_region = trace_task_get_region_def(task_data);
+    trace_location_store_region_def(thread_data->location, task_region);
+    trace_event_task_create(thread_data->location, task_region);
 
     new_task->ptr = task_data;
 
@@ -401,10 +407,13 @@ on_ompt_callback_implicit_task(
         /* Create implicit task data __after__ parallel-begin so that the OTF2
            region is added to the queue for the new parallel region */
         task_data_t *encountering_task_data = trace_parallel_get_task_data(parallel_data);
+        trace_region_def_t *encountering_task_region = NULL;
+        if (flags & ompt_task_implicit) {
+            encountering_task_region = trace_task_get_region_def(encountering_task_data);
+        }
         task_data_t *implicit_task_data = new_task_data(
             thread_data->location,
-            flags & ompt_task_implicit ?
-                trace_task_get_region_def(encountering_task_data) : NULL,
+            encountering_task_region,
             flags,
             0,
             NULL,
@@ -412,8 +421,10 @@ on_ompt_callback_implicit_task(
         );
         task->ptr = implicit_task_data;
 
+        trace_region_def_t *implicit_task_region = trace_task_get_region_def(implicit_task_data);
+        trace_location_store_region_def(thread_data->location, implicit_task_region);
         /* Enter implicit task region */
-        trace_event_enter(thread_data->location, trace_task_get_region_def(implicit_task_data));
+        trace_event_enter(thread_data->location, implicit_task_region);
 
     } else {
 
@@ -475,7 +486,6 @@ on_ompt_callback_work(
         if (endpoint == ompt_scope_begin)
         {
             trace_region_def_t *wshare_rgn = trace_new_workshare_region(
-                thread_data->location,
                 /* Convert the OMPT enum type to a generic Otter enum type */
                 wstype == ompt_work_loop ? otter_work_loop :
                     wstype == ompt_work_single_executor ? otter_work_single_executor :
@@ -484,6 +494,7 @@ on_ompt_callback_work(
                 count,
                 trace_task_get_id(task_data)
             );
+            trace_location_store_region_def(thread_data->location, wshare_rgn);
             trace_event_enter(thread_data->location, wshare_rgn);
         } else {
             trace_event_leave(thread_data->location);
@@ -509,20 +520,22 @@ on_ompt_callback_master(
     const void              *codeptr_ra)
 {
     thread_data_t *thread_data = (thread_data_t*) get_thread_data()->ptr;
+    trace_location_def_t *location = thread_data->location;
     task_data_t *task_data = (task_data_t*) task->ptr;
+    unique_id_t location_id = trace_location_get_id(location);
+    unique_id_t task_id = trace_task_get_id(task_data);
 
     LOG_DEBUG("[t=%lu] (event) master-%s", 
         thread_data->id, endpoint==ompt_scope_begin?"begin":"end");
 
     if (endpoint == ompt_scope_begin)
     {
-        trace_region_def_t *master_rgn = trace_new_master_region(
-            thread_data->location, trace_task_get_id(task_data));
-        trace_event_enter(thread_data->location, master_rgn);
+        trace_region_def_t *master_rgn = trace_new_master_region(location_id, task_id);
+        trace_location_store_region_def(location, master_rgn);
+        trace_event_enter(location, master_rgn);
     } else {
-        trace_event_leave(thread_data->location);
+        trace_event_leave(location);
     }
-
     return;
 }
 
@@ -558,11 +571,11 @@ on_ompt_callback_sync_region(
     if (endpoint == ompt_scope_begin)
     {
         trace_region_def_t *sync_rgn = trace_new_sync_region(
-            thread_data->location,
             kind,
             kind == ompt_sync_region_taskgroup ? trace_sync_descendants : trace_sync_children,
             trace_task_get_id(task_data)
         );
+        trace_location_store_region_def(thread_data->location, sync_rgn);
         trace_event_enter(thread_data->location, sync_rgn);
     } else {
         trace_event_leave(thread_data->location);

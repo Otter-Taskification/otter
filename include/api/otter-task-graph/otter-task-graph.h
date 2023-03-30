@@ -16,9 +16,15 @@
 #if !defined(OTTER_TASK_GRAPH_H)
 #define OTTER_TASK_GRAPH_H
 
-// Only want the otter_task_context typedef rather than the interface itself.
-// Interface only needed by the implementation of this event source.
-#include <otter/otter-task-context.h>
+/**
+ * @brief Declares the existence of the otter_task_context struct.
+ * 
+ * This struct is an opaque representation of a task context used by the 
+ * `otter-task-graph.h` tracing API. The definition of this struct is hidden 
+ * from the user as an implementation detail.
+ * 
+ */
+typedef struct otter_task_context otter_task_context;
 
 /**
  * @brief Convenience macro function for use with functions that require file,

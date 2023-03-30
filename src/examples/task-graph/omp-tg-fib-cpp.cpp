@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <omp.h>
-#include <otter/otter-task-graph-wrapper.hpp>
+#include "api/otter-task-graph/otter-task-graph-wrapper.hpp"
 
 using namespace otter;
 

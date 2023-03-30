@@ -18,7 +18,7 @@
 #include "public/otter-version.h"
 #include "public/debug.h"
 #include "public/otter-environment-variables.h"
-#include "public/otter-trace/trace.h"
+#include "public/otter-trace/trace-task-graph.h"
 #include "api/otter-task-graph/otter-task-graph.h"
 #include "public/otter-trace/trace-task-context-interface.h"
 

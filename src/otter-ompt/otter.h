@@ -14,8 +14,6 @@
 #include <omp-tools.h>
 
 #include "public/otter-common.h"
-#include "public/types/stack.h"
-#include "public/otter-trace/trace.h"
 #include "otter-ompt/otter-entry.h"
 
 /* A naming convention was chosen for the callbacks so that each callback is 

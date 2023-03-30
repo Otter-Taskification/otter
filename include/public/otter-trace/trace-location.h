@@ -7,10 +7,14 @@
  * event, and writing a location's definition to the trace.
  */
 
+#pragma once
+
 #if !defined(OTTER_TRACE_LOCATION_H)
 #define OTTER_TRACE_LOCATION_H
 
 #include <otf2/OTF2_Definitions.h>
+#include <otf2/OTF2_DefWriter.h>
+#include <otf2/OTF2_EvtWriter.h>
 #include "public/otter-common.h"
 #include "public/types/queue.h"
 #include "public/types/stack.h"

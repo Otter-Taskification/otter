@@ -4,9 +4,10 @@
 #include <assert.h>
 #include "public/types/queue.h"
 #include "public/types/stack.h"
-#include "public/otter-trace/trace.h"
+#include "public/otter-trace/trace-ompt.h"
 #include "public/otter-trace/trace-region-def.h"
 
+#include "otter-trace/trace-static-constants.h"
 #include "otter-trace/trace-archive.h"
 #include "otter-trace/trace-attributes.h"
 #include "otter-trace/trace-check-error-code.h"
@@ -17,7 +18,7 @@
 
 /* Store values needed to register region definition (tasks, parallel regions, 
    workshare constructs etc.) with OTF2 */
-typedef struct {
+typedef struct trace_region_def_t {
     OTF2_RegionRef       ref;
     OTF2_RegionRole      role;
     OTF2_AttributeList  *attributes;
@@ -32,8 +33,8 @@ typedef struct {
 
 trace_region_def_t *
 trace_new_master_region(
-    trace_location_def_t *loc,
-    unique_id_t           encountering_task_id)
+    unique_id_t thread_id,
+    unique_id_t encountering_task_id)
 {
     trace_region_def_t *new = malloc(sizeof(*new));
     *new = (trace_region_def_t) {
@@ -44,15 +45,9 @@ trace_new_master_region(
         .encountering_task_id = encountering_task_id,
         .rgn_stack = NULL,
         .attr.master = {
-            .thread = trace_location_get_id(loc)
+            .thread = thread_id
         }
     };
-
-    LOG_DEBUG("[t=%lu] created master region %u at %p",
-        trace_location_get_id(loc), new->ref, new);
-
-    trace_location_store_region_def(loc, new);
-
     return new;    
 }
 
@@ -88,7 +83,6 @@ trace_new_parallel_region(
 
 trace_region_def_t *
 trace_new_phase_region(
-    trace_location_def_t *loc,
     otter_phase_region_t  type,
     unique_id_t           encountering_task_id,
     const char           *phase_name)
@@ -112,18 +106,11 @@ trace_new_phase_region(
     } else {
         new->attr.phase.name = 0;
     }
-
-    LOG_DEBUG("[t=%lu] created region for phase \"%s\" (%u) at %p",
-        trace_location_get_id(loc), phase_name, new->ref, new);
-
-    trace_location_store_region_def(loc, new);
-
     return new;
 }
 
 trace_region_def_t *
 trace_new_sync_region(
-    trace_location_def_t *loc,
     otter_sync_region_t   stype,
     trace_task_sync_t     task_sync_mode,
     unique_id_t           encountering_task_id)
@@ -141,18 +128,11 @@ trace_new_sync_region(
             .sync_descendant_tasks = (task_sync_mode == trace_sync_descendants ? true : false)
         }
     };
-
-    LOG_DEBUG("[t=%lu] created sync region %u at %p",
-        trace_location_get_id(loc), new->ref, new);
-
-    trace_location_store_region_def(loc, new);
-
     return new;
 }
 
 trace_region_def_t *
 trace_new_task_region(
-    trace_location_def_t  *loc, 
     trace_region_def_t    *parent_task_region, 
     unique_id_t            id,
     otter_task_flag_t      flags,
@@ -166,9 +146,6 @@ trace_new_task_region(
     /* A task maintains a stack of the active regions encountered during its
        execution up to a task-switch event, which is restored to the executing
        thread when the task is resumed */
-
-    LOG_INFO_IF((parent_task_region == NULL),
-        "[t=%lu] parent task region is null", trace_location_get_id(loc));
 
     LOG_DEBUG_IF((src_location), "got src_location(file=%s, func=%s, line=%d)\n", src_location->file, src_location->func, src_location->line);
 
@@ -205,18 +182,11 @@ trace_new_task_region(
         new->attr.task.source_func_name_ref = 0;
         new->attr.task.source_line_number = 0;
     }
-
-    LOG_DEBUG("[t=%lu] created region %u for task %lu at %p",
-        trace_location_get_id(loc), new->ref, new->attr.task.id, new);
-
-    trace_location_store_region_def(loc, new);
-
     return new;
 }
 
 trace_region_def_t *
 trace_new_workshare_region(
-    trace_location_def_t *loc,
     otter_work_t          wstype, 
     uint64_t              count,
     unique_id_t           encountering_task_id)
@@ -234,12 +204,6 @@ trace_new_workshare_region(
             .count      = count
         }
     };
-
-    LOG_DEBUG("[t=%lu] created workshare region %u at %p",
-        trace_location_get_id(loc), new->ref, new);
-
-    trace_location_store_region_def(loc, new);
-
     return new;
 }
 
@@ -636,8 +600,6 @@ void trace_region_write_definition_impl(OTF2_GlobalDefWriter *writer, trace_regi
 
     LOG_DEBUG("writing region definition %3u (type=%3d, role=%3u) %p",
         region->ref, region->type, region->role, region);
-
-    OTF2_GlobalDefWriter *writer = get_global_def_writer();
 
     switch (region->type)
     {

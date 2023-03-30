@@ -54,6 +54,20 @@ typedef enum {
     otter_sync_region_barrier_teams = 10
 } otter_sync_region_t;
 
+/**
+ * @brief Defines whether a task synchronisation construct should apply a 
+ * synchronisation constraint to immediate child tasks or all descendant tasks.
+ * 
+ * Where they are exposed to the user, a module should wrap this in its own enum
+ * type so as not to expose the internal interface between otter modules.
+ * 
+ */
+typedef enum {
+    trace_sync_children,
+    trace_sync_descendants
+} trace_task_sync_t;
+
+
 typedef enum {
     otter_phase_region_generic = 1
 } otter_phase_region_t;

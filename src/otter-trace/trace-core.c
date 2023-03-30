@@ -7,8 +7,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
-#include <pthread.h>
-#include <time.h>
 #include <errno.h>
 #include <string.h>
 #include <sys/types.h>
@@ -16,7 +14,6 @@
 #include <sched.h>
 
 #include <otf2/otf2.h>
-#include <otf2/OTF2_Pthread_Locks.h>
 
 #include "public/debug.h"
 #include "public/types/queue.h"
@@ -122,14 +119,12 @@ trace_event_enter(
     OTF2_EvtWriter *evt_writer = NULL;
     trace_location_get_otf2(self, NULL, &evt_writer, NULL);
 
-    if (region->type == trace_region_parallel)
-    {
+    if (trace_region_is_type(region, trace_region_parallel)) {
         trace_location_enter_region_def_scope(self);
+    }
 
-        // TODO: move into trace-region-def.c e.g. trace_region_parallel_lock(region);
-        /* Parallel regions must be accessed atomically as they are shared 
-           between threads */
-        pthread_mutex_lock(&region->attr.parallel.lock_rgn);
+    if (trace_region_is_shared(region)) {
+        trace_region_lock(region);
     }
 
     /* Add attributes common to all enter/leave events */
@@ -179,12 +174,10 @@ trace_event_enter(
 
     trace_location_enter_region(self, region);
 
-    if (region->type == trace_region_parallel)
+    if (trace_region_is_shared(region))
     {
-        // TODO: move into trace-region-def.c e.g. trace_region_parallel_inc_refcount(region) and trace_region_parallel_unlock(region);
-        region->attr.parallel.ref_count++;
-        region->attr.parallel.enter_count++;
-        pthread_mutex_unlock(&region->attr.parallel.lock_rgn);
+        trace_region_inc_ref_count(region);
+        trace_region_unlock(region);
     }
 
     trace_location_inc_event_count(self);
@@ -200,12 +193,8 @@ trace_event_leave(trace_location_def_t *self)
     OTF2_EvtWriter *evt_writer = NULL;
     trace_location_get_otf2(self, NULL, &evt_writer, NULL);
 
-    if (region->type == trace_region_parallel)
-    {
-        // TODO: move into trace-region-def.c
-        /* Parallel regions must be accessed atomically as they are shared 
-           between threads */
-        pthread_mutex_lock(&region->attr.parallel.lock_rgn);
+    if (trace_region_is_shared(region)) {
+        trace_region_lock(region);
     }
 
     /* Add attributes common to all enter/leave events */
@@ -252,22 +241,22 @@ trace_event_leave(trace_location_def_t *self)
 
     /* Record the event */
     OTF2_EvtWriter_Leave(evt_writer, attributes, get_timestamp(), region->ref);
+
+    if (trace_region_is_type(region, trace_region_parallel)) {
+        trace_location_leave_region_def_scope(self, region);
+    }
     
     /* Parallel regions must be cleaned up by the last thread to leave */
-    if (region->type == trace_region_parallel)
+    if (trace_region_is_shared(region))
     {
-        trace_location_leave_region_def_scope(self, region);
-
-        // TODO: move into trace-region-def.c -> e.g. trace_region_finalise_parallel(region);
-        region->attr.parallel.ref_count--;
-
-        /* Check the ref count atomically __before__ unlocking */
-        if (region->attr.parallel.ref_count == 0)
+        trace_region_dec_ref_count(region);
+        // NOTE: must test ref_count == 0 *before* unlocking to avoid races.
+        if (trace_region_get_shared_ref_count(region) == 0)
         {
-            pthread_mutex_unlock(&region->attr.parallel.lock_rgn);
+            trace_region_unlock(region);
             trace_destroy_parallel_region(region);
         } else {
-            pthread_mutex_unlock(&region->attr.parallel.lock_rgn);
+            trace_region_unlock(region);
         }
     }
     trace_location_inc_event_count(self);

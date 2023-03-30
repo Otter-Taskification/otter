@@ -538,6 +538,57 @@ trace_region_get_task_rgn_stack(trace_region_def_t *region)
     return region->rgn_stack;
 }
 
+unsigned int
+trace_region_get_shared_ref_count(trace_region_def_t *region)
+{
+    assert(trace_region_is_shared(region));
+    return region->attr.parallel.ref_count;
+}
+
+// Lock and unlock shared regions
+
+bool
+trace_region_is_type(trace_region_def_t *region, trace_region_type_t region_type)
+{
+    return region->type == region_type;
+}
+
+bool
+trace_region_is_shared(trace_region_def_t *region)
+{
+    return region->type == trace_region_parallel;
+}
+
+void
+trace_region_lock(trace_region_def_t *region)
+{
+    assert(trace_region_is_shared(region));
+    pthread_mutex_lock(&region->attr.parallel.lock_rgn);
+}
+
+void
+trace_region_unlock(trace_region_def_t *region)
+{
+    assert(trace_region_is_shared(region));
+    pthread_mutex_unlock(&region->attr.parallel.lock_rgn);
+}
+
+void
+trace_region_inc_ref_count(trace_region_def_t *region)
+{
+    assert(trace_region_is_shared(region));
+    region->attr.parallel.ref_count++;
+    region->attr.parallel.enter_count++;
+}
+
+void
+trace_region_dec_ref_count(trace_region_def_t *region)
+{
+    assert(trace_region_is_shared(region));
+    region->attr.parallel.ref_count--;
+}
+
+
 // Write region definition to a trace
 
 void trace_region_write_definition_impl(OTF2_GlobalDefWriter *writer, trace_region_def_t *region)

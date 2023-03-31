@@ -247,7 +247,7 @@ trace_location_leave_region(trace_location_def_t *loc, trace_region_def_t **rgn)
         LOG_ERROR("stack is empty");
         abort();
     }
-    stack_pop(loc->rgn_stack, (data_item_t*) &rgn);
+    stack_pop(loc->rgn_stack, (data_item_t*) rgn);
 }
 
 void

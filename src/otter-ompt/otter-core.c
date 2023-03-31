@@ -406,9 +406,10 @@ on_ompt_callback_implicit_task(
 
         /* Create implicit task data __after__ parallel-begin so that the OTF2
            region is added to the queue for the new parallel region */
-        task_data_t *encountering_task_data = trace_parallel_get_task_data(parallel_data);
+        task_data_t *encountering_task_data = NULL;
         trace_region_def_t *encountering_task_region = NULL;
         if (flags & ompt_task_implicit) {
+            encountering_task_data = trace_parallel_get_task_data(parallel_data);
             encountering_task_region = trace_task_get_region_def(encountering_task_data);
         }
         task_data_t *implicit_task_data = new_task_data(

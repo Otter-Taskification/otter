@@ -1,4 +1,6 @@
 // TODO: this file contains events for the OMPT event model as well as functions for adding region attributes to an attribute list and writing a region definition to a trace. Probably want to decouple these.
+
+// TODO: rename file trace-core.c -> trace-ompt.c
 #define _GNU_SOURCE
 
 #include <stdlib.h>
@@ -28,17 +30,6 @@
 #include "otter-trace/trace-check-error-code.h"
 #include "otter-trace/trace-static-constants.h"
 #include "otter-trace/trace-common-event-attributes.h"
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/*   WRITE DEFINITIONS                                                       */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// TODO: this is used by otter-ompt and otter-serial, so want to allow passing in state here
-void
-trace_write_region_definition(trace_region_def_t *rgn)
-{
-    trace_region_write_definition_impl(get_global_def_writer(), rgn);
-}
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /*   WRITE EVENTS                                                            */

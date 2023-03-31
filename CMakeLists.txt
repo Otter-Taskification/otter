@@ -227,7 +227,7 @@ set_property(TARGET otter-events-task-graph PROPERTY POSITION_INDEPENDENT_CODE O
 
 # Trace component for OMP mode
 add_library(otter-trace-ompt OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-core.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-ompt.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-location.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-region-def.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-archive.c
@@ -243,9 +243,13 @@ target_compile_definitions(otter-trace-ompt PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_TR
 target_compile_definitions(otter-trace-ompt PRIVATE OTTER_EVENT_MODEL_OMP)
 set_property(TARGET otter-trace-ompt PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+# TODO: aim to reduce duplicated compilation due to OTTER_SERIAL_MODE define
+#  which is only used to set some values in a trace. Prefer to achieve this
+#  by passing state in from event source into otter-trace
+
 # Trace component for serial mode
 add_library(otter-trace-serial OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-core.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-ompt.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-location.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-region-def.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-archive.c
@@ -263,17 +267,22 @@ set_property(TARGET otter-trace-serial PROPERTY POSITION_INDEPENDENT_CODE ON)
 # Add define to signify serial tracing mode
 target_compile_definitions(otter-trace-serial PRIVATE OTTER_SERIAL_MODE)
 
+# TODO: the tracing backend for otter-task-graph (events in trace-task-graph.c)
+#  doesn't explicitly use region definitions (trace-region-def.c) but 
+#  depends on it incidentally through the need to write a dummy location 
+#  definition to the trace. trace-location.c is rather coupled to 
+#  trace-region-def.c so if we leave out trace-region-def.c we get 
+#  undefined symbol errors due to calls into trace-region-def.c by 
+#  trace-location.c
+
 # Trace component for task-graph event source
 add_library(otter-trace-task-graph OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-core.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-location.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-region-def.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-archive.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-string-registry.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-unique-refs.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-data.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-thread-data.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-parallel-data.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-graph.c
 )
 target_include_directories(otter-trace-task-graph PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

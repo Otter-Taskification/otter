@@ -1,0 +1,8 @@
+# TODO:
+
+This folder created as a workaround due to api headers depending on other api
+headers in their installed locations.
+
+Find a better way to do this than symlinking the required header!
+
+Then delete this folder.

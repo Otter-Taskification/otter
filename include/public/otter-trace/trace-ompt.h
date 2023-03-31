@@ -1,19 +1,16 @@
 #if !defined(OTTER_TRACE_OMPT_H)
 #define OTTER_TRACE_OMPT_H
 
-// TODO: too much functionality is coupled together in this interface to otter-trace!!!
-// TODO: refactor file to only expose the subset of functionality needed
-// TODO: not all consumers of otter-trace use region definitions, for example.
-
 #include "public/otter-common.h"
 #include "public/otter-trace/trace-types.h"
 #include "public/otter-trace/trace-location.h"
 #include "public/otter-trace/trace-region-def.h"
 
+// TODO: these declarations should be exposed in public/otter-trace/trace-archive.h
 bool trace_initialise_archive(otter_opt_t *opt);
 bool trace_finalise_archive(void);
 
-/* Functions defined in trace-core.c */
+// TODO: move these declarations to their own header under public/otter-trace
 void trace_event_thread_begin(trace_location_def_t *self);
 void trace_event_thread_end(trace_location_def_t *self);
 void trace_event_enter(trace_location_def_t *self, trace_region_def_t *region);

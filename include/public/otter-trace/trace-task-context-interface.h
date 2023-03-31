@@ -1,5 +1,5 @@
 /**
- * @file otter-task-context.h
+ * @file trace-task-context-interface.h
  * @author Adam Tuft (adam.s.tuft@durham.ac.uk)
  * @brief Defines the interface for manipulating the `otter_task_context` struct.
  * Used by code which needs to manipulate this struct i.e. the otter-task-graph

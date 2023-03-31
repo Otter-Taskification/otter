@@ -238,7 +238,7 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
     pthread_mutex_lock(lock_global_def_writer);
     
     /* Write parallel region's definition */
-    trace_write_region_definition(rgn);
+    trace_region_write_definition(rgn);
 
     /* write region's nested region definitions */
     trace_region_def_t *r = NULL;
@@ -248,7 +248,7 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
         LOG_DEBUG("[parallel=%lu] writing region definition %d/%lu (region %3u)",
             rgn->attr.parallel.id, count+1, n_defs, r->ref);
         count++;
-        trace_write_region_definition(r);
+        trace_region_write_definition(r);
 
         /* destroy each region once its definition is written */
         switch (r->type)
@@ -590,13 +590,16 @@ trace_region_dec_ref_count(trace_region_def_t *region)
 
 // Write region definition to a trace
 
-void trace_region_write_definition_impl(OTF2_GlobalDefWriter *writer, trace_region_def_t *region)
+void trace_region_write_definition(trace_region_def_t *region)
 {
     if (region == NULL)
     {
         LOG_ERROR("null pointer");
         return;
     }
+
+    // TODO: want to allow passing state in
+    OTF2_GlobalDefWriter *writer = get_global_def_writer();
 
     LOG_DEBUG("writing region definition %3u (type=%3d, role=%3u) %p",
         region->ref, region->type, region->role, region);

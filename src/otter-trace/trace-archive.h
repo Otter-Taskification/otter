@@ -6,8 +6,8 @@
  * resources as well as mutexes protecting access to them both.
  */
 
-#if !defined(OTTER_TRACE_ARCHIVE_H)
-#define OTTER_TRACE_ARCHIVE_H
+#if !defined(OTTER_TRACE_ARCHIVE_IMPL_H)
+#define OTTER_TRACE_ARCHIVE_IMPL_H
 
 #include <pthread.h>
 #include <otf2/otf2.h>
@@ -20,4 +20,4 @@ OTF2_GlobalDefWriter *get_global_def_writer(void);
 OTF2_Archive *get_global_archive(void);
 string_registry *get_global_str_registry(void);
 
-#endif // OTTER_TRACE_ARCHIVE_H
+#endif // OTTER_TRACE_ARCHIVE_IMPL_H

@@ -114,7 +114,7 @@ void otterTraceFinalise(void)
     trace_region_def_t *initial_task_region = NULL;
     trace_location_get_region_def(location, &initial_task_region);
     LOG_DEBUG("writing initial-task region definition from thread queue: %p", initial_task_region);
-    trace_write_region_definition(initial_task_region);
+    trace_region_write_definition(initial_task_region);
     trace_destroy_task_region(initial_task_region);
     initial_task_region = NULL;
 
@@ -136,7 +136,7 @@ void otterTraceFinalise(void)
     while (trace_location_get_region_def(location, &region)) {
         trace_region_type_t region_type = trace_region_get_type(region);
         LOG_DEBUG("writing region definition %p (%d)", region, region_type);
-        trace_write_region_definition(region);
+        trace_region_write_definition(region);
         switch (region_type) {
             /*
             Only phase regions may appear outside a parallel region.

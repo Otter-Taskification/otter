@@ -112,6 +112,6 @@ void trace_region_dec_ref_count(trace_region_def_t *region);
 
 // Write region definition to a trace
 
-void trace_region_write_definition_impl(OTF2_GlobalDefWriter *writer, trace_region_def_t *region);
+void trace_region_write_definition(trace_region_def_t *region);
 
 #endif // OTTER_TRACE_REGION_DEF_IMPL_H

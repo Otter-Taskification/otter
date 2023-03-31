@@ -448,7 +448,7 @@ on_ompt_callback_implicit_task(
            written at parallel-end */
         if (flags & ompt_task_initial)
         {
-            trace_write_region_definition(trace_task_get_region_def(implicit_task_data));
+            trace_region_write_definition(trace_task_get_region_def(implicit_task_data));
             trace_destroy_task_region(trace_task_get_region_def(implicit_task_data));
         }
     }

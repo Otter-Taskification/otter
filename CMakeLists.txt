@@ -120,8 +120,9 @@ message(STATUS "C++ compiler selected: ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPIL
 # Check for omp-tools.h
 CHECK_INCLUDE_FILE(omp-tools.h HAVE_OMP_TOOLS_H)
 if(NOT HAVE_OMP_TOOLS_H)
-    message(WARNING "Can't find omp-tools.h - did you specify an OMPT-supporting compiler?")
+    message(WARNING "Can't find omp-tools.h - libotter-ompt.so target will not be generated.")
 endif()
+set(BUILD_OMPT_PLUGIN ${HAVE_OMP_TOOLS_H})
 
 # Detect requirement to use 5.1 features instead of deprecated 5.1 features
 set(USE_OMPT_51 0)
@@ -190,15 +191,17 @@ if(NOT "${OTF2_VERSION_MAJOR}.${OTF2_VERSION_MINOR}" STREQUAL "2.3")
 endif()
 
 # OMPT event source
-add_library(otter-events-ompt OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-ompt/otter-core.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-ompt/otter-entry.c
-)
-target_include_directories(otter-events-ompt PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_include_directories(otter-events-ompt PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_compile_options(otter-events-ompt BEFORE PRIVATE ${CMAKE_C_FLAGS})
-target_compile_definitions(otter-events-ompt PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_CORE})
-set_property(TARGET otter-events-ompt PROPERTY POSITION_INDEPENDENT_CODE ON)
+if(BUILD_OMPT_PLUGIN)
+    add_library(otter-events-ompt OBJECT
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-ompt/otter-core.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-ompt/otter-entry.c
+    )
+    target_include_directories(otter-events-ompt PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_include_directories(otter-events-ompt PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_compile_options(otter-events-ompt BEFORE PRIVATE ${CMAKE_C_FLAGS})
+    target_compile_definitions(otter-events-ompt PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_CORE})
+    set_property(TARGET otter-events-ompt PROPERTY POSITION_INDEPENDENT_CODE ON)
+endif()
 
 # Serial event source
 add_library(otter-events-serial OBJECT
@@ -254,19 +257,17 @@ target_compile_definitions(otter-dtype PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_DTYPE})
 set_property(TARGET otter-dtype PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # Otter library compiled for OMP mode
-if(HAVE_OMP_TOOLS_H)
-add_library(otter-ompt
-    $<TARGET_OBJECTS:otter-events-ompt>
-    $<TARGET_OBJECTS:otter-trace>
-    $<TARGET_OBJECTS:otter-dtype>
-)
-target_link_libraries(otter-ompt pthread)
-target_link_libraries(otter-ompt otf2)
-if(DEFINED OTF2_INSTALL_DIR)
-    target_link_libraries(otter-ompt -L${OTF2_INSTALL_DIR}/lib)
-endif()
-else()
-message(WARNING "otter-ompt target was not generated as omp-tools.h is not available")
+if(BUILD_OMPT_PLUGIN)
+    add_library(otter-ompt
+        $<TARGET_OBJECTS:otter-events-ompt>
+        $<TARGET_OBJECTS:otter-trace>
+        $<TARGET_OBJECTS:otter-dtype>
+    )
+    target_link_libraries(otter-ompt pthread)
+    target_link_libraries(otter-ompt otf2)
+    if(DEFINED OTF2_INSTALL_DIR)
+        target_link_libraries(otter-ompt -L${OTF2_INSTALL_DIR}/lib)
+    endif()
 endif()
 
 # Otter library compiled for serial mode
@@ -285,7 +286,9 @@ add_library(otter-task-graph
 
 # Add OTF2 install directory to targets if it was specified manually
 if(DEFINED OTF2_INSTALL_DIR)
-    target_include_directories(otter-events-ompt PRIVATE ${OTF2_INSTALL_DIR}/include)
+    if(BUILD_OMPT_PLUGIN)
+        target_include_directories(otter-events-ompt PRIVATE ${OTF2_INSTALL_DIR}/include)
+    endif()
     target_include_directories(otter-events-serial PRIVATE ${OTF2_INSTALL_DIR}/include)
     target_include_directories(otter-events-task-graph PRIVATE ${OTF2_INSTALL_DIR}/include)
     target_include_directories(otter-trace PRIVATE ${OTF2_INSTALL_DIR}/include)
@@ -293,18 +296,20 @@ if(DEFINED OTF2_INSTALL_DIR)
 endif()
 
 # Flag that we should use OMPT 5.1 features
-if(USE_OMPT_51)
+if(BUILD_OMPT_PLUGIN AND USE_OMPT_51)
     message(STATUS "Using OMPT 5.1")
-    target_compile_definitions(otter-events-ompt PRIVATE USE_OMPT_MASKED)
+        target_compile_definitions(otter-events-ompt PRIVATE USE_OMPT_MASKED)
     target_compile_definitions(otter-trace PRIVATE USE_OMPT_MASKED)
-else()
+elseif(BUILD_OMPT_PLUGIN)
     message(STATUS "Not using OMPT 5.1")
 endif()
 
 ### SET INSTALL LOCATIONS ######################################################
 
 # otter-ompt plugin
-install(TARGETS otter-ompt DESTINATION lib)
+if(BUILD_OMPT_PLUGIN)
+    install(TARGETS otter-ompt DESTINATION lib)
+endif()
 
 # otter-serial library
 set_target_properties(otter-serial PROPERTIES PUBLIC_HEADER "include/api/otter-serial/otter-serial.h")

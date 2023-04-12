@@ -3,7 +3,7 @@ message(STATUS "Adding task-graph examples")
 include(FindOpenMP)
 
 function(add_task_graph_examples DIR)
-    file(GLOB TASKGRAPH_EXAMPLES  "${DIR}/*.c" "${DIR}/*.cpp" "${DIR}/*.f90")
+    file(GLOB TASKGRAPH_EXAMPLES  "${DIR}/*.c" "${DIR}/*.cpp" "${DIR}/*.f90" "${DIR}/*.F90")
     foreach(SRCFILE ${TASKGRAPH_EXAMPLES})
         cmake_path(GET SRCFILE STEM EX_NAME)
         message(STATUS "Adding task-graph example: ${EX_NAME}")

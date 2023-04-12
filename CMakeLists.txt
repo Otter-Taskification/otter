@@ -218,6 +218,8 @@ add_library(otter-events-task-graph OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/otter-task-context.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/task-graph/otter-task-graph-cpp-wrapper.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/otter-structs.c
+    # Fortran entrypoints to otter-task-graph.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/task-graph/otter-task-graph.F90
 )
 target_include_directories(otter-events-task-graph PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(otter-events-task-graph BEFORE PRIVATE ${CMAKE_C_FLAGS})

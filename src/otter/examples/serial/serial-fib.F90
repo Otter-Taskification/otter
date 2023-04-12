@@ -10,7 +10,7 @@ Integer Recursive Function fib(n) result(a)
         a = n
     else
         ! Tag: wrap a task
-        Call fortran_otterTaskBegin())
+        Call fortran_otterTaskBegin()
         i = fib(n-1)
         Call fortran_otterTaskEnd()
 

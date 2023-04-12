@@ -31,12 +31,12 @@ trace_location_def_t *trace_new_location_definition(
     OTF2_LocationType loc_type,
     OTF2_LocationGroupRef loc_grp);
 void trace_destroy_location(trace_location_def_t *loc);
-void trace_add_thread_attributes(trace_location_def_t *self);
 void trace_write_location_definition(trace_location_def_t *loc);
 bool trace_location_get_region_def(trace_location_def_t *loc, trace_region_def_t **rgn);
 bool trace_location_store_region_def(trace_location_def_t *loc, trace_region_def_t *rgn);
 size_t trace_location_get_num_region_def(trace_location_def_t *loc);
 unique_id_t trace_location_get_id(trace_location_def_t *loc);
+otter_thread_t trace_location_get_thread_type(trace_location_def_t *loc);
 void trace_location_get_otf2(trace_location_def_t *loc, OTF2_AttributeList **attributes, OTF2_EvtWriter **evt_writer, OTF2_DefWriter **def_writer);
 void trace_location_inc_event_count(trace_location_def_t *loc);
 void trace_location_enter_region_def_scope(trace_location_def_t *loc);

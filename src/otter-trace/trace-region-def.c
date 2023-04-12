@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <pthread.h>
-#include <otf2/otf2.h>
+#include <otf2/OTF2_Definitions.h>
 #include <assert.h>
 #include "public/types/queue.h"
 #include "public/types/stack.h"
@@ -8,20 +8,19 @@
 #include "public/otter-trace/trace-region-def.h"
 
 #include "otter-trace/trace-static-constants.h"
-#include "otter-trace/trace-archive.h"
+#include "otter-trace/trace-archive-impl.h"
 #include "otter-trace/trace-attributes.h"
 #include "otter-trace/trace-check-error-code.h"
-#include "otter-trace/trace-lookup-macros.h"
+#include "otter-trace/trace-types-as-labels.h"
 #include "otter-trace/trace-string-registry.h"
 #include "otter-trace/trace-unique-refs.h"
-#include "otter-trace/trace-common-event-attributes.h"
+#include "otter-trace/trace-attribute-lookup.h"
 
 /* Store values needed to register region definition (tasks, parallel regions, 
    workshare constructs etc.) with OTF2 */
 typedef struct trace_region_def_t {
     OTF2_RegionRef       ref;
     OTF2_RegionRole      role;
-    OTF2_AttributeList  *attributes;
     trace_region_type_t  type;
     unique_id_t          encountering_task_id;
     otter_stack_t       *rgn_stack;
@@ -40,7 +39,6 @@ trace_new_master_region(
     *new = (trace_region_def_t) {
         .ref        = get_unique_rgn_ref(),
         .role       = OTF2_REGION_ROLE_MASTER,
-        .attributes = OTF2_AttributeList_New(),
         .type       = trace_region_master,
         .encountering_task_id = encountering_task_id,
         .rgn_stack = NULL,
@@ -63,7 +61,6 @@ trace_new_parallel_region(
     *new = (trace_region_def_t) {
         .ref        = get_unique_rgn_ref(),
         .role       = OTF2_REGION_ROLE_PARALLEL,
-        .attributes = OTF2_AttributeList_New(),
         .type       = trace_region_parallel,
         .encountering_task_id = encountering_task_id,
         .rgn_stack = NULL,
@@ -91,7 +88,6 @@ trace_new_phase_region(
     *new = (trace_region_def_t) {
         .ref        = get_unique_rgn_ref(),
         .role       = OTF2_REGION_ROLE_CODE,
-        .attributes = OTF2_AttributeList_New(),
         .type       = trace_region_phase,
         .encountering_task_id = encountering_task_id,
         .rgn_stack = NULL,
@@ -116,10 +112,19 @@ trace_new_sync_region(
     unique_id_t           encountering_task_id)
 {
     trace_region_def_t *new = malloc(sizeof(*new));
+    OTF2_RegionRole role = OTF2_REGION_ROLE_UNKNOWN;
+    switch (stype) {
+        case otter_sync_region_barrier:                role = OTF2_REGION_ROLE_BARRIER;          break;
+        case otter_sync_region_barrier_implicit:       role = OTF2_REGION_ROLE_IMPLICIT_BARRIER; break;
+        case otter_sync_region_barrier_explicit:       role = OTF2_REGION_ROLE_BARRIER;          break;
+        case otter_sync_region_barrier_implementation: role = OTF2_REGION_ROLE_BARRIER;          break;
+        case otter_sync_region_taskwait:               role = OTF2_REGION_ROLE_TASK_WAIT;        break;
+        case otter_sync_region_taskgroup:              role = OTF2_REGION_ROLE_TASK_WAIT;        break;
+        default: break;
+    }
     *new = (trace_region_def_t) {
         .ref        = get_unique_rgn_ref(),
-        .role       = SYNC_TYPE_TO_OTF2_REGION_ROLE(stype),
-        .attributes = OTF2_AttributeList_New(),
+        .role       = role,
         .type       = trace_region_synchronise,
         .encountering_task_id = encountering_task_id,
         .rgn_stack = NULL,
@@ -153,7 +158,6 @@ trace_new_task_region(
     *new = (trace_region_def_t) {
         .ref = get_unique_rgn_ref(),
         .role = OTF2_REGION_ROLE_TASK,
-        .attributes = OTF2_AttributeList_New(),
         .type = trace_region_task,
         .rgn_stack = stack_create(),
         .attr.task = {
@@ -165,7 +169,7 @@ trace_new_task_region(
                 parent_task_region->attr.task.id   : OTF2_UNDEFINED_UINT64,
             .parent_type = parent_task_region != NULL ? 
                 parent_task_region->attr.task.type : OTF2_UNDEFINED_UINT32,
-            .task_status     = 0 /* no status */,
+            .task_status     = otter_task_state_undef,
             .source_file_name_ref = 0,
             .source_func_name_ref = 0,
             .source_line_number = 0,
@@ -192,10 +196,20 @@ trace_new_workshare_region(
     unique_id_t           encountering_task_id)
 {
     trace_region_def_t *new = malloc(sizeof(*new));
+    OTF2_RegionRole role = OTF2_REGION_ROLE_UNKNOWN;
+    switch (wstype) {
+        case otter_work_loop:            role = OTF2_REGION_ROLE_LOOP;      break;
+        case otter_work_sections:        role = OTF2_REGION_ROLE_SECTIONS;  break;
+        case otter_work_single_executor: role = OTF2_REGION_ROLE_SINGLE;    break;
+        case otter_work_single_other:    role = OTF2_REGION_ROLE_SINGLE;    break;
+        case otter_work_workshare:       role = OTF2_REGION_ROLE_WORKSHARE; break;
+        case otter_work_distribute:      role = OTF2_REGION_ROLE_UNKNOWN;   break;
+        case otter_work_taskloop:        role = OTF2_REGION_ROLE_LOOP;      break;
+        default: break;
+    }
     *new = (trace_region_def_t) {
         .ref        = get_unique_rgn_ref(),
-        .role       = WORK_TYPE_TO_OTF2_REGION_ROLE(wstype),
-        .attributes = OTF2_AttributeList_New(),
+        .role       = role,
         .type       = trace_region_workshare,
         .encountering_task_id = encountering_task_id,
         .rgn_stack = NULL,
@@ -214,7 +228,6 @@ void
 trace_destroy_master_region(trace_region_def_t *rgn)
 {
     LOG_DEBUG("region %p destroying attribute list %p", rgn, rgn->attributes);
-    OTF2_AttributeList_Delete(rgn->attributes);
     LOG_DEBUG("region %p", rgn);
     free(rgn);
 }
@@ -284,7 +297,6 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
 
     /* destroy parallel region once all locations are done with it
        and all definitions written */
-    OTF2_AttributeList_Delete(rgn->attributes);
     queue_destroy(rgn->attr.parallel.rgn_defs, false, NULL);
     LOG_DEBUG("region %p (parallel id %lu)", rgn, rgn->attr.parallel.id);
     free(rgn);
@@ -295,7 +307,6 @@ void
 trace_destroy_phase_region(trace_region_def_t *rgn)
 {
     LOG_DEBUG("region %p destroying attribute list %p", rgn, rgn->attributes);
-    OTF2_AttributeList_Delete(rgn->attributes);
     LOG_DEBUG("region %p", rgn);
     free(rgn);
 }
@@ -304,7 +315,6 @@ void
 trace_destroy_sync_region(trace_region_def_t *rgn)
 {
     LOG_DEBUG("region %p destroying attribute list %p", rgn, rgn->attributes);
-    OTF2_AttributeList_Delete(rgn->attributes);
     LOG_DEBUG("region %p", rgn);
     free(rgn);
 }
@@ -317,7 +327,6 @@ trace_destroy_task_region(trace_region_def_t *rgn)
             || rgn->attr.task.task_status == otter_task_cancel)),
         "destroying task region before task-complete/task-cancel");
     LOG_DEBUG("region %p destroying attribute list %p", rgn, rgn->attributes);
-    OTF2_AttributeList_Delete(rgn->attributes);
     LOG_DEBUG("region %p destroying active regions stack %p", rgn, rgn->rgn_stack);
     stack_destroy(rgn->rgn_stack, false, NULL);
     LOG_DEBUG("region %p", rgn);
@@ -328,7 +337,6 @@ void
 trace_destroy_workshare_region(trace_region_def_t *rgn)
 {
     LOG_DEBUG("region %p destroying attribute list %p", rgn, rgn->attributes);
-    OTF2_AttributeList_Delete(rgn->attributes);
     LOG_DEBUG("region %p", rgn);
     free(rgn);
 }
@@ -337,45 +345,45 @@ trace_destroy_workshare_region(trace_region_def_t *rgn)
 // Add attributes
 
 void
-trace_add_region_type_attributes(trace_region_def_t *rgn)
+trace_add_region_type_attributes(trace_region_def_t *rgn, OTF2_AttributeList *attributes)
 {
     switch (rgn->type) {
     case trace_region_parallel:
-        trace_add_parallel_attributes(rgn);  break;
+        trace_add_parallel_attributes(rgn, attributes);  break;
     case trace_region_workshare:
-        trace_add_workshare_attributes(rgn); break;
+        trace_add_workshare_attributes(rgn, attributes); break;
     case trace_region_synchronise:
-        trace_add_sync_attributes(rgn);      break;
+        trace_add_sync_attributes(rgn, attributes);      break;
     case trace_region_task:
-        trace_add_task_attributes(rgn);      break;
+        trace_add_task_attributes(rgn, attributes);      break;
     case trace_region_master:
-        trace_add_master_attributes(rgn);    break;
+        trace_add_master_attributes(rgn, attributes);    break;
     case trace_region_phase:
-        trace_add_phase_attributes(rgn);     break;
+        trace_add_phase_attributes(rgn, attributes);     break;
     }
 }
 
 void
-trace_add_master_attributes(trace_region_def_t *rgn)
+trace_add_master_attributes(trace_region_def_t *rgn, OTF2_AttributeList *attributes)
 {
     OTF2_ErrorCode r = OTF2_SUCCESS;
-    r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_unique_id,
+    r = OTF2_AttributeList_AddUint64(attributes, attr_unique_id,
         rgn->attr.master.thread);
     CHECK_OTF2_ERROR_CODE(r);
     return;
 }
 
 void
-trace_add_parallel_attributes(trace_region_def_t *rgn)
+trace_add_parallel_attributes(trace_region_def_t *rgn, OTF2_AttributeList *attributes)
 {
     OTF2_ErrorCode r = OTF2_SUCCESS;
-    r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_unique_id,
+    r = OTF2_AttributeList_AddUint64(attributes, attr_unique_id,
         rgn->attr.parallel.id);
     CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint32(rgn->attributes, attr_requested_parallelism,
+    r = OTF2_AttributeList_AddUint32(attributes, attr_requested_parallelism,
         rgn->attr.parallel.requested_parallelism);
     CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_is_league,
+    r = OTF2_AttributeList_AddStringRef(attributes, attr_is_league,
         rgn->attr.parallel.is_league ? 
             attr_label_ref[attr_flag_true] : attr_label_ref[attr_flag_false]);
     CHECK_OTF2_ERROR_CODE(r);
@@ -383,82 +391,82 @@ trace_add_parallel_attributes(trace_region_def_t *rgn)
 }
 
 void
-trace_add_phase_attributes(trace_region_def_t *rgn)
+trace_add_phase_attributes(trace_region_def_t *rgn, OTF2_AttributeList *attributes)
 {
     OTF2_ErrorCode r = OTF2_SUCCESS;
-    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_phase_type,
-        PHASE_TYPE_TO_STR_REF(rgn->attr.phase.type));
+    r = OTF2_AttributeList_AddStringRef(attributes, attr_phase_type,
+        attr_label_ref[attr_region_type_generic_phase]);
     CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_phase_name,
+    r = OTF2_AttributeList_AddStringRef(attributes, attr_phase_name,
         rgn->attr.phase.name);
     CHECK_OTF2_ERROR_CODE(r);
     return;
 }
 
 void
-trace_add_sync_attributes(trace_region_def_t *rgn)
+trace_add_sync_attributes(trace_region_def_t *rgn, OTF2_AttributeList *attributes)
 {
     OTF2_ErrorCode r = OTF2_SUCCESS;
-    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_sync_type,
-        SYNC_TYPE_TO_STR_REF(rgn->attr.sync.type));
+    r = OTF2_AttributeList_AddStringRef(attributes, attr_sync_type,
+        attr_label_ref[sync_type_as_label(rgn->attr.sync.type)]);
     CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_sync_descendant_tasks,
+    r = OTF2_AttributeList_AddUint8(attributes, attr_sync_descendant_tasks,
         (uint8_t)(rgn->attr.sync.sync_descendant_tasks ? 1 : 0)
     );
     return;
 }
 
 void
-trace_add_task_attributes(trace_region_def_t *rgn)
+trace_add_task_attributes(trace_region_def_t *rgn, OTF2_AttributeList *attributes)
 {
     OTF2_ErrorCode r = OTF2_SUCCESS;
-    r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_unique_id,
+    r = OTF2_AttributeList_AddUint64(attributes, attr_unique_id,
         rgn->attr.task.id);
     CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_task_type,
-        TASK_TYPE_TO_STR_REF(rgn->attr.task.type));
+    r = OTF2_AttributeList_AddStringRef(attributes, attr_task_type,
+        attr_label_ref[task_type_as_label(rgn->attr.task.type)]);
     CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint32(rgn->attributes, attr_task_flags,
+    r = OTF2_AttributeList_AddUint32(attributes, attr_task_flags,
         rgn->attr.task.flags);
     CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_parent_task_id,
+    r = OTF2_AttributeList_AddUint64(attributes, attr_parent_task_id,
         rgn->attr.task.parent_id);
     CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_parent_task_type,
-        TASK_TYPE_TO_STR_REF(rgn->attr.task.parent_type));
+    r = OTF2_AttributeList_AddStringRef(attributes, attr_parent_task_type,
+        attr_label_ref[task_type_as_label(rgn->attr.task.parent_type)]);
     CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_has_dependences,
+    r = OTF2_AttributeList_AddUint8(attributes, attr_task_has_dependences,
         rgn->attr.task.has_dependences);
     CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_undeferred,
+    r = OTF2_AttributeList_AddUint8(attributes, attr_task_is_undeferred,
         rgn->attr.task.flags & otter_task_undeferred);
     CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_untied,
+    r = OTF2_AttributeList_AddUint8(attributes, attr_task_is_untied,
         rgn->attr.task.flags & otter_task_untied);
     CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_final,
+    r = OTF2_AttributeList_AddUint8(attributes, attr_task_is_final,
         rgn->attr.task.flags & otter_task_final);
     CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_mergeable,
+    r = OTF2_AttributeList_AddUint8(attributes, attr_task_is_mergeable,
         rgn->attr.task.flags & otter_task_mergeable);
     CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint8(rgn->attributes, attr_task_is_merged,
+    r = OTF2_AttributeList_AddUint8(attributes, attr_task_is_merged,
         rgn->attr.task.flags & otter_task_merged);
     CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_prior_task_status,
-        TASK_STATUS_TO_STR_REF(rgn->attr.task.task_status));
+    r = OTF2_AttributeList_AddStringRef(attributes, attr_prior_task_status,
+        attr_label_ref[task_status_as_label(rgn->attr.task.task_status)]);
     CHECK_OTF2_ERROR_CODE(r);
 
     // Add source location if defined for this task
     if (rgn->attr.task.source_file_name_ref != 0)
     {
-        r = OTF2_AttributeList_AddUint32(rgn->attributes, attr_source_line_number,
+        r = OTF2_AttributeList_AddUint32(attributes, attr_source_line_number,
         rgn->attr.task.source_line_number);
         CHECK_OTF2_ERROR_CODE(r);
-        r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_source_file_name,
+        r = OTF2_AttributeList_AddStringRef(attributes, attr_source_file_name,
             rgn->attr.task.source_file_name_ref);
         CHECK_OTF2_ERROR_CODE(r);
-        r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_source_func_name,
+        r = OTF2_AttributeList_AddStringRef(attributes, attr_source_func_name,
             rgn->attr.task.source_func_name_ref);
         CHECK_OTF2_ERROR_CODE(r);
     }
@@ -466,13 +474,13 @@ trace_add_task_attributes(trace_region_def_t *rgn)
 }
 
 void
-trace_add_workshare_attributes(trace_region_def_t *rgn)
+trace_add_workshare_attributes(trace_region_def_t *rgn, OTF2_AttributeList *attributes)
 {
     OTF2_ErrorCode r = OTF2_SUCCESS;
-    r = OTF2_AttributeList_AddStringRef(rgn->attributes, attr_workshare_type,
-        WORK_TYPE_TO_STR_REF(rgn->attr.wshare.type));
+    r = OTF2_AttributeList_AddStringRef(attributes, attr_workshare_type,
+        attr_label_ref[work_type_as_label(rgn->attr.wshare.type)]);
     CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint64(rgn->attributes, attr_workshare_count,
+    r = OTF2_AttributeList_AddUint64(attributes, attr_workshare_count,
         rgn->attr.wshare.count);
     CHECK_OTF2_ERROR_CODE(r);
     return;
@@ -480,12 +488,6 @@ trace_add_workshare_attributes(trace_region_def_t *rgn)
 
 
 // Getters
-
-OTF2_AttributeList *
-trace_region_get_attribute_list(trace_region_def_t *region)
-{
-    return region->attributes;
-}
 
 OTF2_RegionRef
 trace_region_get_ref(trace_region_def_t *region)
@@ -608,8 +610,8 @@ void trace_region_write_definition(trace_region_def_t *region)
     {
         case trace_region_parallel:
         {
-            char region_name[DEFAULT_NAME_BUF_SZ+1] = {0};
-            snprintf(region_name, DEFAULT_NAME_BUF_SZ, "Parallel Region %lu",
+            char region_name[default_name_buf_sz+1] = {0};
+            snprintf(region_name, default_name_buf_sz, "Parallel Region %lu",
                 region->attr.parallel.id);
             OTF2_StringRef region_name_ref = get_unique_str_ref();
             OTF2_GlobalDefWriter_WriteString(writer,
@@ -620,11 +622,7 @@ void trace_region_write_definition(trace_region_def_t *region)
                 region_name_ref,
                 0, 0,   /* canonical name, description */
                 region->role,
-#if defined(OTTER_SERIAL_MODE)
-                OTF2_PARADIGM_USER,
-#else
-                OTF2_PARADIGM_OPENMP,
-#endif
+                OTF2_PARADIGM_UNKNOWN,
                 OTF2_REGION_FLAG_NONE,
                 0, 0, 0); /* source file, begin line no., end line no. */
             break;
@@ -633,14 +631,10 @@ void trace_region_write_definition(trace_region_def_t *region)
         {
             OTF2_GlobalDefWriter_WriteRegion(writer,
                 region->ref,
-                WORK_TYPE_TO_STR_REF(region->attr.wshare.type),
+                attr_label_ref[work_type_as_label(region->attr.wshare.type)],
                 0, 0,
                 region->role,
-#if defined(OTTER_SERIAL_MODE)
-                OTF2_PARADIGM_USER,
-#else
-                OTF2_PARADIGM_OPENMP,
-#endif
+                OTF2_PARADIGM_UNKNOWN,
                 OTF2_REGION_FLAG_NONE,
                 0, 0, 0); /* source file, begin line no., end line no. */
             break;
@@ -652,11 +646,7 @@ void trace_region_write_definition(trace_region_def_t *region)
                 attr_label_ref[attr_region_type_master],
                 0, 0,
                 region->role,
-#if defined(OTTER_SERIAL_MODE)
-                OTF2_PARADIGM_USER,
-#else
-                OTF2_PARADIGM_OPENMP,
-#endif
+                OTF2_PARADIGM_UNKNOWN,
                 OTF2_REGION_FLAG_NONE,
                 0, 0, 0); /* source file, begin line no., end line no. */
             break;
@@ -665,22 +655,18 @@ void trace_region_write_definition(trace_region_def_t *region)
         {
             OTF2_GlobalDefWriter_WriteRegion(writer,
                 region->ref,
-                SYNC_TYPE_TO_STR_REF(region->attr.sync.type),
+                attr_label_ref[sync_type_as_label(region->attr.sync.type)],
                 0, 0,
                 region->role,
-#if defined(OTTER_SERIAL_MODE)
-                OTF2_PARADIGM_USER,
-#else
-                OTF2_PARADIGM_OPENMP,
-#endif
+                OTF2_PARADIGM_UNKNOWN,
                 OTF2_REGION_FLAG_NONE,
                 0, 0, 0); /* source file, begin line no., end line no. */
             break;
         }
         case trace_region_task:
         {
-            char task_name[DEFAULT_NAME_BUF_SZ+1] = {0};
-            snprintf(task_name, DEFAULT_NAME_BUF_SZ, "%s task %lu",
+            char task_name[default_name_buf_sz+1] = {0};
+            snprintf(task_name, default_name_buf_sz, "%s task %lu",
                 region->attr.task.type == otter_task_initial ? "initial" :
                     region->attr.task.type == otter_task_implicit ? "implicit" :
                     region->attr.task.type == otter_task_explicit ? "explicit" :
@@ -702,14 +688,10 @@ void trace_region_write_definition(trace_region_def_t *region)
         {
             OTF2_GlobalDefWriter_WriteRegion(writer,
                 region->ref,
-                PHASE_TYPE_TO_STR_REF(region->attr.sync.type),
+                attr_label_ref[attr_region_type_generic_phase],
                 0, 0,
                 region->role,
-#if defined(OTTER_SERIAL_MODE)
-                OTF2_PARADIGM_USER,
-#else
-                OTF2_PARADIGM_OPENMP,
-#endif
+                OTF2_PARADIGM_UNKNOWN,
                 OTF2_REGION_FLAG_NONE,
                 0, 0, 0); /* source file, begin line no., end line no. */
             break;

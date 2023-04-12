@@ -75,18 +75,17 @@ void trace_destroy_workshare_region(trace_region_def_t *rgn);
 
 // Add attributes
 
-void trace_add_region_type_attributes(trace_region_def_t *rgn);
-void trace_add_master_attributes(trace_region_def_t *rgn);
-void trace_add_parallel_attributes(trace_region_def_t *rgn);
-void trace_add_phase_attributes(trace_region_def_t *rgn);
-void trace_add_sync_attributes(trace_region_def_t *rgn);
-void trace_add_task_attributes(trace_region_def_t *rgn);
-void trace_add_workshare_attributes(trace_region_def_t *rgn);
+void trace_add_region_type_attributes(trace_region_def_t *rgn, OTF2_AttributeList *attributes);
+void trace_add_master_attributes(trace_region_def_t *rgn, OTF2_AttributeList *attributes);
+void trace_add_parallel_attributes(trace_region_def_t *rgn, OTF2_AttributeList *attributes);
+void trace_add_phase_attributes(trace_region_def_t *rgn, OTF2_AttributeList *attributes);
+void trace_add_sync_attributes(trace_region_def_t *rgn, OTF2_AttributeList *attributes);
+void trace_add_task_attributes(trace_region_def_t *rgn, OTF2_AttributeList *attributes);
+void trace_add_workshare_attributes(trace_region_def_t *rgn, OTF2_AttributeList *attributes);
 
 
 // Getters
 
-OTF2_AttributeList *trace_region_get_attribute_list(trace_region_def_t *region);
 OTF2_RegionRef trace_region_get_ref(trace_region_def_t *region);
 unique_id_t trace_region_get_encountering_task_id(trace_region_def_t *region);
 trace_region_type_t trace_region_get_type(trace_region_def_t *region);

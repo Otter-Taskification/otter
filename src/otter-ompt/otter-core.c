@@ -68,6 +68,7 @@ tool_setup(
     opt.tracename = getenv(ENV_VAR_TRACE_OUTPUT);
     opt.tracepath = getenv(ENV_VAR_TRACE_PATH);
     opt.append_hostname = getenv(ENV_VAR_APPEND_HOST) == NULL ? false : true;
+    opt.event_model = otter_event_model_omp;
 
     /* Apply defaults if variables not provided */
     if(opt.tracename == NULL) opt.tracename = DEFAULT_OTF2_TRACE_OUTPUT;
@@ -79,7 +80,7 @@ tool_setup(
     LOG_INFO("%-30s %s", ENV_VAR_TRACE_OUTPUT, opt.tracename);
     LOG_INFO("%-30s %s", ENV_VAR_APPEND_HOST,  opt.append_hostname?"Yes":"No");
 
-    trace_initialise_archive(&opt);
+    trace_initialise(&opt);
 
     return &opt;
 }
@@ -87,7 +88,7 @@ tool_setup(
 void
 tool_finalise(ompt_data_t *tool_data)
 {
-    trace_finalise_archive();
+    trace_finalise();
     print_resource_usage();
 
     otter_opt_t *opt = tool_data->ptr;
@@ -124,7 +125,20 @@ on_ompt_callback_thread_begin(
     ompt_thread_t            thread_type,
     ompt_data_t             *thread)
 {   
-    thread_data_t *thread_data = new_thread_data(thread_type);
+    otter_thread_t otter_thread_type = otter_thread_unknown;
+    switch (thread_type) {
+        case ompt_thread_initial:
+            otter_thread_type = otter_thread_initial; break;
+        case ompt_thread_worker:
+            otter_thread_type = otter_thread_worker; break;
+        case ompt_thread_other:
+            otter_thread_type = otter_thread_other; break;
+        case ompt_thread_unknown:
+            otter_thread_type = otter_thread_unknown; break;
+        default:
+            otter_thread_type = otter_thread_unknown; break;
+    }
+    thread_data_t *thread_data = new_thread_data(otter_thread_type);
     thread->ptr = thread_data;
 
     LOG_DEBUG("[t=%lu] (event) thread-begin", thread_data->id);
@@ -359,10 +373,34 @@ on_ompt_callback_task_schedule(
     }
 #else
     // Default is to record task-switch event
+
+    otter_task_status_t otter_prior_task_status = otter_task_state_undef;
+
+    switch (prior_task_status) {
+        case ompt_task_complete:
+            otter_prior_task_status = otter_task_complete; break;
+        case ompt_task_yield:
+            otter_prior_task_status = otter_task_yield; break;
+        case ompt_task_cancel:
+            otter_prior_task_status = otter_task_cancel; break;
+        case ompt_task_detach:
+            otter_prior_task_status = otter_task_detach; break;
+        case ompt_task_early_fulfill:
+            otter_prior_task_status = otter_task_early_fulfill; break;
+        case ompt_task_late_fulfill:
+            otter_prior_task_status = otter_task_late_fulfill; break;
+        case ompt_task_switch:
+            otter_prior_task_status = otter_task_switch; break;
+        case ompt_taskwait_complete:
+            otter_prior_task_status = otter_taskwait_complete; break;
+        default:
+            otter_prior_task_status = otter_task_state_undef; break;
+    }
+
     trace_event_task_switch(
         thread_data->location,
         trace_task_get_region_def(prior_task_data),
-        prior_task_status,
+        otter_prior_task_status,
         trace_task_get_region_def(next_task_data)
     );
 #endif
@@ -431,9 +469,8 @@ on_ompt_callback_implicit_task(
 
         task_data_t *implicit_task_data = (task_data_t*)task->ptr;
 
-        /* Update implicit task status */
-        trace_event_task_schedule(thread_data->location,
-            trace_task_get_region_def(implicit_task_data), ompt_task_complete);
+        /* Mark the implicit task as complete */
+        trace_region_set_task_status(trace_task_get_region_def(implicit_task_data), otter_task_complete);
 
         /* Leave implicit task region */
         trace_event_leave(thread_data->location);
@@ -571,8 +608,34 @@ on_ompt_callback_sync_region(
 
     if (endpoint == ompt_scope_begin)
     {
+        otter_sync_region_t sync_type = otter_sync_region_barrier;
+        switch (kind) {
+            ompt_sync_region_barrier:
+                sync_type = otter_sync_region_barrier; break;
+            ompt_sync_region_barrier_implicit:
+                sync_type = otter_sync_region_barrier_implicit; break;
+            ompt_sync_region_barrier_explicit:
+                sync_type = otter_sync_region_barrier_explicit; break;
+            ompt_sync_region_barrier_implementation:
+                sync_type = otter_sync_region_barrier_implementation; break;
+            ompt_sync_region_taskwait:
+                sync_type = otter_sync_region_taskwait; break;
+            ompt_sync_region_taskgroup:
+                sync_type = otter_sync_region_taskgroup; break;
+            ompt_sync_region_reduction:
+                sync_type = otter_sync_region_reduction; break;
+            ompt_sync_region_barrier_implicit_workshare:
+                sync_type = otter_sync_region_barrier_implicit_workshare; break;
+            ompt_sync_region_barrier_implicit_parallel:
+                sync_type = otter_sync_region_barrier_implicit_parallel; break;
+            ompt_sync_region_barrier_teams:
+                sync_type = otter_sync_region_barrier_teams; break;
+            default:
+                sync_type = otter_sync_region_barrier;
+        }
+
         trace_region_def_t *sync_rgn = trace_new_sync_region(
-            kind,
+            sync_type,
             kind == ompt_sync_region_taskgroup ? trace_sync_descendants : trace_sync_children,
             trace_task_get_id(task_data)
         );

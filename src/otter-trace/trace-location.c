@@ -17,9 +17,10 @@
 #include "public/otter-trace/trace-location.h"
 #include "public/types/queue.h"
 #include "public/types/stack.h"
-#include "otter-trace/trace-lookup-macros.h"
+#include "otter-trace/trace-attribute-lookup.h"
+#include "otter-trace/trace-types-as-labels.h"
 #include "otter-trace/trace-attributes.h"
-#include "otter-trace/trace-archive.h"
+#include "otter-trace/trace-archive-impl.h"
 #include "otter-trace/trace-unique-refs.h"
 #include "otter-trace/trace-check-error-code.h"
 #include "otter-trace/trace-static-constants.h"
@@ -38,10 +39,6 @@ typedef struct trace_location_def_t {
     OTF2_EvtWriter         *evt_writer;
     OTF2_DefWriter         *def_writer;
 } trace_location_def_t;
-
-/* Defined in trace-archive.c */
-extern OTF2_StringRef attr_name_ref[n_attr_defined][2];
-extern OTF2_StringRef attr_label_ref[n_attr_label_defined];
 
 trace_location_def_t *
 trace_new_location_definition(
@@ -102,23 +99,6 @@ trace_destroy_location(trace_location_def_t *loc)
 }
 
 void
-trace_add_thread_attributes(trace_location_def_t *self)
-{
-    OTF2_ErrorCode r = OTF2_SUCCESS;
-    r = OTF2_AttributeList_AddInt32(self->attributes, attr_cpu, sched_getcpu());
-    CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddUint64(self->attributes, attr_unique_id, self->id);
-    CHECK_OTF2_ERROR_CODE(r);
-    r = OTF2_AttributeList_AddStringRef(self->attributes, attr_thread_type,
-        self->thread_type == otter_thread_initial ? 
-            attr_label_ref[attr_thread_type_initial] :
-        self->thread_type == otter_thread_worker ? 
-            attr_label_ref[attr_thread_type_worker] : 0);
-    CHECK_OTF2_ERROR_CODE(r);
-    return;
-}
-
-void
 trace_write_location_definition(trace_location_def_t *loc)
 {
     if (loc == NULL)
@@ -127,9 +107,9 @@ trace_write_location_definition(trace_location_def_t *loc)
         return;
     }
 
-    char location_name[DEFAULT_NAME_BUF_SZ + 1] = {0};
+    char location_name[default_name_buf_sz + 1] = {0};
     OTF2_StringRef location_name_ref = get_unique_str_ref();
-    snprintf(location_name, DEFAULT_NAME_BUF_SZ, "Thread %lu", loc->id);
+    snprintf(location_name, default_name_buf_sz, "Thread %lu", loc->id);
 
     LOG_DEBUG("[t=%lu] locking global def writer", loc->id);
     pthread_mutex_t *def_writer_lock = global_def_writer_lock();
@@ -176,6 +156,12 @@ trace_location_get_num_region_def(trace_location_def_t *loc) {
 unique_id_t
 trace_location_get_id(trace_location_def_t *loc) {
     return loc->id;
+}
+
+otter_thread_t
+trace_location_get_thread_type(trace_location_def_t *loc)
+{
+    return loc->thread_type;
 }
 
 void

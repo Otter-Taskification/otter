@@ -9,21 +9,20 @@
 #include "public/otter-trace/trace-task-graph.h"
 #include "public/otter-trace/trace-task-context-interface.h"
 
-#include "otter-trace/trace-archive.h"
-#include "otter-trace/trace-common-event-attributes.h"
-#include "otter-trace/trace-lookup-macros.h"
+#include "otter-trace/trace-archive-impl.h"
+#include "otter-trace/trace-types-as-labels.h"
 #include "otter-trace/trace-timestamp.h"
 #include "otter-trace/trace-attributes.h"
-#include "otter-trace/trace-lookup-macros.h"
 #include "otter-trace/trace-unique-refs.h"
 #include "otter-trace/trace-check-error-code.h"
+#include "otter-trace/trace-attribute-lookup.h"
 
 #define OTTER_DUMMY_OTF2_LOCATION_REF        0
 
 /* Protects the shared dummy event writer object */
 static pthread_mutex_t lock_shared_evt_writer = PTHREAD_MUTEX_INITIALIZER;
 
-static OTF2_EvtWriter *get_shared_event_writer(void) {
+static inline OTF2_EvtWriter *get_shared_event_writer(void) {
     LOG_DEBUG("locking shared event writer");
     pthread_mutex_lock(&lock_shared_evt_writer);
     return OTF2_Archive_GetEvtWriter(
@@ -32,7 +31,7 @@ static OTF2_EvtWriter *get_shared_event_writer(void) {
     );
 }
 
-static void release_shared_event_writer(void) {
+static inline void release_shared_event_writer(void) {
     LOG_DEBUG("releasing shared event writer");
     pthread_mutex_unlock(&lock_shared_evt_writer);
 }
@@ -45,24 +44,34 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
     NOTE: if parent == NULL i.e. the new task is an orphan, it won't be possible later to exclude its execution time from that of any parent task
     */
 
-    OTF2_ErrorCode err;
     LOG_DEBUG("record task-graph event: task begin");
 
-    // Add relevant attributes
+    OTF2_ErrorCode err = OTF2_SUCCESS;
     OTF2_AttributeList *attr = OTF2_AttributeList_New();
-
     unique_id_t task_id = otterTaskContext_get_task_context_id(task);
     unique_id_t parent_task_id = otterTaskContext_get_parent_task_context_id(task);
-    
-    /* Add attributes common to all enter/leave events */
-    trace_add_common_event_attributes(
+
+    err = OTF2_AttributeList_AddInt32(
         attr,
-        parent_task_id,
-        trace_region_task,
-        (trace_region_attr_t) task_attr
+        attr_cpu,
+        sched_getcpu()
     );
-    
-    // Event type
+    CHECK_OTF2_ERROR_CODE(err);
+
+    err = OTF2_AttributeList_AddUint64(
+        attr,
+        attr_encountering_task_id,
+        parent_task_id
+    );
+    CHECK_OTF2_ERROR_CODE(err);
+
+    err = OTF2_AttributeList_AddStringRef(
+        attr,
+        attr_region_type,
+        attr_label_ref[task_type_as_label(task_attr.type)]
+    );
+    CHECK_OTF2_ERROR_CODE(err);
+
     err = OTF2_AttributeList_AddStringRef(
         attr,
         attr_event_type,
@@ -70,7 +79,6 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
     );
     CHECK_OTF2_ERROR_CODE(err);
 
-    // Task context ID
     err = OTF2_AttributeList_AddUint64(
         attr,
         attr_unique_id,
@@ -78,7 +86,6 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
     );
     CHECK_OTF2_ERROR_CODE(err);
 
-    // Parent task context ID
     err = OTF2_AttributeList_AddUint64(
         attr,
         attr_parent_task_id,
@@ -86,7 +93,6 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
     );
     CHECK_OTF2_ERROR_CODE(err);
 
-    // Endpoint: enter
     err = OTF2_AttributeList_AddStringRef(
         attr,
         attr_endpoint,
@@ -95,47 +101,51 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
     CHECK_OTF2_ERROR_CODE(err);
 
     // Record event
-
-    OTF2_EvtWriter *event_writer = NULL;
-
-    event_writer = get_shared_event_writer();
-
-    OTF2_EvtWriter_ThreadTaskSwitch(
-        event_writer,
+    err = OTF2_EvtWriter_ThreadTaskSwitch(
+        get_shared_event_writer(),
         attr,
         get_timestamp(),
         OTF2_UNDEFINED_COMM,
         OTF2_UNDEFINED_UINT32, 0); /* creating thread, generation number */
-
-    release_shared_event_writer();
-
     CHECK_OTF2_ERROR_CODE(err);
 
+    // Cleanup
+    release_shared_event_writer();
     OTF2_AttributeList_Delete(attr);
 }
 
 void trace_graph_event_task_end(otter_task_context *task)
 {
-    OTF2_ErrorCode err;
     LOG_DEBUG("record task-graph event: task end");
-    unique_id_t task_id = otterTaskContext_get_task_context_id(task);
 
-    // Add attributes to task
+    OTF2_ErrorCode err = OTF2_SUCCESS;
     OTF2_AttributeList *attr = OTF2_AttributeList_New();
+    unique_id_t task_id = otterTaskContext_get_task_context_id(task);
     
-    /* Add attributes common to all enter/leave events */
-    trace_add_common_event_attributes(
+    err = OTF2_AttributeList_AddInt32(
         attr,
-        task_id,
-        trace_region_task,
-        (trace_region_attr_t) {
-            .task = {
-                .type = otter_task_explicit,
-                .id = task_id
-            }
-        }
+        attr_cpu,
+        sched_getcpu()
     );
+    CHECK_OTF2_ERROR_CODE(err);
+
+    err = OTF2_AttributeList_AddUint64(
+        attr,
+        attr_encountering_task_id,
+        task_id
+    );
+    CHECK_OTF2_ERROR_CODE(err);
+
+    err = OTF2_AttributeList_AddStringRef(
+        attr,
+        attr_region_type,
+        attr_label_ref[attr_task_type_explicit_task]
+    );
+    CHECK_OTF2_ERROR_CODE(err);
     
+    
+    // Event type
+
     // Event type
     err = OTF2_AttributeList_AddStringRef(
         attr,
@@ -144,15 +154,13 @@ void trace_graph_event_task_end(otter_task_context *task)
     );
     CHECK_OTF2_ERROR_CODE(err);
 
-    // Task context ID
     err = OTF2_AttributeList_AddUint64(
         attr,
         attr_unique_id,
-        otterTaskContext_get_task_context_id(task)
+        task_id
     );
     CHECK_OTF2_ERROR_CODE(err);
 
-    // Parent task context ID
     err = OTF2_AttributeList_AddUint64(
         attr,
         attr_parent_task_id,
@@ -160,28 +168,22 @@ void trace_graph_event_task_end(otter_task_context *task)
     );
     CHECK_OTF2_ERROR_CODE(err);
 
-    // Endpoiont: leave
     OTF2_AttributeList_AddStringRef(
         attr,
         attr_endpoint,
         attr_label_ref[attr_endpoint_leave]
     );
 
-    // Record event
-
-    OTF2_EvtWriter *event_writer = get_shared_event_writer();
-
-    OTF2_EvtWriter_ThreadTaskSwitch(
-        event_writer,
+    err = OTF2_EvtWriter_ThreadTaskSwitch(
+        get_shared_event_writer(),
         attr,
         get_timestamp(),
         OTF2_UNDEFINED_COMM,
         OTF2_UNDEFINED_UINT32, 0); /* creating thread, generation number */
-
-    release_shared_event_writer();
-
     CHECK_OTF2_ERROR_CODE(err);
-    
+
+    // Cleanup
+    release_shared_event_writer();
     OTF2_AttributeList_Delete(attr);
 }
 
@@ -189,39 +191,61 @@ void trace_graph_synchronise_tasks(otter_task_context *task, trace_sync_region_a
 {
     LOG_DEBUG("record task-graph event: synchronise");
 
-    OTF2_AttributeList *attributes = OTF2_AttributeList_New();
+    OTF2_ErrorCode err = OTF2_SUCCESS;
+    OTF2_AttributeList *attr = OTF2_AttributeList_New();
+    unique_id_t task_id = otterTaskContext_get_task_context_id(task);
     
-    /* Add attributes common to all enter/leave events */
-    trace_add_common_event_attributes(
-        attributes,
-        otterTaskContext_get_task_context_id(task),
-        trace_region_synchronise,
-        (trace_region_attr_t) sync_attr
+    err = OTF2_AttributeList_AddInt32(
+        attr,
+        attr_cpu,
+        sched_getcpu()
     );
+    CHECK_OTF2_ERROR_CODE(err);
 
-    /* Add the event type attribute */
-    OTF2_AttributeList_AddStringRef(attributes, attr_event_type,
+    err = OTF2_AttributeList_AddUint64(
+        attr,
+        attr_encountering_task_id,
+        task_id
+    );
+    CHECK_OTF2_ERROR_CODE(err);
+
+    err = OTF2_AttributeList_AddStringRef(
+        attr,
+        attr_region_type,
+        attr_label_ref[sync_type_as_label(sync_attr.type)]
+    );
+    CHECK_OTF2_ERROR_CODE(err);
+
+    err = OTF2_AttributeList_AddStringRef(
+        attr,
+        attr_event_type,
         attr_label_ref[attr_event_type_sync_begin]
     );
+    CHECK_OTF2_ERROR_CODE(err);
 
-    /* Add the endpoint */
-    OTF2_AttributeList_AddStringRef(attributes, attr_endpoint,
-        attr_label_ref[attr_endpoint_discrete]);
+    err = OTF2_AttributeList_AddStringRef(
+        attr, 
+        attr_endpoint,
+        attr_label_ref[attr_endpoint_discrete]
+    );
+    CHECK_OTF2_ERROR_CODE(err);
 
-    /* Add the sync mode - children or descendants? */
-    OTF2_AttributeList_AddUint8(attributes, attr_sync_descendant_tasks, sync_attr.sync_descendant_tasks ? 1 : 0);
+    err = OTF2_AttributeList_AddUint8(
+        attr, 
+        attr_sync_descendant_tasks, 
+        sync_attr.sync_descendant_tasks ? 1 : 0
+    );
+    CHECK_OTF2_ERROR_CODE(err);
 
-    /* Get the event writer */
-    OTF2_EvtWriter *event_writer = get_shared_event_writer();
-
-    OTF2_EvtWriter_Enter(
-        event_writer,
-        attributes,
+    err = OTF2_EvtWriter_Enter(
+        get_shared_event_writer(),
+        attr,
         get_timestamp(),
         OTF2_UNDEFINED_REGION
     );
+    CHECK_OTF2_ERROR_CODE(err);
 
+    // Cleanup
     release_shared_event_writer();
-    
-    OTF2_AttributeList_Delete(attributes);
+    OTF2_AttributeList_Delete(attr);
 }

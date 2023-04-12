@@ -87,6 +87,7 @@ typedef enum {
 } otter_task_flag_t;
 
 typedef enum {
+    otter_task_state_undef   = 0,
     otter_task_complete      = 1,
     otter_task_yield         = 2,
     otter_task_cancel        = 3,

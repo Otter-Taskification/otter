@@ -38,11 +38,12 @@ otter_task_context *otterTaskContext_alloc(void)
 void otterTaskContext_init(otter_task_context *task, otter_task_context *parent)
 {
     assert(task != NULL);
-    task->task_context_id = otterTaskContext_get_unique_id();
+    static unique_id_t unique_id=0;
+    task->task_context_id = __sync_fetch_and_add(&unique_id, 1L);
     if (parent == NULL) {
         task->parent_task_context_id = TASK_ID_UNDEFINED;
     } else {
-        task->parent_task_context_id = otterTaskContext_get_task_context_id(parent);
+        task->parent_task_context_id = parent->task_context_id;
     }
     LOG_DEBUG("initialised task context: %lu", task->task_context_id);
 }
@@ -66,12 +67,4 @@ unique_id_t otterTaskContext_get_parent_task_context_id(otter_task_context *task
 {
     // assert(task != NULL);
     return task==NULL ? 0 :  task->parent_task_context_id;
-}
-
-// Assign IDs
-
-unique_id_t otterTaskContext_get_unique_id(void)
-{
-    static unique_id_t ID=0;
-    return __sync_fetch_and_add(&ID, 1L);
 }

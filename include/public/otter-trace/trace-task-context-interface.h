@@ -56,11 +56,3 @@ unique_id_t otterTaskContext_get_task_context_id(otter_task_context *task);
  * @return unique_id_t 
  */
 unique_id_t otterTaskContext_get_parent_task_context_id(otter_task_context *task);
-
-/**
- * @brief Assign a new unique ID for a task context. Counts upwards by 1 each
- * time.
- * 
- * @return unique_id_t 
- */
-unique_id_t otterTaskContext_get_unique_id(void);

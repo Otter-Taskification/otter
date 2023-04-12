@@ -1,0 +1,23 @@
+/**
+ * @file trace-archive.c
+ * @author Adam Tuft
+ * @brief Responsible for initialising and finalising single instances of the 
+ * trace archive and its global definitions writer. Returns pointers to these 
+ * resources as well as mutexes protecting access to them both.
+ */
+
+#if !defined(OTTER_TRACE_ARCHIVE_IMPL_H)
+#define OTTER_TRACE_ARCHIVE_IMPL_H
+
+#include <pthread.h>
+#include <otf2/otf2.h>
+#include "public/types/string_value_registry.hpp"
+
+pthread_mutex_t *global_def_writer_lock(void);
+pthread_mutex_t *global_archive_lock(void);
+
+OTF2_GlobalDefWriter *get_global_def_writer(void);
+OTF2_Archive *get_global_archive(void);
+string_registry *get_global_str_registry(void);
+
+#endif // OTTER_TRACE_ARCHIVE_IMPL_H

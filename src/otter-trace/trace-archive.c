@@ -9,15 +9,7 @@
 #define _GNU_SOURCE
 
 #include <stdlib.h>
-#include <stdio.h>
-#include <pthread.h>
-#include <time.h>
 #include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <errno.h>
 
 #include <otf2/otf2.h>
 #include <otf2/OTF2_Pthread_Locks.h>
@@ -29,22 +21,11 @@
 
 #include "otter-trace/trace-static-constants.h"
 #include "otter-trace/trace-timestamp.h"
-#include "otter-trace/trace-archive.h"
+#include "otter-trace/trace-archive-impl.h"
 #include "otter-trace/trace-string-registry.h"
 #include "otter-trace/trace-attributes.h"
 #include "otter-trace/trace-unique-refs.h"
 #include "otter-trace/trace-check-error-code.h"
-
-static const size_t CHAR_BUFF_SZ=1024;
-
-/**
- * @brief Copy the process' memory map from /proc/self/maps to aux/maps within
- * the trace directory. This information can be used to match return addresses
- * to source locations.
- * 
- * @param opt The runtime options passed to Otter.
- */
-static void trace_copy_proc_maps(otter_opt_t *opt);
 
 /* Lookup tables mapping enum value to string ref */
 OTF2_StringRef attr_name_ref[n_attr_defined][2] = {0};
@@ -111,45 +92,10 @@ static void trace_write_string_ref(const char *s, OTF2_StringRef ref)
     CHECK_OTF2_ERROR_CODE(r);
 }
 
-// TODO: separate initialisation of archive from initialisation of otter-trace environment e.g. preparation for copying trace_copy_proc_maps
 bool
-trace_initialise_archive(otter_opt_t *opt)
+trace_initialise_archive(const char *archive_path, const char *archive_name, otter_event_model_t event_model)
 {
     OTF2_ErrorCode ret = OTF2_SUCCESS;
-
-    /* Determine filename & path from options */
-    char archive_path[DEFAULT_NAME_BUF_SZ+1] = {0};
-    static char archive_name[DEFAULT_NAME_BUF_SZ+1] = {0};
-    char *p = &archive_name[0];
-
-    /* Copy filename */
-    strncpy(p, opt->tracename, DEFAULT_NAME_BUF_SZ - strlen(archive_name));
-    p = &archive_name[0] + strlen(archive_name);
-
-    /* Copy hostname */
-    if (opt->append_hostname)
-    {
-        strncpy(p, ".", DEFAULT_NAME_BUF_SZ - strlen(archive_name));
-        p = &archive_name[0] + strlen(archive_name);
-        strncpy(p, opt->hostname, DEFAULT_NAME_BUF_SZ - strlen(archive_name));
-        p = &archive_name[0] + strlen(archive_name);
-    }
-
-    /* Copy PID */
-    strncpy(p, ".", DEFAULT_NAME_BUF_SZ - strlen(archive_name));
-    p = &archive_name[0] + strlen(archive_name);
-    snprintf(p, DEFAULT_NAME_BUF_SZ - strlen(archive_name), "%u", getpid());
-    p = &archive_name[0] + strlen(archive_name);
-
-    /* Copy path + filename */
-    snprintf(archive_path, DEFAULT_NAME_BUF_SZ, "%s/%s",
-        opt->tracepath, archive_name);
-
-    fprintf(stderr, "%-30s %s/%s\n",
-        "Trace output path:", opt->tracepath, archive_name);
-
-    /* Store archive name in options struct */
-    opt->archive_name = &archive_name[0];
 
     /* open OTF2 archive */
     Archive = OTF2_Archive_Open(
@@ -183,21 +129,34 @@ trace_initialise_archive(otter_opt_t *opt)
     /* get global definitions writer */
     Defs = OTF2_Archive_GetGlobalDefWriter(Archive);
 
-#if defined(OTTER_EVENT_MODEL_OMP) || defined(OTTER_EVENT_MODEL_SERIAL)
-    // otter-serial uses the OMP event model
-    const char* event_model = "OMP";
-#elif defined(OTTER_EVENT_MODEL_TASKGRAPH)
-    // otter-task-graph uses its own event model
-    const char* event_model = "TASKGRAPH";
-#else
-    const char* event_model = "UNKNOWN";
-#endif
+    /* detect the chosen event model and set the trace property for this */
+    const char* event_model_name = NULL;
+    const char* location_group_name = NULL;
+    switch (event_model)
+    {
+    case otter_event_model_omp:
+        event_model_name = "OMP";
+        location_group_name = "OMP Process";
+        break;
 
-    ret = OTF2_Archive_SetProperty(Archive,
-        "OTTER::EVENT_MODEL",
-        event_model,
-        true
-    );
+    case otter_event_model_serial:
+        // otter-serial uses the same event model as otter-ompt
+        event_model_name = "OMP";
+        location_group_name = "Serial Process";
+        break;
+
+    case otter_event_model_task_graph:
+        event_model_name = "TASKGRAPH";
+        location_group_name = "Task-graph Process";
+        break;
+    
+    default:
+        event_model_name = "UNKNOWN";
+        location_group_name = "Unknown Process";
+        break;
+    }
+
+    ret = OTF2_Archive_SetProperty(Archive, "OTTER::EVENT_MODEL", event_model_name, true);
     CHECK_OTF2_ERROR_CODE(ret);
 
     /* get clock resolution & current time for CLOCK_MONOTONIC */
@@ -245,13 +204,7 @@ trace_initialise_archive(otter_opt_t *opt)
     /* write global location group */
     OTF2_StringRef g_loc_grp_name = get_unique_str_ref();
     OTF2_LocationGroupRef g_loc_grp_id = DEFAULT_LOCATION_GRP;
-    OTF2_GlobalDefWriter_WriteString(Defs, g_loc_grp_name, 
-#if defined(OTTER_SERIAL_MODE)
-    "Serial Process"
-#else
-    "OMP Process"
-#endif
-    );
+    OTF2_GlobalDefWriter_WriteString(Defs, g_loc_grp_name, location_group_name);
     OTF2_GlobalDefWriter_WriteLocationGroup(Defs, g_loc_grp_id, g_loc_grp_name,
         OTF2_LOCATION_GROUP_TYPE_PROCESS, g_sys_tree_id);
 
@@ -296,60 +249,7 @@ trace_initialise_archive(otter_opt_t *opt)
         string_registry_make(get_unique_str_ref, trace_write_string_ref)
     );
 
-    trace_copy_proc_maps(opt);
-
     return true;
-}
-
-static void
-trace_copy_proc_maps(otter_opt_t *opt) {
-    char     oname[CHAR_BUFF_SZ] = {0};
-    FILE    *ifile               = NULL;
-    FILE    *ofile               = NULL;
-    char    *linebuff            = NULL;
-    size_t   linesize            = 0;
-
-    // TODO: consider separating concerns of setting up dirs and copying files as setting up environment should be done during initialisation.
-    // create aux files dir
-    snprintf(oname, CHAR_BUFF_SZ, "%s/%s/aux", opt->tracepath, opt->archive_name);
-    if (mkdir(oname, 0755) == -1) {
-        LOG_ERROR("(line %d) Error while making dir %s: %s", __LINE__, oname, strerror(errno));
-        goto exit_error;
-    } else {
-        LOG_DEBUG("created dir: %s", oname);
-    }
-
-    // open maps file
-    if ((ifile = fopen("/proc/self/maps", "r")) == NULL) {
-        LOG_ERROR("(line %d) Error opening file /proc/self/maps: %s", __LINE__, strerror(errno));
-        goto exit_error;
-    }
-
-    // open output
-    snprintf(oname, CHAR_BUFF_SZ, "%s/%s/aux/maps", opt->tracepath, opt->archive_name);
-    if ((ofile = fopen(oname, "w")) == NULL) {
-        LOG_ERROR("(line %d) Error opening file %s: %s", __LINE__, oname, strerror(errno));
-        goto exit_error;
-    }
-
-    // copy ifile -> ofile
-    while (getline(&linebuff, &linesize, ifile) > 0) {
-        size_t linelen = strlen(linebuff);
-        linebuff[linelen-1] = '\0'; // replace delimiting newline with null-byte for logging
-        LOG_DEBUG("/proc/self/maps: %s", linebuff);
-        if (fprintf(ofile, "%s\n", linebuff) < 0) {
-            LOG_ERROR("(line %d) Error writing to file %s: %s", __LINE__, oname, strerror(errno));
-            goto exit_error;
-        }
-    }
-
-    LOG_DEBUG("copied memory map to %s", oname);
-
-exit_error:
-    if(ifile)      fclose(ifile);
-    if(ofile)      fclose(ofile);
-    if(linebuff)   free(linebuff);
-    return;
 }
 
 bool

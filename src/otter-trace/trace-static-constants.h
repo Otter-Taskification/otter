@@ -3,7 +3,7 @@
 
 #include <otf2/otf2.h>
 
-static const unsigned int DEFAULT_NAME_BUF_SZ = 256;
+enum { default_name_buf_sz = 256 };
 static const OTF2_LocationGroupRef DEFAULT_LOCATION_GRP = 0;
 static const OTF2_SystemTreeNodeRef DEFAULT_SYSTEM_TREE = 0;
 

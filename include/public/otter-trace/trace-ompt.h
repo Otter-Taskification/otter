@@ -17,9 +17,8 @@
 #include "public/otter-trace/trace-types.h"
 #include "public/otter-trace/trace-location.h"
 #include "public/otter-trace/trace-region-def.h"
-#include "public/otter-trace/trace-archive.h"
+#include "public/otter-trace/trace-initialise.h"
 
-// TODO: move these declarations to their own header under public/otter-trace
 void trace_event_thread_begin(trace_location_def_t *self);
 void trace_event_thread_end(trace_location_def_t *self);
 void trace_event_enter(trace_location_def_t *self, trace_region_def_t *region);

@@ -53,6 +53,7 @@ void otterTraceInitialise(const char* file, const char* func, const int line)
     opt.tracename = getenv(ENV_VAR_TRACE_OUTPUT);
     opt.tracepath = getenv(ENV_VAR_TRACE_PATH);
     opt.append_hostname = getenv(ENV_VAR_APPEND_HOST) == NULL ? false : true;
+    opt.event_model = otter_event_model_serial;
 
     /* Apply defaults if variables not provided */
     if(opt.tracename == NULL) opt.tracename = DEFAULT_OTF2_TRACE_OUTPUT;
@@ -64,7 +65,7 @@ void otterTraceInitialise(const char* file, const char* func, const int line)
     LOG_INFO("%-30s %s", ENV_VAR_TRACE_OUTPUT, opt.tracename);
     LOG_INFO("%-30s %s", ENV_VAR_APPEND_HOST,  opt.append_hostname?"Yes":"No");
 
-    trace_initialise_archive(&opt);
+    trace_initialise(&opt);
 
     task_stack = stack_create();
     parallel_stack = stack_create();
@@ -152,7 +153,7 @@ void otterTraceFinalise(void)
 
     trace_event_thread_end(location);
     thread_destroy(thread_data);
-    trace_finalise_archive();
+    trace_finalise();
 
     stack_destroy(task_stack, false, NULL);
     stack_destroy(parallel_stack, false, NULL);

@@ -21,7 +21,6 @@
 #include "public/otter-trace/trace-task-graph.h"
 #include "api/otter-task-graph/otter-task-graph.h"
 #include "public/otter-trace/trace-task-context-interface.h"
-
 #include "public/otter-trace/trace-thread-data.h"
 
 
@@ -52,6 +51,7 @@ void otterTraceInitialise(void)
     opt.tracename = getenv(ENV_VAR_TRACE_OUTPUT);
     opt.tracepath = getenv(ENV_VAR_TRACE_PATH);
     opt.append_hostname = getenv(ENV_VAR_APPEND_HOST) == NULL ? false : true;
+    opt.event_model = otter_event_model_task_graph;
 
     /* Apply defaults if variables not provided */
     if(opt.tracename == NULL) opt.tracename = DEFAULT_OTF2_TRACE_OUTPUT;
@@ -63,7 +63,7 @@ void otterTraceInitialise(void)
     LOG_INFO("%-30s %s", ENV_VAR_TRACE_OUTPUT, opt.tracename);
     LOG_INFO("%-30s %s", ENV_VAR_APPEND_HOST,  opt.append_hostname?"Yes":"No");
 
-    trace_initialise_archive(&opt);
+    trace_initialise(&opt);
 
     // Write the definition of a dummy location
     // trace_write_location_definition(...)? or simply via OTF2_GlobalDefWriter_WriteLocation(...)
@@ -80,7 +80,7 @@ void otterTraceFinalise(void)
     thread_data_t *dummy_thread = new_thread_data(otter_thread_initial);
     thread_destroy(dummy_thread);
 
-    trace_finalise_archive();
+    trace_finalise();
     char trace_folder[PATH_MAX] = {0};
     realpath(opt.tracepath, &trace_folder[0]);
     fprintf(stderr, "%s%s/%s\n",

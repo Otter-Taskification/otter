@@ -16,11 +16,8 @@
 #include "public/otter-common.h"
 #include "public/otter-trace/trace-types.h"
 #include "public/otter-trace/trace-region-attr.h"
-// #include "public/otter-trace/trace-location.h"
-// #include "public/otter-trace/trace-region-def.h"
-#include "public/otter-trace/trace-archive.h"
+#include "public/otter-trace/trace-initialise.h"
 
-// TODO: move these declarations to their own header under public/otter-trace
 #include "api/otter-task-graph/otter-task-graph.h" // only needed for otter_task_context typedef
 void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_attr_t task_attr);
 void trace_graph_event_task_end(otter_task_context *task);

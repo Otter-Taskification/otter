@@ -30,6 +30,8 @@
 #define INCLUDE_ATTRIBUTE(...) // noop
 #endif
 
+INCLUDE_LABEL(label, string_not_defined)
+
 INCLUDE_LABEL(flag,  Y )
 INCLUDE_LABEL(flag,  N )
 INCLUDE_LABEL(flag,  true  )
@@ -142,6 +144,7 @@ INCLUDE_LABEL(region_type, generic_phase)
 
 /* prior task status at task-schedule event */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, prior_task_status,  "status of the task that arrived at a task scheduling point")
+INCLUDE_LABEL(prior_task_status,  undefined     )
 INCLUDE_LABEL(prior_task_status,  complete      )
 INCLUDE_LABEL(prior_task_status,  yield         )
 INCLUDE_LABEL(prior_task_status,  cancel        )

@@ -65,6 +65,6 @@ Program fibonacci
 
     print *, n, fibn
 
-    Call fortran_otterTraceStop()
+    Call fortran_otterTraceFinalise()
 
 End Program fibonacci

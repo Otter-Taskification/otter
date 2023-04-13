@@ -13,14 +13,14 @@ Integer Recursive Function fib(n, parent) result(a)
     else
         ! Tag: wrap a task
         child1 = fortran_otterTaskBegin(parent)
-        !$omp task shared(i, child_1, n)
+        !$omp task shared(i, child1, n)
         i = fib(n-1, child1)
         Call fortran_otterTaskEnd(child1)
         !$omp end task
 
         ! Tag: wrap a task
         child2 = fortran_otterTaskBegin(parent)
-        !$omp task shared(i, child_2, n)
+        !$omp task shared(i, child2, n)
         j = fib(n-2, child2)
         Call fortran_otterTaskEnd(child2)
         !$omp end task
@@ -65,6 +65,6 @@ Program fibonacci
 
     print *, n, fibn
 
-    Call fortran_otterTraceEnd()
+    Call fortran_otterTraceStop()
 
 End Program fibonacci

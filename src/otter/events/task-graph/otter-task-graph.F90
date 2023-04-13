@@ -56,7 +56,7 @@ module otter_task_graph
                 use, intrinsic :: iso_c_binding
                 character(len=1, kind=c_char), dimension(*), intent(in) :: filename, functionname
                 integer(c_int), value :: linenum
-                type(c_ptr) :: parent_task
+                type(c_ptr), value :: parent_task
             end function otterTaskBegin
         end interface
         fortran_otterTaskBegin_i = otterTaskBegin(trim(filename), trim(functionname), Int(linenum, kind=c_int), parent_task)
@@ -68,7 +68,7 @@ module otter_task_graph
         interface
             subroutine otterTaskEnd(task) bind(C, NAME="otterTaskEnd")
                 use, intrinsic :: iso_c_binding
-                type(c_ptr) :: task
+                type(c_ptr), value :: task
             end subroutine
         end interface
         call otterTaskEnd(task)
@@ -81,7 +81,7 @@ module otter_task_graph
         interface
             subroutine otterSynchroniseTasks(task, mode) bind(C, NAME="otterSynchroniseTasks")
                 use, intrinsic :: iso_c_binding
-                type(c_ptr) :: task
+                type(c_ptr), value :: task
                 integer(c_int), value :: mode
             end subroutine otterSynchroniseTasks
         end interface

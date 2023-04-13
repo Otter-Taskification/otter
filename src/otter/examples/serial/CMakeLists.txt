@@ -1,7 +1,7 @@
 message(STATUS "Adding serial examples")
 
 function(add_serial_examples DIR)
-    file(GLOB SERIAL_EXAMPLES  "${DIR}/*.c" "${DIR}/*.cpp" "${DIR}/*.f90")
+    file(GLOB SERIAL_EXAMPLES  "${DIR}/*.c" "${DIR}/*.cpp" "${DIR}/*.f90" "${DIR}/*.F90")
     foreach(SRCFILE ${SERIAL_EXAMPLES})
         cmake_path(GET SRCFILE STEM EX_NAME)
         message(STATUS "Adding serial example: ${EX_NAME}")

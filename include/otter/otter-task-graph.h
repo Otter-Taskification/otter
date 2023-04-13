@@ -35,8 +35,8 @@
  * 
  */
 typedef enum otter_task_sync_t {
-    otter_sync_children,
-    otter_sync_descendants
+    otter_sync_children=1,
+    otter_sync_descendants=2
 } otter_task_sync_t;
 
 #ifdef __cplusplus

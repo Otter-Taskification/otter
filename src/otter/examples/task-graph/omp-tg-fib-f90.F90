@@ -1,6 +1,7 @@
-#include "otter-task-graph.F90"
+#include "otter/otter-task-graph.F90"
 
-Integer Recursive Function fib(n) result(a, parent)
+Integer Recursive Function fib(n, parent) result(a)
+    use, intrinsic :: iso_c_binding
     use otter_task_graph
     Implicit None
     Integer, Intent(In) :: n
@@ -13,14 +14,14 @@ Integer Recursive Function fib(n) result(a, parent)
         ! Tag: wrap a task
         child1 = fortran_otterTaskBegin(parent)
         !$omp task shared(i, child_1, n)
-        i = fib(n-1)
+        i = fib(n-1, child1)
         Call fortran_otterTaskEnd(child1)
         !$omp end task
 
         ! Tag: wrap a task
         child2 = fortran_otterTaskBegin(parent)
         !$omp task shared(i, child_2, n)
-        j = fib(n-2)
+        j = fib(n-2, child2)
         Call fortran_otterTaskEnd(child2)
         !$omp end task
 

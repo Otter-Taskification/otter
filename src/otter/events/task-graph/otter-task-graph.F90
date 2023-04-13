@@ -1,11 +1,9 @@
 module otter_task_graph
-
+    enum, bind(c)
+        enumerator otter_sync_children
+        enumerator otter_sync_descendants
+    end enum
     contains
-
-     enum, bind(c)
-         ENUMERATOR otter_sync_children
-         ENUMERATOR otter_sync_descendants
-     end enum
 
     subroutine fortran_otterTraceInitialise()
         use, intrinsic :: iso_c_binding
@@ -25,7 +23,7 @@ module otter_task_graph
             end subroutine
         end interface
         call otterTraceFinalise()
-    end subroutine fortran_otterTraceFinalise()
+    end subroutine fortran_otterTraceFinalise
 
     subroutine fortran_otterTraceStart()
         use, intrinsic :: iso_c_binding
@@ -35,7 +33,7 @@ module otter_task_graph
             end subroutine
        end interface
        call otterTraceStart()
-   end subroutine fortran_otterTraceStart()
+   end subroutine fortran_otterTraceStart
 
    subroutine fortran_otterTraceStop()
        use, intrinsic :: iso_c_binding
@@ -45,9 +43,9 @@ module otter_task_graph
            end subroutine
        end interface
        call otterTraceStop()
-   end subroutine fortran_otterTraceStop()
+   end subroutine fortran_otterTraceStop
 
-    function fortran_otterTaskBegin_i(filename, functionname, linenum, parent_task)
+   type(c_ptr) function fortran_otterTaskBegin_i(filename, functionname, linenum, parent_task)
         use, intrinsic :: iso_c_binding
         character(len = *) :: filename
         character(len = *) :: functionname
@@ -59,7 +57,7 @@ module otter_task_graph
                 character(len=1, kind=c_char), dimension(*), intent(in) :: filename, functionname
                 integer(c_int), value :: linenum
                 type(c_ptr) :: parent_task
-            end subroutine otterTaskBegin
+            end function otterTaskBegin
         end interface
         fortran_otterTaskBegin_i = otterTaskBegin(trim(filename), trim(functionname), Int(linenum, kind=c_int), parent_task)
     end function fortran_otterTaskBegin_i
@@ -82,23 +80,24 @@ module otter_task_graph
         integer :: mode
         interface
             subroutine otterSynchroniseTasks(task, mode) bind(C, NAME="otterSynchroniseTasks")
+                use, intrinsic :: iso_c_binding
                 type(c_ptr) :: task
                 integer(c_int), value :: mode
             end subroutine otterSynchroniseTasks
         end interface
         call otterSynchroniseTasks(task, Int(mode, kind=c_int))
-    end subroutine
+    end subroutine fortran_otterSynchroniseTasks
 
-    subroutine fortran_otterPhaseBegin(_name)
+    subroutine fortran_otterPhaseBegin(phase_name)
         use, intrinsic :: iso_c_binding
-        character(len = *) :: _name
+        character(len = *) :: phase_name
         interface
-            subroutine otterPhaseBegin(_name) bind(C, NAME="otterPhaseBegin")
+            subroutine otterPhaseBegin(phase_name) bind(C, NAME="otterPhaseBegin")
                 use, intrinsic :: iso_c_binding
-                character(len=1, kind=c_char), dimension(*), intent(in) :: _name
+                character(len=1, kind=c_char), dimension(*), intent(in) :: phase_name
             end subroutine otterPhaseBegin
         end interface
-        call otterPhaseBegin(trim(_name))
+        call otterPhaseBegin(trim(phase_name))
     end subroutine fortran_otterPhaseBegin
 
     subroutine fortran_otterPhaseEnd()
@@ -111,15 +110,15 @@ module otter_task_graph
        call otterPhaseEnd()
     end subroutine fortran_otterPhaseEnd
 
-    subroutine fortran_otterPhaseSwitch(_name)
+    subroutine fortran_otterPhaseSwitch(phase_name)
         use, intrinsic :: iso_c_binding
-        character(len = *) :: _name
+        character(len = *) :: phase_name
         interface
-            subroutine otterPhaseSwitch(_name) bind(C, NAME="otterPhaseSwitch")
+            subroutine otterPhaseSwitch(phase_name) bind(C, NAME="otterPhaseSwitch")
                 use, intrinsic :: iso_c_binding
-                character(len=1, kind=c_char), dimension(*), intent(in) :: _name
+                character(len=1, kind=c_char), dimension(*), intent(in) :: phase_name
             end subroutine otterPhaseSwitch
        end interface
-       call otterPhaseSwitch(trim(_name))
+       call otterPhaseSwitch(trim(phase_name))
    end subroutine fortran_otterPhaseSwitch
 end module otter_task_graph

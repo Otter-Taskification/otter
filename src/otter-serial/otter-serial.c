@@ -258,7 +258,6 @@ void otterTaskBegin(const char* file, const char* func, const int line)
     // backtrace() adds a stackframe, so want the one added due to the 
     // otterTaskBegin call()
     backtrace((void**)&return_address, 2);
-    LOG_DEBUG("return_address %p", return_address[1]);
 
     task_data_t *encountering_task = get_encountering_task();
     trace_region_def_t *encountering_task_region = trace_task_get_region_def(encountering_task);
@@ -271,6 +270,8 @@ void otterTaskBegin(const char* file, const char* func, const int line)
         &src_location,
         return_address[1]
     );
+
+    LOG_DEBUG("%lu return_address=%p", trace_task_get_id(task), return_address[1]);
 
     trace_region_def_t *task_region = trace_task_get_region_def(task);
     trace_location_store_region_def(location, task_region);
@@ -297,12 +298,12 @@ void otterTaskEnd(void)
         return;
     }
 
-    LOG_DEBUG();
 
     task_data_t *task = NULL;
     trace_region_def_t *task_region = NULL;
 
     stack_pop(task_stack, (data_item_t*) &task);
+    LOG_DEBUG("%lu", trace_task_get_id(task));
 
     task_data_t *encountering_task = get_encountering_task();
 

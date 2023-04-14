@@ -152,7 +152,7 @@ trace_new_task_region(
        execution up to a task-switch event, which is restored to the executing
        thread when the task is resumed */
 
-    LOG_DEBUG_IF((src_location), "got src_location(file=%s, func=%s, line=%d)\n", src_location->file, src_location->func, src_location->line);
+    LOG_DEBUG_IF((src_location), "got src_location(file=%s, func=%s, line=%d)", src_location->file, src_location->func, src_location->line);
 
     trace_region_def_t *new = malloc(sizeof(*new));
     *new = (trace_region_def_t) {
@@ -227,7 +227,6 @@ trace_new_workshare_region(
 void 
 trace_destroy_master_region(trace_region_def_t *rgn)
 {
-    LOG_DEBUG("region %p destroying attribute list %p", rgn, rgn->attributes);
     LOG_DEBUG("region %p", rgn);
     free(rgn);
 }
@@ -306,7 +305,6 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
 void
 trace_destroy_phase_region(trace_region_def_t *rgn)
 {
-    LOG_DEBUG("region %p destroying attribute list %p", rgn, rgn->attributes);
     LOG_DEBUG("region %p", rgn);
     free(rgn);
 }
@@ -314,7 +312,6 @@ trace_destroy_phase_region(trace_region_def_t *rgn)
 void
 trace_destroy_sync_region(trace_region_def_t *rgn)
 {
-    LOG_DEBUG("region %p destroying attribute list %p", rgn, rgn->attributes);
     LOG_DEBUG("region %p", rgn);
     free(rgn);
 }
@@ -326,7 +323,6 @@ trace_destroy_task_region(trace_region_def_t *rgn)
         (!(rgn->attr.task.task_status == otter_task_complete 
             || rgn->attr.task.task_status == otter_task_cancel)),
         "destroying task region before task-complete/task-cancel");
-    LOG_DEBUG("region %p destroying attribute list %p", rgn, rgn->attributes);
     LOG_DEBUG("region %p destroying active regions stack %p", rgn, rgn->rgn_stack);
     stack_destroy(rgn->rgn_stack, false, NULL);
     LOG_DEBUG("region %p", rgn);
@@ -336,7 +332,6 @@ trace_destroy_task_region(trace_region_def_t *rgn)
 void 
 trace_destroy_workshare_region(trace_region_def_t *rgn)
 {
-    LOG_DEBUG("region %p destroying attribute list %p", rgn, rgn->attributes);
     LOG_DEBUG("region %p", rgn);
     free(rgn);
 }

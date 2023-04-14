@@ -97,7 +97,7 @@ static void trace_write_string_ref(const char *s, OTF2_StringRef ref, destructor
         LOG_ERROR("def_writer was null, unable to write ref for string: \"%s\"", s);
         return;
     }
-    LOG_DEBUG("[%s] writing ref %u for string \"%s\"", __func__, ref, s);
+    LOG_DEBUG("writing ref %u for string \"%s\"", ref, s);
     OTF2_ErrorCode r = OTF2_SUCCESS;
     r = OTF2_GlobalDefWriter_WriteString((OTF2_GlobalDefWriter*) def_writer, ref, s);
     CHECK_OTF2_ERROR_CODE(r);

@@ -22,10 +22,11 @@ extern "C" {
 
 // Callback types
 typedef uint32_t(*labelcbk)(void);
-typedef void(*destroycbk)(const char*, uint32_t);
+typedef void* destructor_data;
+typedef void(*destroycbk)(const char*, uint32_t, destructor_data);
 
 // Defined elsewhere
-string_registry* string_registry_make(labelcbk, destroycbk);
+string_registry* string_registry_make(labelcbk, destroycbk, destructor_data);
 void string_registry_delete(string_registry*);
 uint32_t string_registry_insert(string_registry*, const char*);
 

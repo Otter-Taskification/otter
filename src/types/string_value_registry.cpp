@@ -6,31 +6,33 @@
 
 // Defines template & explicitly instantiates the specialisations required by public header
 template<>
-string_registry::value_registry(string_registry::labelcbk getlabel, string_registry::destroycbk destructor) :
+string_registry::value_registry(string_registry::labelcbk getlabel, string_registry::destroycbk destructor, destructor_data data) :
     i_get_label{getlabel},
     i_destroy_entry{},
     i_default_label{},
     i_map{},
     i_destroy_entry_fn{},
-    i_have_destroyfn{}
+    i_have_destroyfn{},
+    i_destructor_data{data}
 {
     assert(i_get_label != nullptr);
     if (destructor != nullptr)
     {
         // promote to std::function and set i_have_destroyfn
-        i_destroy_entry_fn = [destructor](string_registry::key key, string_registry::label label) -> void { destructor(key.c_str(), label); };
+        i_destroy_entry_fn = [destructor](string_registry::key key, string_registry::label label, destructor_data data) -> void { destructor(key.c_str(), label, data); };
         i_have_destroyfn = true;
     }
 };
 
 template<>
-string_registry::value_registry(string_registry::labelcbk getlabel, string_registry::destroyfn destructor) :
+string_registry::value_registry(string_registry::labelcbk getlabel, string_registry::destroyfn destructor, destructor_data data) :
     i_get_label{getlabel},
     i_destroy_entry{},
     i_default_label{},
     i_map{},
     i_destroy_entry_fn{destructor},
-    i_have_destroyfn{true}
+    i_have_destroyfn{true},
+    i_destructor_data{data}
 {
 
 }
@@ -40,21 +42,21 @@ string_registry::~value_registry()
 {
     if (this->i_have_destroyfn) {
         for (auto&[key, value] : i_map) {
-            this->i_destroy_entry_fn(key, value);
+            this->i_destroy_entry_fn(key, value, i_destructor_data);
         }
     }
 }
 
 template<>
-string_registry* string_registry::make(string_registry::labelcbk getlabel, string_registry::destroycbk destructor)
+string_registry* string_registry::make(string_registry::labelcbk getlabel, string_registry::destroycbk destructor, destructor_data data)
 {
-    return new string_registry(getlabel, destructor);
+    return new string_registry(getlabel, destructor, data);
 }
 
 template<>
-string_registry* string_registry::make(string_registry::labelcbk getlabel, string_registry::destroyfn destructor)
+string_registry* string_registry::make(string_registry::labelcbk getlabel, string_registry::destroyfn destructor, destructor_data data)
 {
-    return new string_registry(getlabel, destructor);
+    return new string_registry(getlabel, destructor, data);
 }
 
 template<>
@@ -76,15 +78,14 @@ string_registry::label string_registry::insert(string_registry::key str)
 
 // C wrappers
 
-string_registry* string_registry_make(labelcbk getlabel, destroycbk destructor)
+string_registry* string_registry_make(labelcbk getlabel, destroycbk destructor, destructor_data data)
 {
-    if (destructor)
-    {
-        auto tmp = [destructor](string_registry::key key, string_registry::label label) -> void { destructor(key.c_str(), label); };
+    if (destructor) {
+        auto tmp = [destructor](string_registry::key key, string_registry::label label, destructor_data data) -> void { destructor(key.c_str(), label, data); };
         string_registry::destroyfn destructor_f{tmp};
-        return string_registry::make(getlabel, destructor_f);
+        return string_registry::make(getlabel, destructor_f, data);
     } else {
-        return string_registry::make(getlabel, nullptr);
+        return string_registry::make(getlabel, nullptr, data);
     }
 }
 

@@ -9,12 +9,13 @@ public:
     using label = LabelType;
     using map = std::map<key,label>;
     using labelcbk = label(*)(void);
-    using destroycbk = void(*)(key, label);
-    using destroyfn = std::function<void(key, label)>;
+    using destructor_data = void*;
+    using destroycbk = void(*)(key, label, destructor_data);
+    using destroyfn = std::function<void(key, label, destructor_data)>;
 
     // ctor
-    value_registry(labelcbk getlabel, destroycbk destructor);
-    value_registry(labelcbk getlabel, destroyfn destructor);
+    value_registry(labelcbk getlabel, destroycbk destructor, destructor_data data);
+    value_registry(labelcbk getlabel, destroyfn destructor, destructor_data data);
 
     // dtor
     ~value_registry();
@@ -27,8 +28,8 @@ public:
     value_registry(value_registry&& other) = delete;
     value_registry& operator=(value_registry&& other) = delete;
 
-    static value_registry<key, label>* make(labelcbk getlabel, destroycbk destructor);
-    static value_registry<key, label>* make(labelcbk getlabel, destroyfn destructor);
+    static value_registry<key, label>* make(labelcbk getlabel, destroycbk destructor, destructor_data data);
+    static value_registry<key, label>* make(labelcbk getlabel, destroyfn destructor, destructor_data data);
     static void destroy(value_registry<key, label>* r);
     label insert(key k);
 private:
@@ -38,4 +39,5 @@ private:
     destroycbk i_destroy_entry;
     destroyfn i_destroy_entry_fn;
     bool i_have_destroyfn;
+    destructor_data i_destructor_data;
 };

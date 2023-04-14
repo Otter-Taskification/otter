@@ -8,10 +8,6 @@ typedef struct task_data_t {
     trace_region_def_t *region;
 } task_data_t;
 
-static unique_id_t get_unique_task_id(void) {
-    return get_unique_id();
-}
-
 task_data_t *
 new_task_data(
     trace_location_def_t *loc,
@@ -23,7 +19,7 @@ new_task_data(
 {
     task_data_t *new = malloc(sizeof(*new));
     *new = (task_data_t) {
-        .id     = get_unique_task_id(),
+        .id     = get_unique_id(),
         .type   = flags & otter_task_type_mask,
         .flags  = flags,
         .region = NULL

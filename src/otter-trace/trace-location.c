@@ -40,6 +40,7 @@ typedef struct trace_location_def_t {
     OTF2_DefWriter         *def_writer;
 } trace_location_def_t;
 
+// TODO: accept injected state
 trace_location_def_t *
 trace_new_location_definition(
     unique_id_t            id,
@@ -59,9 +60,12 @@ trace_new_location_definition(
         .rgn_stack      = stack_create(),
         .rgn_defs       = queue_create(),
         .rgn_defs_stack = stack_create(),
-        .attributes     = OTF2_AttributeList_New()
+        .attributes     = OTF2_AttributeList_New(),
+        .evt_writer     = NULL,
+        .def_writer     = NULL
     };
 
+    // TODO: replace global state with injected state
     OTF2_Archive *Archive = get_global_archive();
 
     new->evt_writer = OTF2_Archive_GetEvtWriter(Archive, new->ref);
@@ -98,6 +102,7 @@ trace_destroy_location(trace_location_def_t *loc)
     return;
 }
 
+// TODO: accept injected state
 void
 trace_write_location_definition(trace_location_def_t *loc)
 {
@@ -115,6 +120,7 @@ trace_write_location_definition(trace_location_def_t *loc)
     pthread_mutex_t *def_writer_lock = global_def_writer_lock();
     pthread_mutex_lock(def_writer_lock);
 
+    // TODO: replace global state with injected state
     OTF2_GlobalDefWriter *Defs = get_global_def_writer();
     OTF2_GlobalDefWriter_WriteString(Defs,
         location_name_ref,

@@ -3,6 +3,7 @@
 #include "otter-trace/trace-get-unique-id.h"
 #include "otter-trace/trace-static-constants.h"
 
+// TODO: accept injected state
 thread_data_t *
 new_thread_data(otter_thread_t type)
 {
@@ -15,6 +16,7 @@ new_thread_data(otter_thread_t type)
     };
 
     /* Create a location definition for this thread */
+    // TODO: pass state here
     thread_data->location = trace_new_location_definition(
         thread_data->id,
         type,

@@ -591,7 +591,7 @@ trace_region_dec_ref_count(trace_region_def_t *region)
 
 
 // Write region definition to a trace
-
+// TODO: accept injected state
 void trace_region_write_definition(trace_region_def_t *region)
 {
     if (region == NULL)
@@ -600,7 +600,7 @@ void trace_region_write_definition(trace_region_def_t *region)
         return;
     }
 
-    // TODO: want to allow passing state in
+    // TODO: replace global state with injected state
     OTF2_GlobalDefWriter *writer = get_global_def_writer();
 
     LOG_DEBUG("writing region definition %3u (type=%3d, role=%3u) %p",

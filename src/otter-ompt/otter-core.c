@@ -80,6 +80,7 @@ tool_setup(
     LOG_INFO("%-30s %s", ENV_VAR_TRACE_OUTPUT, opt.tracename);
     LOG_INFO("%-30s %s", ENV_VAR_APPEND_HOST,  opt.append_hostname?"Yes":"No");
 
+    // TODO: pass state here
     trace_initialise(&opt);
 
     return &opt;
@@ -138,6 +139,7 @@ on_ompt_callback_thread_begin(
         default:
             otter_thread_type = otter_thread_unknown; break;
     }
+    // TODO: pass state here
     thread_data_t *thread_data = new_thread_data(otter_thread_type);
     thread->ptr = thread_data;
 

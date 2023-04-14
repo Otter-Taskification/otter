@@ -63,6 +63,7 @@ void otterTraceInitialise(void)
     LOG_INFO("%-30s %s", ENV_VAR_TRACE_OUTPUT, opt.tracename);
     LOG_INFO("%-30s %s", ENV_VAR_APPEND_HOST,  opt.append_hostname?"Yes":"No");
 
+    // TODO: pass state here
     trace_initialise(&opt);
 
     // Write the definition of a dummy location
@@ -80,6 +81,7 @@ void otterTraceFinalise(void)
     thread_data_t *dummy_thread = new_thread_data(otter_thread_initial);
     thread_destroy(dummy_thread);
 
+    // TODO: pass state here
     trace_finalise();
     char trace_folder[PATH_MAX] = {0};
     realpath(opt.tracepath, &trace_folder[0]);

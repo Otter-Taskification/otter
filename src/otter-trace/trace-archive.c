@@ -32,6 +32,7 @@ OTF2_StringRef attr_name_ref[n_attr_defined][2] = {0};
 OTF2_StringRef attr_label_ref[n_attr_label_defined] = {0};
 
 /* References to global archive & def writer */
+// TODO: refactor global state
 static OTF2_Archive *Archive = NULL;
 static OTF2_GlobalDefWriter *Defs = NULL;
 
@@ -84,20 +85,24 @@ post_flush(
 
 // Callback to pass to Registry which will be used to write source location
 // string refs to the DefWriter when Registry is deleted.
+// TODO: accept injected state
 static void trace_write_string_ref(const char *s, OTF2_StringRef ref)
 {
     LOG_DEBUG("[%s] writing ref %u for string \"%s\"", __func__, ref, s);
     OTF2_ErrorCode r = OTF2_SUCCESS;
+    // TODO: replace global state with injected state
     r = OTF2_GlobalDefWriter_WriteString(Defs, ref, s);
     CHECK_OTF2_ERROR_CODE(r);
 }
 
+// TODO: accept injected state
 bool
 trace_initialise_archive(const char *archive_path, const char *archive_name, otter_event_model_t event_model)
 {
     OTF2_ErrorCode ret = OTF2_SUCCESS;
 
     /* open OTF2 archive */
+    // TODO: replace global state with injected state
     Archive = OTF2_Archive_Open(
         archive_path,               /* archive path */
         archive_name,               /* archive name */
@@ -127,6 +132,7 @@ trace_initialise_archive(const char *archive_path, const char *archive_name, ott
     OTF2_Archive_OpenDefFiles(Archive);
 
     /* get global definitions writer */
+    // TODO: replace global state with injected state
     Defs = OTF2_Archive_GetGlobalDefWriter(Archive);
 
     /* detect the chosen event model and set the trace property for this */
@@ -245,6 +251,7 @@ trace_initialise_archive(const char *archive_path, const char *archive_name, ott
             Type);
     #include "otter-trace/trace-attribute-defs.h"
 
+    // TODO: replace global state with injected state
     trace_init_str_registry(
         string_registry_make(get_unique_str_ref, trace_write_string_ref)
     );
@@ -252,12 +259,15 @@ trace_initialise_archive(const char *archive_path, const char *archive_name, ott
     return true;
 }
 
+// TODO: accept injected state
 bool
 trace_finalise_archive(void)
 {
+    // TODO: replace global state with injected state
     trace_destroy_str_registry();
 
     /* close event files */
+    // TODO: replace global state with injected state
     OTF2_Archive_CloseEvtFiles(Archive);
 
     /* create 1 definition writer per location & immediately close it - not 

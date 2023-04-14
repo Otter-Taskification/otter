@@ -65,6 +65,7 @@ void otterTraceInitialise(const char* file, const char* func, const int line)
     LOG_INFO("%-30s %s", ENV_VAR_TRACE_OUTPUT, opt.tracename);
     LOG_INFO("%-30s %s", ENV_VAR_APPEND_HOST,  opt.append_hostname?"Yes":"No");
 
+    // TODO: pass state here
     trace_initialise(&opt);
 
     task_stack = stack_create();
@@ -72,6 +73,7 @@ void otterTraceInitialise(const char* file, const char* func, const int line)
 
     tracingActive = true;
 
+    // TODO: pass state here
     thread_data = new_thread_data(otter_thread_initial);
     location = thread_data->location;
     thread_id = thread_data->id;

@@ -15,6 +15,7 @@
 #include "otter-trace/trace-string-registry.h"
 
 /* Reference to global string registry */
+// TODO: refactor global state
 static string_registry *Registry = NULL;
 
 /* Mutex for thread-safe access to global string registry */

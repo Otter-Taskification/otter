@@ -20,22 +20,26 @@
 #define OTTER_DUMMY_OTF2_LOCATION_REF        0
 
 /* Protects the shared dummy event writer object */
+// TODO: refactor global state
 static pthread_mutex_t lock_shared_evt_writer = PTHREAD_MUTEX_INITIALIZER;
 
 static inline OTF2_EvtWriter *get_shared_event_writer(void) {
     LOG_DEBUG("locking shared event writer");
     pthread_mutex_lock(&lock_shared_evt_writer);
     return OTF2_Archive_GetEvtWriter(
+        // TODO: replace global state with injected state
         get_global_archive(),
         OTTER_DUMMY_OTF2_LOCATION_REF
     );
 }
 
 static inline void release_shared_event_writer(void) {
+    // TODO: replace global state with injected state
     LOG_DEBUG("releasing shared event writer");
     pthread_mutex_unlock(&lock_shared_evt_writer);
 }
 
+// TODO: accept injected state
 void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_attr_t task_attr)
 {
     /*
@@ -102,6 +106,7 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
 
     // Record event
     err = OTF2_EvtWriter_ThreadTaskSwitch(
+        // TODO: replace global state with injected state
         get_shared_event_writer(),
         attr,
         get_timestamp(),
@@ -110,10 +115,12 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
     CHECK_OTF2_ERROR_CODE(err);
 
     // Cleanup
+    // TODO: replace global state with injected state
     release_shared_event_writer();
     OTF2_AttributeList_Delete(attr);
 }
 
+// TODO: accept injected state
 void trace_graph_event_task_end(otter_task_context *task)
 {
     LOG_DEBUG("record task-graph event: task end");
@@ -175,6 +182,7 @@ void trace_graph_event_task_end(otter_task_context *task)
     );
 
     err = OTF2_EvtWriter_ThreadTaskSwitch(
+        // TODO: replace global state with injected state
         get_shared_event_writer(),
         attr,
         get_timestamp(),
@@ -183,10 +191,12 @@ void trace_graph_event_task_end(otter_task_context *task)
     CHECK_OTF2_ERROR_CODE(err);
 
     // Cleanup
+    // TODO: replace global state with injected state
     release_shared_event_writer();
     OTF2_AttributeList_Delete(attr);
 }
 
+// TODO: accept injected state
 void trace_graph_synchronise_tasks(otter_task_context *task, trace_sync_region_attr_t sync_attr)
 {
     LOG_DEBUG("record task-graph event: synchronise");
@@ -238,6 +248,7 @@ void trace_graph_synchronise_tasks(otter_task_context *task, trace_sync_region_a
     CHECK_OTF2_ERROR_CODE(err);
 
     err = OTF2_EvtWriter_Enter(
+        // TODO: replace global state with injected state
         get_shared_event_writer(),
         attr,
         get_timestamp(),
@@ -246,6 +257,7 @@ void trace_graph_synchronise_tasks(otter_task_context *task, trace_sync_region_a
     CHECK_OTF2_ERROR_CODE(err);
 
     // Cleanup
+    // TODO: replace global state with injected state
     release_shared_event_writer();
     OTF2_AttributeList_Delete(attr);
 }

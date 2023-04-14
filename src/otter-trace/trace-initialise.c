@@ -21,6 +21,7 @@ enum { char_buff_sz = 1024 };
  */
 static void trace_copy_proc_maps(otter_opt_t *opt);
 
+// TODO: accept injected state
 bool trace_initialise(otter_opt_t *opt)
 {
     // Determine the archive name from the options
@@ -59,6 +60,7 @@ bool trace_initialise(otter_opt_t *opt)
 
     trace_copy_proc_maps(opt);
 
+    // TODO: pass state here
     return trace_initialise_archive(&archive_path[0], opt->archive_name, opt->event_model);
 }
 
@@ -113,7 +115,9 @@ exit_error:
     return;
 }
 
+// TODO: accept injected state
 bool trace_finalise(void)
 {
+    // TODO: pass state here
     return trace_finalise_archive();
 }

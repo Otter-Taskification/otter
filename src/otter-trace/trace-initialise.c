@@ -58,10 +58,12 @@ bool trace_initialise(otter_opt_t *opt)
     /* Store archive name in options struct */
     opt->archive_name = &archive_name[0];
 
+    // TODO: pass state here
+    bool archive_initialised = trace_initialise_archive(&archive_path[0], opt->archive_name, opt->event_model);
+
     trace_copy_proc_maps(opt);
 
-    // TODO: pass state here
-    return trace_initialise_archive(&archive_path[0], opt->archive_name, opt->event_model);
+    return archive_initialised;
 }
 
 static void

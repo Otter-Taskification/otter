@@ -83,15 +83,23 @@ post_flush(
     return get_timestamp();
 }
 
-// Callback to pass to Registry which will be used to write source location
-// string refs to the DefWriter when Registry is deleted.
-// TODO: accept injected state
-static void trace_write_string_ref(const char *s, OTF2_StringRef ref)
+/**
+ * @brief Callback to pass to Registry which will be used to write  string refs
+ * to the DefWriter when Registry is deleted.
+ * 
+ * @param s The string to write
+ * @param ref The ref of the string
+ * @param must be NULL or a valid `OTF2_GlobalDefWriter* `
+ */
+static void trace_write_string_ref(const char *s, OTF2_StringRef ref, destructor_data data)
 {
+    if (data == NULL) {
+        LOG_ERROR("data was null, using global def writer to write ref for string: \"%s\"", s);
+    }
     LOG_DEBUG("[%s] writing ref %u for string \"%s\"", __func__, ref, s);
     OTF2_ErrorCode r = OTF2_SUCCESS;
     // TODO: replace global state with injected state
-    r = OTF2_GlobalDefWriter_WriteString(Defs, ref, s);
+    r = OTF2_GlobalDefWriter_WriteString(data ? (OTF2_GlobalDefWriter *) data : Defs, ref, s);
     CHECK_OTF2_ERROR_CODE(r);
 }
 
@@ -252,9 +260,8 @@ trace_initialise_archive(const char *archive_path, const char *archive_name, ott
     #include "otter-trace/trace-attribute-defs.h"
 
     // TODO: replace global state with injected state
-    trace_init_str_registry(
-        string_registry_make(get_unique_str_ref, trace_write_string_ref)
-    );
+    string_registry *registry = string_registry_make(get_unique_str_ref, trace_write_string_ref, NULL);
+    trace_init_str_registry(registry);
 
     return true;
 }

@@ -12,9 +12,9 @@
 #include "otter-trace/trace-attributes.h"
 #include "otter-trace/trace-check-error-code.h"
 #include "otter-trace/trace-types-as-labels.h"
-#include "otter-trace/trace-string-registry.h"
 #include "otter-trace/trace-unique-refs.h"
 #include "otter-trace/trace-attribute-lookup.h"
+#include "otter-trace/trace-state.h"
 
 /* Store values needed to register region definition (tasks, parallel regions, 
    workshare constructs etc.) with OTF2 */
@@ -80,6 +80,7 @@ trace_new_parallel_region(
 
 trace_region_def_t *
 trace_new_phase_region(
+    trace_state_t  *state,
     otter_phase_region_t  type,
     unique_id_t           encountering_task_id,
     const char           *phase_name)
@@ -98,7 +99,10 @@ trace_new_phase_region(
     };
 
     if (phase_name != NULL) {
-        new->attr.phase.name = trace_register_string_with_lock(phase_name);
+        trace_state_lock_string_registry(state);
+        string_registry *registry = trace_state_get_string_registry(state);
+        new->attr.phase.name = string_registry_insert(registry, phase_name);
+        trace_state_unlock_string_registry(state);
     } else {
         new->attr.phase.name = 0;
     }
@@ -138,6 +142,7 @@ trace_new_sync_region(
 
 trace_region_def_t *
 trace_new_task_region(
+    trace_state_t   *state,
     trace_region_def_t    *parent_task_region, 
     unique_id_t            id,
     otter_task_flag_t      flags,
@@ -178,8 +183,11 @@ trace_new_task_region(
     new->encountering_task_id = new->attr.task.parent_id;
 
     if (src_location != NULL) {
-        new->attr.task.source_file_name_ref = trace_register_string_with_lock(src_location->file);
-        new->attr.task.source_func_name_ref = trace_register_string_with_lock(src_location->func);
+        trace_state_lock_string_registry(state);
+        string_registry *registry = trace_state_get_string_registry(state);
+        new->attr.task.source_file_name_ref = string_registry_insert(registry, src_location->file);
+        new->attr.task.source_func_name_ref = string_registry_insert(registry, src_location->func);
+        trace_state_unlock_string_registry(state);
         new->attr.task.source_line_number = src_location->line;
     } else {
         new->attr.task.source_file_name_ref = 0;
@@ -232,7 +240,7 @@ trace_destroy_master_region(trace_region_def_t *rgn)
 }
 
 void
-trace_destroy_parallel_region(trace_region_def_t *rgn)
+trace_destroy_parallel_region(trace_state_t *state, trace_region_def_t *rgn)
 {
     if (rgn->type != trace_region_parallel)
     {
@@ -244,13 +252,8 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
     LOG_DEBUG("[parallel=%lu] writing nested region definitions (%lu)", 
         rgn->attr.parallel.id, n_defs);
 
-    pthread_mutex_t *lock_global_def_writer = global_def_writer_lock();
-
-    /* Lock the global def writer first */
-    pthread_mutex_lock(lock_global_def_writer);
-    
     /* Write parallel region's definition */
-    trace_region_write_definition(rgn);
+    trace_region_write_definition(state, rgn);
 
     /* write region's nested region definitions */
     trace_region_def_t *r = NULL;
@@ -260,7 +263,7 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
         LOG_DEBUG("[parallel=%lu] writing region definition %d/%lu (region %3u)",
             rgn->attr.parallel.id, count+1, n_defs, r->ref);
         count++;
-        trace_region_write_definition(r);
+        trace_region_write_definition(state, r);
 
         /* destroy each region once its definition is written */
         switch (r->type)
@@ -290,9 +293,6 @@ trace_destroy_parallel_region(trace_region_def_t *rgn)
             abort();
         }
     }
-
-    /* Release once done */
-    pthread_mutex_unlock(lock_global_def_writer);
 
     /* destroy parallel region once all locations are done with it
        and all definitions written */
@@ -586,8 +586,7 @@ trace_region_dec_ref_count(trace_region_def_t *region)
 
 
 // Write region definition to a trace
-// TODO: accept injected state
-void trace_region_write_definition(trace_region_def_t *region)
+void trace_region_write_definition(trace_state_t *state, trace_region_def_t *region)
 {
     if (region == NULL)
     {
@@ -595,11 +594,11 @@ void trace_region_write_definition(trace_region_def_t *region)
         return;
     }
 
-    // TODO: replace global state with injected state
-    OTF2_GlobalDefWriter *writer = get_global_def_writer();
-
     LOG_DEBUG("writing region definition %3u (type=%3d, role=%3u) %p",
         region->ref, region->type, region->role, region);
+    
+    trace_state_lock_global_def_writer(state);
+    OTF2_GlobalDefWriter *writer = trace_state_get_global_def_writer(state);
 
     switch (region->type)
     {
@@ -696,5 +695,6 @@ void trace_region_write_definition(trace_region_def_t *region)
             LOG_ERROR("unexpected region type %d", region->type);
         }
     }
+    trace_state_unlock_global_def_writer(state);
     return;
 }

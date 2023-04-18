@@ -23,6 +23,9 @@
 /* Static function prototypes */
 static void print_resource_usage(void);
 
+/* Store otter-trace state */
+static trace_state_t *state = NULL;
+
 /* OMPT entrypoint signatures */
 ompt_get_thread_data_t     get_thread_data;
 ompt_get_parallel_info_t   get_parallel_info;
@@ -80,8 +83,7 @@ tool_setup(
     LOG_INFO("%-30s %s", ENV_VAR_TRACE_OUTPUT, opt.tracename);
     LOG_INFO("%-30s %s", ENV_VAR_APPEND_HOST,  opt.append_hostname?"Yes":"No");
 
-    // TODO: pass state here
-    trace_initialise(&opt);
+    trace_initialise(&opt, &state);
 
     return &opt;
 }
@@ -89,7 +91,7 @@ tool_setup(
 void
 tool_finalise(ompt_data_t *tool_data)
 {
-    trace_finalise();
+    trace_finalise(state);
     print_resource_usage();
 
     otter_opt_t *opt = tool_data->ptr;
@@ -139,8 +141,7 @@ on_ompt_callback_thread_begin(
         default:
             otter_thread_type = otter_thread_unknown; break;
     }
-    // TODO: pass state here
-    thread_data_t *thread_data = new_thread_data(otter_thread_type);
+    thread_data_t *thread_data = new_thread_data(state, otter_thread_type);
     thread->ptr = thread_data;
 
     LOG_DEBUG("[t=%lu] (event) thread-begin", thread_data->id);
@@ -170,7 +171,7 @@ on_ompt_callback_thread_end(
     trace_event_thread_end(thread_data->location);
 
     /* Destroy thread data (also destroys thread_data->location) */
-    thread_destroy(thread_data);
+    thread_destroy(state, thread_data);
 
     return;
 }
@@ -223,7 +224,7 @@ on_ompt_callback_parallel_end(
         LOG_ERROR("parallel end: null pointer");
     } else {
         parallel_data_t *parallel_data = parallel->ptr;
-        trace_event_leave(thread_data->location);
+        trace_event_leave(state, thread_data->location);
         /* reset flag */
         thread_data->is_master_thread = false;
     }
@@ -308,7 +309,7 @@ on_ompt_callback_task_create(
     }
 
     /* make space for the newly-created task */
-    task_data_t *task_data = new_task_data(thread_data->location, parent_task_region, flags, has_dependences, NULL, codeptr_ra);
+    task_data_t *task_data = new_task_data(state, thread_data->location, parent_task_region, flags, has_dependences, NULL, codeptr_ra);
 
     trace_region_def_t *task_region = trace_task_get_region_def(task_data);
     trace_location_store_region_def(thread_data->location, task_region);
@@ -362,7 +363,7 @@ on_ompt_callback_task_schedule(
     {
         trace_event_task_schedule(thread_data->location,
             trace_task_get_region_def(prior_task_data), prior_task_status);
-        trace_event_leave(thread_data->location);
+        trace_event_leave(state, thread_data->location);
     }
 
     if (next_task_data->type == ompt_task_explicit 
@@ -453,6 +454,7 @@ on_ompt_callback_implicit_task(
             encountering_task_region = trace_task_get_region_def(encountering_task_data);
         }
         task_data_t *implicit_task_data = new_task_data(
+            state,
             thread_data->location,
             encountering_task_region,
             flags,
@@ -475,19 +477,19 @@ on_ompt_callback_implicit_task(
         trace_region_set_task_status(trace_task_get_region_def(implicit_task_data), otter_task_complete);
 
         /* Leave implicit task region */
-        trace_event_leave(thread_data->location);
+        trace_event_leave(state, thread_data->location);
 
         /* Worker threads record parallel-end during implicit-task-end
             callback */
         if (index != 0 && (flags & ompt_task_implicit))
-            trace_event_leave(thread_data->location);
+            trace_event_leave(state, thread_data->location);
 
         /* For initial-task-end event, must manually record region defintion
            as it never gets handed off to an enclosing parallel region to be
            written at parallel-end */
         if (flags & ompt_task_initial)
         {
-            trace_region_write_definition(trace_task_get_region_def(implicit_task_data));
+            trace_region_write_definition(state, trace_task_get_region_def(implicit_task_data));
             trace_destroy_task_region(trace_task_get_region_def(implicit_task_data));
         }
     }
@@ -537,7 +539,7 @@ on_ompt_callback_work(
             trace_location_store_region_def(thread_data->location, wshare_rgn);
             trace_event_enter(thread_data->location, wshare_rgn);
         } else {
-            trace_event_leave(thread_data->location);
+            trace_event_leave(state, thread_data->location);
         }
     }
 
@@ -574,7 +576,7 @@ on_ompt_callback_master(
         trace_location_store_region_def(location, master_rgn);
         trace_event_enter(location, master_rgn);
     } else {
-        trace_event_leave(location);
+        trace_event_leave(state, location);
     }
     return;
 }
@@ -644,7 +646,7 @@ on_ompt_callback_sync_region(
         trace_location_store_region_def(thread_data->location, sync_rgn);
         trace_event_enter(thread_data->location, sync_rgn);
     } else {
-        trace_event_leave(thread_data->location);
+        trace_event_leave(state, thread_data->location);
     }
     return;
 }

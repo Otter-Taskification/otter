@@ -23,13 +23,7 @@
 #include "public/otter-trace/trace-task-context-interface.h"
 #include "public/otter-trace/trace-thread-data.h"
 
-
 #define LOG_EVENT_CALL(file, func, line, ifunc) LOG_DEBUG("%s:%d in %s", file, line, func)
-
-static void log_not_implemented(const char* func)
-{
-    LOG_DEBUG("not currently implemented - ignored");
-}
 
 /* detect environment variables */
 static otter_opt_t opt = {
@@ -39,6 +33,9 @@ static otter_opt_t opt = {
     .archive_name     = NULL,
     .append_hostname  = false
 };
+
+/* store otter-trace state */
+static trace_state_t *state = NULL;
 
 void otterTraceInitialise(void)
 {
@@ -63,8 +60,7 @@ void otterTraceInitialise(void)
     LOG_INFO("%-30s %s", ENV_VAR_TRACE_OUTPUT, opt.tracename);
     LOG_INFO("%-30s %s", ENV_VAR_APPEND_HOST,  opt.append_hostname?"Yes":"No");
 
-    // TODO: pass state here
-    trace_initialise(&opt);
+    trace_initialise(&opt, &state);
 
     // Write the definition of a dummy location
     // trace_write_location_definition(...)? or simply via OTF2_GlobalDefWriter_WriteLocation(...)
@@ -78,11 +74,10 @@ void otterTraceFinalise(void)
     LOG_DEBUG("=== finalising archive ===");
 
     // Ensure a single location definition is written to the archive
-    thread_data_t *dummy_thread = new_thread_data(otter_thread_initial);
-    thread_destroy(dummy_thread);
+    thread_data_t *dummy_thread = new_thread_data(state, otter_thread_initial);
+    thread_destroy(state, dummy_thread);
 
-    // TODO: pass state here
-    trace_finalise();
+    trace_finalise(state);
     char trace_folder[PATH_MAX] = {0};
     realpath(opt.tracepath, &trace_folder[0]);
     fprintf(stderr, "%s%s/%s\n",
@@ -99,14 +94,14 @@ otter_task_context *otterTaskBegin(const char* file, const char* func, int line,
     task_attr.id = otterTaskContext_get_task_context_id(task);
     task_attr.parent_id = parent==NULL ? (unique_id_t) (~0) : otterTaskContext_get_task_context_id(parent);
     LOG_DEBUG("[%lu] begin task (child of %lu)", task_attr.id, task_attr.parent_id);
-    trace_graph_event_task_begin(task, task_attr);
+    trace_graph_event_task_begin(state, task, task_attr);
     return task;
 }
 
 void otterTaskEnd(otter_task_context *task)
 {
     LOG_DEBUG("[%lu] end task", otterTaskContext_get_task_context_id(task));
-    trace_graph_event_task_end(task);
+    trace_graph_event_task_end(state, task);
     otterTaskContext_delete(task);
 }
 
@@ -117,7 +112,7 @@ void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode)
     sync_attr.type = otter_sync_region_taskwait;
     sync_attr.sync_descendant_tasks = mode == otter_sync_descendants ? true : false;
     sync_attr.encountering_task_id = otterTaskContext_get_task_context_id(task);
-    trace_graph_synchronise_tasks(task, sync_attr);
+    trace_graph_synchronise_tasks(state, task, sync_attr);
     return;
 }
 

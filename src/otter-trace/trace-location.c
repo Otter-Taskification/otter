@@ -24,6 +24,7 @@
 #include "otter-trace/trace-unique-refs.h"
 #include "otter-trace/trace-check-error-code.h"
 #include "otter-trace/trace-static-constants.h"
+#include "otter-trace/trace-state.h"
 
 typedef struct trace_location_def_t {
     unique_id_t             id;
@@ -40,9 +41,9 @@ typedef struct trace_location_def_t {
     OTF2_DefWriter         *def_writer;
 } trace_location_def_t;
 
-// TODO: accept injected state
 trace_location_def_t *
 trace_new_location_definition(
+    trace_state_t         *state,
     unique_id_t            id,
     otter_thread_t         thread_type,
     OTF2_LocationType      loc_type,
@@ -65,11 +66,10 @@ trace_new_location_definition(
         .def_writer     = NULL
     };
 
-    // TODO: replace global state with injected state
-    OTF2_Archive *Archive = get_global_archive();
+    OTF2_Archive *archive = trace_state_get_archive(state);
 
-    new->evt_writer = OTF2_Archive_GetEvtWriter(Archive, new->ref);
-    new->def_writer = OTF2_Archive_GetDefWriter(Archive, new->ref);
+    new->evt_writer = OTF2_Archive_GetEvtWriter(archive, new->ref);
+    new->def_writer = OTF2_Archive_GetDefWriter(archive, new->ref);
 
     /* Thread location definition is written at thread-end (once all events
        counted) */
@@ -83,10 +83,10 @@ trace_new_location_definition(
 }
 
 void 
-trace_destroy_location(trace_location_def_t *loc)
+trace_destroy_location(trace_state_t *state, trace_location_def_t *loc)
 {
     if (loc == NULL) return;
-    trace_write_location_definition(loc);
+    trace_write_location_definition(state, loc);
     LOG_DEBUG("[t=%lu] destroying rgn_stack %p", loc->id, loc->rgn_stack);
     stack_destroy(loc->rgn_stack, false, NULL);
     if (loc->rgn_defs)
@@ -102,9 +102,8 @@ trace_destroy_location(trace_location_def_t *loc)
     return;
 }
 
-// TODO: accept injected state
 void
-trace_write_location_definition(trace_location_def_t *loc)
+trace_write_location_definition(trace_state_t *state, trace_location_def_t *loc)
 {
     if (loc == NULL)
     {
@@ -117,17 +116,16 @@ trace_write_location_definition(trace_location_def_t *loc)
     snprintf(location_name, default_name_buf_sz, "Thread %lu", loc->id);
 
     LOG_DEBUG("[t=%lu] locking global def writer", loc->id);
-    pthread_mutex_t *def_writer_lock = global_def_writer_lock();
-    pthread_mutex_lock(def_writer_lock);
+    trace_state_lock_global_def_writer(state);
 
-    // TODO: replace global state with injected state
-    OTF2_GlobalDefWriter *Defs = get_global_def_writer();
-    OTF2_GlobalDefWriter_WriteString(Defs,
+    OTF2_GlobalDefWriter *def_writer = trace_state_get_global_def_writer(state);
+    
+    OTF2_GlobalDefWriter_WriteString(def_writer,
         location_name_ref,
         location_name);
 
     LOG_DEBUG("[t=%lu] writing location definition", loc->id);
-    OTF2_GlobalDefWriter_WriteLocation(Defs,
+    OTF2_GlobalDefWriter_WriteLocation(def_writer,
         loc->ref,
         location_name_ref,
         loc->type,
@@ -135,8 +133,7 @@ trace_write_location_definition(trace_location_def_t *loc)
         loc->location_group);
 
     LOG_DEBUG("[t=%lu] unlocking global def writer", loc->id);
-    pthread_mutex_unlock(def_writer_lock);
-
+    trace_state_unlock_global_def_writer(state);    
     return;
 }
 

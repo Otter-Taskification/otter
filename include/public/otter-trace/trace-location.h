@@ -20,18 +20,20 @@
 #include "public/types/stack.h"
 #include "public/otter-trace/trace-types.h"
 #include "public/otter-trace/trace-region-def.h"
+#include "public/otter-trace/trace-state.h"
 
 // Represents a location definition of an OTF2 trace
 typedef struct trace_location_def_t trace_location_def_t;
 
 /* Create new location */
 trace_location_def_t *trace_new_location_definition(
+    trace_state_t *state,
     uint64_t id,
     otter_thread_t thread_type,
     OTF2_LocationType loc_type,
     OTF2_LocationGroupRef loc_grp);
-void trace_destroy_location(trace_location_def_t *loc);
-void trace_write_location_definition(trace_location_def_t *loc);
+void trace_destroy_location(trace_state_t *state, trace_location_def_t *loc);
+void trace_write_location_definition(trace_state_t *state, trace_location_def_t *loc);
 bool trace_location_get_region_def(trace_location_def_t *loc, trace_region_def_t **rgn);
 bool trace_location_store_region_def(trace_location_def_t *loc, trace_region_def_t *rgn);
 size_t trace_location_get_num_region_def(trace_location_def_t *loc);

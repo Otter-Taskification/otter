@@ -13,9 +13,11 @@
 #define OTTER_TRACE_ARCHIVE_H
 
 #include <stdbool.h>
+#include <otf2/OTF2_Archive.h>
+#include <otf2/OTF2_GlobalDefWriter.h>
 #include "public/otter-common.h"
 
-bool trace_initialise_archive(const char *archive_path, const char *archive_name, otter_event_model_t event_model);
-bool trace_finalise_archive(void);
+bool trace_initialise_archive(const char *archive_path, const char *archive_name, otter_event_model_t event_model, OTF2_Archive **archive, OTF2_GlobalDefWriter **global_def_writer);
+bool trace_finalise_archive(OTF2_Archive *archive);
 
 #endif // OTTER_TRACE_ARCHIVE_H

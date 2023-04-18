@@ -14,15 +14,17 @@
 
 #include <stdbool.h>
 #include "public/otter-common.h"
+#include "public/otter-trace/trace-state.h"
 
 /**
- * @brief Initialise otter-trace according to the given options
+ * @brief Initialise otter-trace according to the given options. Store the state
+ * in `state`.
  */
-bool trace_initialise(otter_opt_t *opt);
+bool trace_initialise(otter_opt_t *opt, trace_state_t **state);
 
 /**
- * @brief Finalise otter-trace
+ * @brief Finalise the provided otter-trace state
  */
-bool trace_finalise(void);
+bool trace_finalise(trace_state_t *state);
 
 #endif // OTTER_TRACE_INIT_H

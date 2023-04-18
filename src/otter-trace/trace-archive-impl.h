@@ -10,14 +10,9 @@
 #define OTTER_TRACE_ARCHIVE_IMPL_H
 
 #include <pthread.h>
-#include <otf2/otf2.h>
-#include "public/types/string_value_registry.hpp"
+#include <otf2/OTF2_GeneralDefinitions.h>
+#include <otf2/OTF2_GlobalDefWriter.h>
 
-pthread_mutex_t *global_def_writer_lock(void);
-pthread_mutex_t *global_archive_lock(void);
-
-OTF2_GlobalDefWriter *get_global_def_writer(void);
-OTF2_Archive *get_global_archive(void);
-string_registry *get_global_str_registry(void);
+void trace_archive_write_string_ref(OTF2_GlobalDefWriter *def_writer, OTF2_StringRef ref, const char *s);
 
 #endif // OTTER_TRACE_ARCHIVE_IMPL_H

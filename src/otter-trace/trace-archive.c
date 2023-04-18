@@ -22,7 +22,6 @@
 #include "otter-trace/trace-static-constants.h"
 #include "otter-trace/trace-timestamp.h"
 #include "otter-trace/trace-archive-impl.h"
-#include "otter-trace/trace-string-registry.h"
 #include "otter-trace/trace-attributes.h"
 #include "otter-trace/trace-unique-refs.h"
 #include "otter-trace/trace-check-error-code.h"
@@ -30,37 +29,6 @@
 /* Lookup tables mapping enum value to string ref */
 OTF2_StringRef attr_name_ref[n_attr_defined][2] = {0};
 OTF2_StringRef attr_label_ref[n_attr_label_defined] = {0};
-
-/* References to global archive & def writer */
-// TODO: refactor global state
-static OTF2_Archive *Archive = NULL;
-static OTF2_GlobalDefWriter *Defs = NULL;
-
-/* Mutexes for thread-safe access to Archive and Defs */
-static pthread_mutex_t lock_global_def_writer = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t lock_global_archive    = PTHREAD_MUTEX_INITIALIZER;
-
-pthread_mutex_t *
-global_def_writer_lock(void)
-{
-    return &lock_global_def_writer;
-}
-
-pthread_mutex_t *
-global_archive_lock(void)
-{
-    return &lock_global_archive;
-}
-
-OTF2_GlobalDefWriter *get_global_def_writer(void)
-{
-    return Defs;
-}
-
-OTF2_Archive *get_global_archive(void)
-{
-    return Archive;
-}
 
 /* Pre- and post-flush callbacks required by OTF2 */
 static OTF2_FlushType
@@ -83,65 +51,50 @@ post_flush(
     return get_timestamp();
 }
 
-/**
- * @brief Callback to pass to Registry which will be used to write  string refs
- * to the DefWriter when Registry is deleted.
- * 
- * @param s The string to write
- * @param ref The ref of the string
- * @param def_writer must be a valid `OTF2_GlobalDefWriter*`
- */
-static void trace_write_string_ref(const char *s, OTF2_StringRef ref, destructor_data def_writer)
-{
-    if (def_writer == NULL) {
-        LOG_ERROR("def_writer was null, unable to write ref for string: \"%s\"", s);
-        return;
-    }
-    LOG_DEBUG("writing ref %u for string \"%s\"", ref, s);
-    OTF2_ErrorCode r = OTF2_SUCCESS;
-    r = OTF2_GlobalDefWriter_WriteString((OTF2_GlobalDefWriter*) def_writer, ref, s);
-    CHECK_OTF2_ERROR_CODE(r);
-}
-
-// TODO: accept injected state
 bool
-trace_initialise_archive(const char *archive_path, const char *archive_name, otter_event_model_t event_model)
+trace_initialise_archive(
+    const char            *archive_path, 
+    const char            *archive_name, 
+    otter_event_model_t    event_model, 
+    OTF2_Archive         **archive, 
+    OTF2_GlobalDefWriter **global_def_writer)
 {
     OTF2_ErrorCode ret = OTF2_SUCCESS;
 
     /* open OTF2 archive */
-    // TODO: replace global state with injected state
-    Archive = OTF2_Archive_Open(
+    OTF2_Archive *_archive = OTF2_Archive_Open(
         archive_path,               /* archive path */
         archive_name,               /* archive name */
         OTF2_FILEMODE_WRITE,
         OTF2_CHUNK_SIZE_EVENTS_DEFAULT,     
         OTF2_CHUNK_SIZE_DEFINITIONS_DEFAULT,
         OTF2_SUBSTRATE_POSIX,
-        OTF2_COMPRESSION_NONE);
+        OTF2_COMPRESSION_NONE
+    );
+    *archive = _archive;
 
     /* set flush callbacks */
     static OTF2_FlushCallbacks on_flush = {
         .otf2_pre_flush = pre_flush,
         .otf2_post_flush = post_flush
     };
-    OTF2_Archive_SetFlushCallbacks(Archive, &on_flush, NULL);
+    OTF2_Archive_SetFlushCallbacks(_archive, &on_flush, NULL);
 
     /* set serial (not MPI) collective callbacks */
-    OTF2_Archive_SetSerialCollectiveCallbacks(Archive);
+    OTF2_Archive_SetSerialCollectiveCallbacks(_archive);
 
     /* set pthread archive locking callbacks */
-    OTF2_Pthread_Archive_SetLockingCallbacks(Archive, NULL);
+    OTF2_Pthread_Archive_SetLockingCallbacks(_archive, NULL);
 
     /* open archive event files */
-    OTF2_Archive_OpenEvtFiles(Archive);
+    OTF2_Archive_OpenEvtFiles(_archive);
 
     /* open (thread-) local definition files */
-    OTF2_Archive_OpenDefFiles(Archive);
+    OTF2_Archive_OpenDefFiles(_archive);
 
     /* get global definitions writer */
-    // TODO: replace global state with injected state
-    Defs = OTF2_Archive_GetGlobalDefWriter(Archive);
+    OTF2_GlobalDefWriter *_defs = OTF2_Archive_GetGlobalDefWriter(_archive);
+    *global_def_writer = _defs;
 
     /* detect the chosen event model and set the trace property for this */
     const char* event_model_name = NULL;
@@ -170,7 +123,7 @@ trace_initialise_archive(const char *archive_path, const char *archive_name, ott
         break;
     }
 
-    ret = OTF2_Archive_SetProperty(Archive, "OTTER::EVENT_MODEL", event_model_name, true);
+    ret = OTF2_Archive_SetProperty(_archive, "OTTER::EVENT_MODEL", event_model_name, true);
     CHECK_OTF2_ERROR_CODE(ret);
 
     /* get clock resolution & current time for CLOCK_MONOTONIC */
@@ -190,26 +143,25 @@ trace_initialise_archive(const char *archive_path, const char *archive_name, ott
     LOG_DEBUG("Epoch: %lu %lu %lu", tp.tv_sec, tp.tv_nsec, epoch);
 
     /* write global clock properties */
-    OTF2_GlobalDefWriter_WriteClockProperties(Defs,
+    OTF2_GlobalDefWriter_WriteClockProperties(_defs,
         1000000000 / res.tv_nsec,  /* ticks per second */
         epoch,
         UINT64_MAX                 /* length */
     );
 
     /* write an empty string as the first entry so that string ref 0 is "" */
-    OTF2_GlobalDefWriter_WriteString(Defs, get_unique_str_ref(), "");
-
+    OTF2_GlobalDefWriter_WriteString(_defs, get_unique_str_ref(), "");
     
     /* write Otter version string as 2nd entry so it is always at index 1 */
-    OTF2_GlobalDefWriter_WriteString(Defs, get_unique_str_ref(), OTTER_VERSION_STRING);
+    OTF2_GlobalDefWriter_WriteString(_defs, get_unique_str_ref(), OTTER_VERSION_STRING);
 
     /* write global system tree */
     OTF2_SystemTreeNodeRef g_sys_tree_id = DEFAULT_SYSTEM_TREE;
     OTF2_StringRef g_sys_tree_name = get_unique_str_ref();
     OTF2_StringRef g_sys_tree_class = get_unique_str_ref();
-    OTF2_GlobalDefWriter_WriteString(Defs, g_sys_tree_name, "Sytem Tree");
-    OTF2_GlobalDefWriter_WriteString(Defs, g_sys_tree_class, "node");
-    OTF2_GlobalDefWriter_WriteSystemTreeNode(Defs,
+    OTF2_GlobalDefWriter_WriteString(_defs, g_sys_tree_name, "Sytem Tree");
+    OTF2_GlobalDefWriter_WriteString(_defs, g_sys_tree_class, "node");
+    OTF2_GlobalDefWriter_WriteSystemTreeNode(_defs,
         g_sys_tree_id,
         g_sys_tree_name,
         g_sys_tree_class,
@@ -218,8 +170,8 @@ trace_initialise_archive(const char *archive_path, const char *archive_name, ott
     /* write global location group */
     OTF2_StringRef g_loc_grp_name = get_unique_str_ref();
     OTF2_LocationGroupRef g_loc_grp_id = DEFAULT_LOCATION_GRP;
-    OTF2_GlobalDefWriter_WriteString(Defs, g_loc_grp_name, location_group_name);
-    OTF2_GlobalDefWriter_WriteLocationGroup(Defs, g_loc_grp_id, g_loc_grp_name,
+    OTF2_GlobalDefWriter_WriteString(_defs, g_loc_grp_name, location_group_name);
+    OTF2_GlobalDefWriter_WriteLocationGroup(_defs, g_loc_grp_id, g_loc_grp_name,
         OTF2_LOCATION_GROUP_TYPE_PROCESS, g_sys_tree_id);
 
     /* define any necessary attributes (their names, descriptions & labels)
@@ -242,40 +194,31 @@ trace_initialise_archive(const char *archive_path, const char *archive_name, ott
        label */
     #define INCLUDE_ATTRIBUTE(Type, Name, Desc)                                \
         OTF2_GlobalDefWriter_WriteString(                                      \
-            Defs, attr_name_ref[attr_##Name][0], #Name);                       \
+            _defs, attr_name_ref[attr_##Name][0], #Name);                       \
         OTF2_GlobalDefWriter_WriteString(                                      \
-            Defs, attr_name_ref[attr_##Name][1],  Desc);
+            _defs, attr_name_ref[attr_##Name][1],  Desc);
     #define INCLUDE_LABEL(Name, Label)                                         \
         OTF2_GlobalDefWriter_WriteString(                                      \
-            Defs, attr_label_ref[attr_##Name##_##Label], #Label);
+            _defs, attr_label_ref[attr_##Name##_##Label], #Label);
     #include "otter-trace/trace-attribute-defs.h"
 
     /* define attributes which can be referred to later by the enum 
        attr_name_enum_t */
     #define INCLUDE_ATTRIBUTE(Type, Name, Desc)                                \
-        OTF2_GlobalDefWriter_WriteAttribute(Defs, attr_##Name,                 \
+        OTF2_GlobalDefWriter_WriteAttribute(_defs, attr_##Name,                 \
             attr_name_ref[attr_##Name][0],                                     \
             attr_name_ref[attr_##Name][1],                                     \
             Type);
     #include "otter-trace/trace-attribute-defs.h"
 
-    // TODO: replace global state with injected state
-    string_registry *registry = string_registry_make(get_unique_str_ref, trace_write_string_ref, (destructor_data) Defs);
-    trace_init_str_registry(registry);
-
     return true;
 }
 
-// TODO: accept injected state
 bool
-trace_finalise_archive(void)
+trace_finalise_archive(OTF2_Archive *archive)
 {
-    // TODO: replace global state with injected state
-    trace_destroy_str_registry();
-
     /* close event files */
-    // TODO: replace global state with injected state
-    OTF2_Archive_CloseEvtFiles(Archive);
+    OTF2_Archive_CloseEvtFiles(archive);
 
     /* create 1 definition writer per location & immediately close it - not 
        currently used
@@ -284,15 +227,34 @@ trace_finalise_archive(void)
     int loc = 0;
     for (loc = 0; loc < nloc; loc++)
     {
-        OTF2_DefWriter* dw = OTF2_Archive_GetDefWriter(Archive, loc);
-        OTF2_Archive_CloseDefWriter(Archive, dw);
+        OTF2_DefWriter* dw = OTF2_Archive_GetDefWriter(archive, loc);
+        OTF2_Archive_CloseDefWriter(archive, dw);
     }
 
     /* close local definition files */
-    OTF2_Archive_CloseDefFiles(Archive);
+    OTF2_Archive_CloseDefFiles(archive);
 
     /* close OTF2 archive */
-    OTF2_Archive_Close(Archive);
+    OTF2_Archive_Close(archive);
 
     return true;
+}
+
+/**
+ * @brief Write a string definition to a trace.
+ * 
+ * @param s The string to write
+ * @param ref The ref of the string
+ * @param def_writer must be a valid `OTF2_GlobalDefWriter*`
+ */
+void trace_archive_write_string_ref(OTF2_GlobalDefWriter *def_writer, OTF2_StringRef ref, const char *s)
+{
+    if (def_writer == NULL) {
+        LOG_ERROR("def_writer was null, unable to write ref for string: \"%s\"", s);
+        return;
+    }
+    LOG_DEBUG("writing ref %u for string \"%s\"", ref, s);
+    OTF2_ErrorCode r = OTF2_SUCCESS;
+    r = OTF2_GlobalDefWriter_WriteString(def_writer, ref, s);
+    CHECK_OTF2_ERROR_CODE(r);
 }

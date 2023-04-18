@@ -11,6 +11,7 @@
 #include "public/otter-trace/trace-types.h"
 #include "public/otter-trace/trace-region-attr.h"
 #include "otter-trace/trace-region-types.h"
+#include "public/otter-trace/trace-state.h"
 
 typedef struct trace_region_def_t trace_region_def_t;
 
@@ -33,6 +34,7 @@ trace_new_parallel_region(
 
 trace_region_def_t *
 trace_new_phase_region(
+    trace_state_t  *state,
     otter_phase_region_t  type,
     unique_id_t           encountering_task_id,
     const char           *phase_name
@@ -47,6 +49,7 @@ trace_new_sync_region(
 
 trace_region_def_t *
 trace_new_task_region(
+    trace_state_t  *state,
     trace_region_def_t   *parent_task_region,
     unique_id_t           task_id,
     otter_task_flag_t     flags,
@@ -66,7 +69,7 @@ trace_new_workshare_region(
 // Destructors
 
 void trace_destroy_master_region(trace_region_def_t *rgn);
-void trace_destroy_parallel_region(trace_region_def_t *rgn);
+void trace_destroy_parallel_region(trace_state_t *state, trace_region_def_t *rgn);
 void trace_destroy_phase_region(trace_region_def_t *rgn);
 void trace_destroy_sync_region(trace_region_def_t *rgn);
 void trace_destroy_task_region(trace_region_def_t *rgn);
@@ -111,6 +114,6 @@ void trace_region_dec_ref_count(trace_region_def_t *region);
 
 // Write region definition to a trace
 
-void trace_region_write_definition(trace_region_def_t *region);
+void trace_region_write_definition(trace_state_t *state, trace_region_def_t *region);
 
 #endif // OTTER_TRACE_REGION_DEF_IMPL_H

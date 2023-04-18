@@ -218,6 +218,8 @@ add_library(otter-events-task-graph OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/otter-task-context.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/task-graph/otter-task-graph-cpp-wrapper.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/otter-structs.c
+    # Fortran entrypoints to otter-task-graph.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/task-graph/otter-task-graph.F90
 )
 target_include_directories(otter-events-task-graph PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(otter-events-task-graph BEFORE PRIVATE ${CMAKE_C_FLAGS})
@@ -364,6 +366,9 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/modules/otter DESTINATION etc/modu
 set_target_properties(otter-task-graph PROPERTIES PUBLIC_HEADER "include/otter/otter-task-graph.h;include/otter/otter-task-context.h;include/otter/otter-task-graph-stub.h;include/otter/otter-task-graph-wrapper.hpp")
 install(TARGETS otter-task-graph LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include/otter)
 
+# otter-task-graph Fortran module file
+install(FILES ${CMAKE_BINARY_DIR}/lib/fmod/otter_task_graph.mod DESTINATION include/otter)
+
 # Configure version header
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/otter-version.h.in
@@ -373,8 +378,10 @@ configure_file(
 # Link to dependencies
 target_link_libraries(otter-serial pthread)
 target_link_libraries(otter-serial otf2)
+target_link_libraries(otter-serial gfortran)
 target_link_libraries(otter-task-graph pthread)
 target_link_libraries(otter-task-graph otf2)
+target_link_libraries(otter-task-graph gfortran)
 # Add library directory for OTF2 if it was specified
 if(DEFINED OTF2_INSTALL_DIR)
     target_link_libraries(otter-serial -L${OTF2_INSTALL_DIR}/lib)

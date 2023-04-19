@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "otter/queue.h"
+#include "public/types/queue.h"
 
 void mock_data_destructor(void *ptr);
 

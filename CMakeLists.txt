@@ -38,8 +38,8 @@ endif()
 # Get debug levels if specified
 if (NOT OTTER_DEBUG_LEVELS)
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-        message(STATUS "Debug levels: 3,0,0 (default)")
-        set(OTTER_DEBUG_LEVELS "3,0,0" CACHE STRING "Debug levels for Otter components (default=3,0,0)" FORCE)
+        message(STATUS "Debug levels: 3,3,0 (default)")
+        set(OTTER_DEBUG_LEVELS "3,3,0" CACHE STRING "Debug levels for Otter components (default=3,3,0)" FORCE)
     elseif(CMAKE_BUILD_TYPE STREQUAL "Verbose")
         message(STATUS "Debug levels: 3,3,3 (verbose)")
         set(OTTER_DEBUG_LEVELS "3,3,3" CACHE STRING "Debug levels for Otter components (default=3,0,0)" FORCE)
@@ -120,8 +120,9 @@ message(STATUS "C++ compiler selected: ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPIL
 # Check for omp-tools.h
 CHECK_INCLUDE_FILE(omp-tools.h HAVE_OMP_TOOLS_H)
 if(NOT HAVE_OMP_TOOLS_H)
-    message(WARNING "Can't find omp-tools.h - did you specify an OMPT-supporting compiler?")
+    message(WARNING "Can't find omp-tools.h - libotter-ompt.so target will not be generated.")
 endif()
+set(BUILD_OMPT_PLUGIN ${HAVE_OMP_TOOLS_H})
 
 # Detect requirement to use 5.1 features instead of deprecated 5.1 features
 set(USE_OMPT_51 0)
@@ -190,23 +191,25 @@ if(NOT "${OTF2_VERSION_MAJOR}.${OTF2_VERSION_MINOR}" STREQUAL "2.3")
 endif()
 
 # OMPT event source
-add_library(otter-events-ompt OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/ompt/otter-core.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/ompt/otter-entry.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/otter-structs.c
-)
-target_include_directories(otter-events-ompt PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_compile_options(otter-events-ompt BEFORE PRIVATE ${CMAKE_C_FLAGS})
-target_compile_definitions(otter-events-ompt PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_CORE})
-set_property(TARGET otter-events-ompt PROPERTY POSITION_INDEPENDENT_CODE ON)
+if(BUILD_OMPT_PLUGIN)
+    add_library(otter-events-ompt OBJECT
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-ompt/otter-core.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-ompt/otter-entry.c
+    )
+    target_include_directories(otter-events-ompt PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_include_directories(otter-events-ompt PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_compile_options(otter-events-ompt BEFORE PRIVATE ${CMAKE_C_FLAGS})
+    target_compile_definitions(otter-events-ompt PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_CORE})
+    set_property(TARGET otter-events-ompt PROPERTY POSITION_INDEPENDENT_CODE ON)
+endif()
 
 # Serial event source
 add_library(otter-events-serial OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/serial/otter-serial.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-serial/otter-serial.c
     # Fortran entrypoints to otter-serial.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/serial/otter-serial.F90
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/otter-structs.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-serial/otter-serial.F90
 )
+target_include_directories(otter-events-serial PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(otter-events-serial PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(otter-events-serial BEFORE PRIVATE ${CMAKE_C_FLAGS})
 target_compile_definitions(otter-events-serial PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_CORE})
@@ -214,156 +217,113 @@ set_property(TARGET otter-events-serial PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # Task-graph event source
 add_library(otter-events-task-graph OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/task-graph/otter-task-graph.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/otter-task-context.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/task-graph/otter-task-graph-cpp-wrapper.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/otter-structs.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-task-graph/otter-task-graph.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-task-graph/otter-task-graph-cpp-wrapper.cpp
     # Fortran entrypoints to otter-task-graph.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/events/task-graph/otter-task-graph.F90
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-task-graph/otter-task-graph.F90
 )
+target_include_directories(otter-events-task-graph PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(otter-events-task-graph PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(otter-events-task-graph BEFORE PRIVATE ${CMAKE_C_FLAGS})
 target_compile_definitions(otter-events-task-graph PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_CORE})
 set_property(TARGET otter-events-task-graph PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-# Trace component for OMP mode
-add_library(otter-trace-ompt OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-core.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-location.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-parallel.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-workshare.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-master.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-sync.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-phase.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-task.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-archive.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-string-registry.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-unique-refs.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-mmap.c
+# Trace component
+add_library(otter-trace OBJECT
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-ompt.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-graph.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-location.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-region-def.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-archive.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-initialise.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-unique-refs.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-thread-data.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-data.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-parallel-data.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-context.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-state.c
 )
-target_include_directories(otter-trace-ompt PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_compile_definitions(otter-trace-ompt PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_TRACE})
-target_compile_definitions(otter-trace-ompt PRIVATE OTTER_EVENT_MODEL_OMP)
-set_property(TARGET otter-trace-ompt PROPERTY POSITION_INDEPENDENT_CODE ON)
-
-# Trace component for serial mode
-add_library(otter-trace-serial OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-core.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-location.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-parallel.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-workshare.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-master.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-sync.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-phase.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-task.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-archive.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-string-registry.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-unique-refs.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-mmap.c
-)
-target_include_directories(otter-trace-serial PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_compile_definitions(otter-trace-serial PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_TRACE})
-target_compile_definitions(otter-trace-serial PRIVATE OTTER_EVENT_MODEL_SERIAL)
-set_property(TARGET otter-trace-serial PROPERTY POSITION_INDEPENDENT_CODE ON)
-# Add define to signify serial tracing mode
-target_compile_definitions(otter-trace-serial PRIVATE OTTER_SERIAL_MODE)
-
-# Trace component for task-graph event source
-add_library(otter-trace-task-graph OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-task-graph.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-core.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-location.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-parallel.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-workshare.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-master.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-sync.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-phase.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-region-task.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-archive.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-string-registry.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/trace/trace-unique-refs.c
-)
-target_include_directories(otter-trace-task-graph PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_compile_definitions(otter-trace-task-graph PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_TRACE})
-target_compile_definitions(otter-trace-task-graph PRIVATE OTTER_EVENT_MODEL_TASKGRAPH)
-set_property(TARGET otter-trace-task-graph PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_include_directories(otter-trace PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(otter-trace PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_definitions(otter-trace PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_TRACE})
+set_property(TARGET otter-trace PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # Datatypes component
 add_library(otter-dtype OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/dt-queue.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/dt-stack.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter/types/string_value_registry.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/types/dt-queue.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/types/dt-stack.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/types/string_value_registry.cpp
 )
 target_include_directories(otter-dtype PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(otter-dtype PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_DTYPE})
 set_property(TARGET otter-dtype PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # Otter library compiled for OMP mode
-if(HAVE_OMP_TOOLS_H)
-add_library(otter-ompt
-    $<TARGET_OBJECTS:otter-events-ompt>
-    $<TARGET_OBJECTS:otter-trace-ompt>
-    $<TARGET_OBJECTS:otter-dtype>
-)
-target_link_libraries(otter-ompt pthread)
-target_link_libraries(otter-ompt otf2)
-if(DEFINED OTF2_INSTALL_DIR)
-    target_link_libraries(otter-ompt -L${OTF2_INSTALL_DIR}/lib)
-endif()
-else()
-message(WARNING "otter-ompt target was not generated as omp-tools.h is not available")
+if(BUILD_OMPT_PLUGIN)
+    add_library(otter-ompt
+        $<TARGET_OBJECTS:otter-events-ompt>
+        $<TARGET_OBJECTS:otter-trace>
+        $<TARGET_OBJECTS:otter-dtype>
+    )
+    target_link_libraries(otter-ompt pthread)
+    target_link_libraries(otter-ompt otf2)
+    if(DEFINED OTF2_INSTALL_DIR)
+        target_link_libraries(otter-ompt -L${OTF2_INSTALL_DIR}/lib)
+    endif()
 endif()
 
 # Otter library compiled for serial mode
 add_library(otter-serial
     $<TARGET_OBJECTS:otter-events-serial>
-    $<TARGET_OBJECTS:otter-trace-serial>
+    $<TARGET_OBJECTS:otter-trace>
     $<TARGET_OBJECTS:otter-dtype>
 )
 
 # Otter library compiled for task-graph tracing mode
 add_library(otter-task-graph
     $<TARGET_OBJECTS:otter-events-task-graph>
-    $<TARGET_OBJECTS:otter-trace-task-graph>
+    $<TARGET_OBJECTS:otter-trace>
     $<TARGET_OBJECTS:otter-dtype>
 )
 
 # Add OTF2 install directory to targets if it was specified manually
 if(DEFINED OTF2_INSTALL_DIR)
-    target_include_directories(otter-events-ompt PRIVATE ${OTF2_INSTALL_DIR}/include)
+    if(BUILD_OMPT_PLUGIN)
+        target_include_directories(otter-events-ompt PRIVATE ${OTF2_INSTALL_DIR}/include)
+    endif()
     target_include_directories(otter-events-serial PRIVATE ${OTF2_INSTALL_DIR}/include)
     target_include_directories(otter-events-task-graph PRIVATE ${OTF2_INSTALL_DIR}/include)
-    target_include_directories(otter-trace-ompt PRIVATE ${OTF2_INSTALL_DIR}/include)
-    target_include_directories(otter-trace-serial PRIVATE ${OTF2_INSTALL_DIR}/include)
-    target_include_directories(otter-trace-task-graph PRIVATE ${OTF2_INSTALL_DIR}/include)
+    target_include_directories(otter-trace PRIVATE ${OTF2_INSTALL_DIR}/include)
     target_include_directories(otter-dtype PRIVATE ${OTF2_INSTALL_DIR}/include)
 endif()
 
 # Flag that we should use OMPT 5.1 features
-if(USE_OMPT_51)
+if(BUILD_OMPT_PLUGIN AND USE_OMPT_51)
     message(STATUS "Using OMPT 5.1")
-    target_compile_definitions(otter-events-ompt PRIVATE USE_OMPT_MASKED)
-    target_compile_definitions(otter-trace-ompt PRIVATE USE_OMPT_MASKED)
-else()
+        target_compile_definitions(otter-events-ompt PRIVATE USE_OMPT_MASKED)
+    target_compile_definitions(otter-trace PRIVATE USE_OMPT_MASKED)
+elseif(BUILD_OMPT_PLUGIN)
     message(STATUS "Not using OMPT 5.1")
 endif()
 
 ### SET INSTALL LOCATIONS ######################################################
 
 # otter-ompt plugin
-install(TARGETS otter-ompt DESTINATION lib)
+if(BUILD_OMPT_PLUGIN)
+    install(TARGETS otter-ompt DESTINATION lib)
+endif()
 
 # otter-serial library
-set_target_properties(otter-serial PROPERTIES PUBLIC_HEADER "include/otter/otter-serial.h")
+set_target_properties(otter-serial PROPERTIES PUBLIC_HEADER "include/api/otter-serial/otter-serial.h")
 install(TARGETS otter-serial LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include/otter)
 
 # otter-serial Fortran module file
 install(FILES ${CMAKE_BINARY_DIR}/lib/fmod/otter_serial.mod DESTINATION include/otter)
 
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/modules/otter DESTINATION etc/modules/otter)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/modulefiles/otter DESTINATION etc/modulefiles/otter)
 
 # otter-task-graph library
-set_target_properties(otter-task-graph PROPERTIES PUBLIC_HEADER "include/otter/otter-task-graph.h;include/otter/otter-task-context.h;include/otter/otter-task-graph-stub.h;include/otter/otter-task-graph-wrapper.hpp")
+set_target_properties(otter-task-graph PROPERTIES PUBLIC_HEADER "include/api/otter-task-graph/otter-task-graph.h;include/api/otter-task-graph/otter-task-graph-stub.h;include/api/otter-task-graph/otter-task-graph-wrapper.hpp")
 install(TARGETS otter-task-graph LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include/otter)
 
 # otter-task-graph Fortran module file
@@ -371,8 +331,8 @@ install(FILES ${CMAKE_BINARY_DIR}/lib/fmod/otter_task_graph.mod DESTINATION incl
 
 # Configure version header
 configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/otter-version.h.in
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/otter/otter-version.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/public/otter-version.h.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/public/otter-version.h
 )
 
 # Link to dependencies
@@ -393,11 +353,11 @@ endif()
 # # # Build examples for demonstrating Otter  # # # # # # # # # # # # # # #
 
 if (WITH_EXAMPLES)
-    add_subdirectory(src/otter/examples)
+    add_subdirectory(src/examples)
 endif()
 
 if (WITH_VALIDATION)
-    add_subdirectory(src/otter/examples/validation)
+    add_subdirectory(src/examples/validation)
 endif()
 
 # # # Include testing # # # # # # # # # # # # # # # # # # # # # # # # # # #

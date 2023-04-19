@@ -308,13 +308,25 @@ endif()
 
 ### SET INSTALL LOCATIONS ######################################################
 
+# Add public headers
+function(add_api_headers TARGET_NAME)
+    message(STATUS "Adding public headers for target: ${TARGET_NAME}")
+    file(GLOB TARGET_PUBLIC_HEADERS RELATIVE ${CMAKE_SOURCE_DIR} "include/api/${TARGET_NAME}/*")
+    foreach(PUBLIC_HEADER ${TARGET_PUBLIC_HEADERS})
+        message(STATUS "  adding: ${PUBLIC_HEADER}")
+    endforeach()
+    set_target_properties(${TARGET_NAME} PROPERTIES PUBLIC_HEADER "${TARGET_PUBLIC_HEADERS}")
+    get_target_property(SET_PUBLIC_HEADERS ${TARGET_NAME} PUBLIC_HEADER)
+endfunction()
+
 # otter-ompt plugin
 if(BUILD_OMPT_PLUGIN)
     install(TARGETS otter-ompt DESTINATION lib)
 endif()
 
 # otter-serial library
-set_target_properties(otter-serial PROPERTIES PUBLIC_HEADER "include/api/otter-serial/otter-serial.h")
+add_api_headers(otter-serial)
+#set_target_properties(otter-serial PROPERTIES PUBLIC_HEADER "include/api/otter-serial/otter-serial.h")
 install(TARGETS otter-serial LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include/otter)
 
 # otter-serial Fortran module file
@@ -323,7 +335,8 @@ install(FILES ${CMAKE_BINARY_DIR}/lib/fmod/otter_serial.mod DESTINATION include/
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/modulefiles/otter DESTINATION etc/modulefiles/otter)
 
 # otter-task-graph library
-set_target_properties(otter-task-graph PROPERTIES PUBLIC_HEADER "include/api/otter-task-graph/otter-task-graph.h;include/api/otter-task-graph/otter-task-graph-stub.h;include/api/otter-task-graph/otter-task-graph-wrapper.hpp")
+add_api_headers(otter-task-graph)
+#set_target_properties(otter-task-graph PROPERTIES PUBLIC_HEADER "include/api/otter-task-graph/otter-task-graph.h;include/api/otter-task-graph/otter-task-graph-stub.h;include/api/otter-task-graph/otter-task-graph-wrapper.hpp")
 install(TARGETS otter-task-graph LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include/otter)
 
 # otter-task-graph Fortran module file

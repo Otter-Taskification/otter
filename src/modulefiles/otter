@@ -11,11 +11,11 @@ if { [info exists ::env(OTTER) ] } {
 }
 
 proc ModulesHelp { } {
-    puts stderr "  Load otter from the directory given by `OTTER_INSTALL_DIR`,"
+    puts stderr "  Load otter from the directory given by `OTTER`,"
     puts stderr "  (default=~/local/apps/otter)"
     puts stderr "  For example:"
     puts stderr ""
-    puts stderr "  > export OTTER_INSTALL_DIR=/home/adam/local/apps/otter"
+    puts stderr "  > export OTTER=/home/adam/local/apps/otter"
     puts stderr "  > module whatis otter"
     puts stderr "        otter: Load otter installation: /home/adam/local/apps/otter"
     puts stderr ""

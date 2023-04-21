@@ -1,8 +1,10 @@
-message(STATUS "Adding examples")
 message(STATUS "C Compiler ID: ${CMAKE_C_COMPILER_ID}")
 message(STATUS "CXX Compiler ID: ${CMAKE_CXX_COMPILER_ID}")
 message(STATUS "Fortran Compiler ID: ${CMAKE_Fortran_COMPILER_ID}")
 
+message(STATUS "Add subdirectory: ./src/examples/omp")
 add_subdirectory(omp)
+message(STATUS "Add subdirectory: ./src/examples/serial")
 add_subdirectory(serial)
+message(STATUS "Add subdirectory: ./src/examples/task-graph")
 add_subdirectory(task-graph)

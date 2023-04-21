@@ -1,5 +1,3 @@
-message(STATUS "Adding validation examples")
-
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU" 
     OR CMAKE_Fortran_COMPILER_ID STREQUAL "GNU" 
     OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -15,13 +13,11 @@ message(STATUS "CMAKE_C_FLAGS=${CMAKE_C_FLAGS}")
 message(STATUS "OpenMP_CXX_FLAGS=${OpenMP_CXX_FLAGS}")
 message(STATUS "OpenMP_Fortran_FLAGS=${OpenMP_Fortran_FLAGS}")
 
-message(STATUS "Adding validators:")
-
 function(add_validator_omp SRC)
     set(ABS_SRC ${PROJECT_SOURCE_DIR}/src/examples/omp/omp-${SRC}.c)
     cmake_path(GET ABS_SRC STEM EX_NAME)
     set(EX_NAME otter-validator-${EX_NAME})
-    message(STATUS "Adding OpenMP validator: ${EX_NAME}")
+    message(STATUS "  adding validator: ${EX_NAME}")
     add_executable(${EX_NAME} ${ABS_SRC})
     target_compile_options(${EX_NAME} BEFORE PRIVATE "-g")
     install(TARGETS ${EX_NAME})
@@ -31,7 +27,7 @@ function(add_validator_serial SRC)
     set(ABS_SRC ${PROJECT_SOURCE_DIR}/src/examples/serial/serial-${SRC}.c)
     cmake_path(GET ABS_SRC STEM EX_NAME)
     set(EX_NAME otter-validator-${EX_NAME})
-    message(STATUS "Adding serial validator: ${EX_NAME}")
+    message(STATUS "  adding validator: ${EX_NAME}")
     add_executable(${EX_NAME} ${ABS_SRC})
     target_compile_options(${EX_NAME} BEFORE PRIVATE "-g")
     target_include_directories(${EX_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include)

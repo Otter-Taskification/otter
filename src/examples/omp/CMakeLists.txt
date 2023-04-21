@@ -1,7 +1,3 @@
-message(STATUS "Adding OpenMP examples")
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU" 
     OR CMAKE_Fortran_COMPILER_ID STREQUAL "GNU" 
     OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -23,7 +19,7 @@ function(add_omp_examples DIR)
     foreach(SRCFILE ${SERIAL_EXAMPLES})
         cmake_path(GET SRCFILE STEM EX_NAME)
         set(EX_NAME otter-${EX_NAME})
-        message(STATUS "Adding OpenMP example: ${EX_NAME}")
+        message(STATUS "  adding example: ${EX_NAME}")
         add_executable(${EX_NAME} ${SRCFILE})
         install(TARGETS ${EX_NAME})
     endforeach()

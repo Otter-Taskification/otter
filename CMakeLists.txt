@@ -313,7 +313,7 @@ function(add_api_headers TARGET_NAME)
     message(STATUS "Adding public headers for target: ${TARGET_NAME}")
     file(GLOB TARGET_PUBLIC_HEADERS RELATIVE ${CMAKE_SOURCE_DIR} "include/api/${TARGET_NAME}/*")
     foreach(PUBLIC_HEADER ${TARGET_PUBLIC_HEADERS})
-        message(STATUS "  adding: ${PUBLIC_HEADER}")
+        message(STATUS "  ${PUBLIC_HEADER}")
     endforeach()
     set_target_properties(${TARGET_NAME} PROPERTIES PUBLIC_HEADER "${TARGET_PUBLIC_HEADERS}")
     get_target_property(SET_PUBLIC_HEADERS ${TARGET_NAME} PUBLIC_HEADER)
@@ -366,15 +366,18 @@ endif()
 # # # Build examples for demonstrating Otter  # # # # # # # # # # # # # # #
 
 if (WITH_EXAMPLES)
+    message(STATUS "Add subdirectory: ./src/examples")
     add_subdirectory(src/examples)
 endif()
 
 if (WITH_VALIDATION)
+    message(STATUS "Add subdirectory: ./src/examples/validation")
     add_subdirectory(src/examples/validation)
 endif()
 
 # # # Include testing # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 if (WITH_TESTS)
+message(STATUS "Add subdirectory: ./test")
     add_subdirectory(test EXCLUDE_FROM_ALL)
 endif()

@@ -30,6 +30,7 @@ namespace otter {
          * 
          */
         Task(void);
+        Task(int flavour);
 
         /**
          * @brief Construct a child task from its parent, recording 
@@ -38,6 +39,13 @@ namespace otter {
          * @return Task: the new child task.
          */
         Task make_child(void);
+
+        /**
+         * @brief As `make_child`, but associates a flavour with the task.
+         * 
+         * @return Task: the new child task.
+         */
+        Task make_child(int flavour);
 
         /**
          * @brief Move-construct a new task by adopting the context from another
@@ -89,7 +97,7 @@ namespace otter {
          * 
          * @param parent 
          */
-        Task(otter_task_context* parent);
+        Task(otter_task_context* parent, int flavour=0);
     };
 
     /**
@@ -110,6 +118,13 @@ namespace otter {
          * @return Otter&
          */
         static Otter& get_otter(void);
+        
+        /**
+         * @brief Delete the root task and finalise the Otter trace with
+         * `otterTraceFinalise`.
+         * 
+         */
+        void close(void);
         
         /**
          * @brief Delete the root task and finalise the Otter trace with
@@ -144,6 +159,7 @@ namespace otter {
          * 
          */
         Task* m_root_task;
+        bool m_finalised;
     };
 
 } // namespace otter

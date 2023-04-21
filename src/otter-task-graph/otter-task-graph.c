@@ -85,7 +85,7 @@ void otterTraceFinalise(void)
     return;
 }
 
-otter_task_context *otterTaskBegin(const char* file, const char* func, int line, otter_task_context *parent)
+otter_task_context *otterTaskBegin_flavour(const char* file, const char* func, int line, otter_task_context *parent, int flavour)
 {
     otter_task_context *task = otterTaskContext_alloc();
     otterTaskContext_init(task, parent);
@@ -93,9 +93,15 @@ otter_task_context *otterTaskBegin(const char* file, const char* func, int line,
     task_attr.type = otter_task_explicit;
     task_attr.id = otterTaskContext_get_task_context_id(task);
     task_attr.parent_id = parent==NULL ? (unique_id_t) (~0) : otterTaskContext_get_task_context_id(parent);
+    task_attr.flavour = flavour;
     LOG_DEBUG("[%lu] begin task (child of %lu)", task_attr.id, task_attr.parent_id);
     trace_graph_event_task_begin(state, task, task_attr);
     return task;
+}
+
+otter_task_context *otterTaskBegin(const char* file, const char* func, int line, otter_task_context *parent)
+{
+    return otterTaskBegin_flavour(file, func, line, parent, 0);
 }
 
 void otterTaskEnd(otter_task_context *task)

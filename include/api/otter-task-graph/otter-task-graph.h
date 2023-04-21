@@ -113,6 +113,7 @@ void otterTraceStart(void);
  */
 void otterTraceStop(void);
 
+
 /**
  * @brief Indicate the start of a region representing a task.
  * 
@@ -150,6 +151,15 @@ void otterTraceStop(void);
  * @returns A pointer to a otter_task_context which represents the new task
  */
 otter_task_context *otterTaskBegin(const char* file, const char* func, int line, otter_task_context *parent_task);
+
+
+/**
+ * @brief The same as otterTaskBegin but associates a particular flavour with the
+ * created task. Useful for distinguishing tasks created in different places or
+ * for different reasons.
+ * 
+ */
+otter_task_context *otterTaskBegin_flavour(const char* file, const char* func, int line, otter_task_context *parent, int flavour);
 
 
 /**

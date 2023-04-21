@@ -102,6 +102,12 @@ void trace_graph_event_task_begin(trace_state_t *state, otter_task_context *task
     );
     CHECK_OTF2_ERROR_CODE(err);
 
+    err = OTF2_AttributeList_AddInt32(
+        attr,
+        attr_task_flavour,
+        task_attr.flavour
+    );
+
     // Record event
     err = OTF2_EvtWriter_ThreadTaskSwitch(
         get_shared_event_writer(state),

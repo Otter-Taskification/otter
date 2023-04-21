@@ -164,5 +164,8 @@ INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, phase_name, "the name of an algorithmic phas
 /* return address */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, task_create_ra, "return address of a task-create event")
 
+/* task flavour */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_INT32, task_flavour, "the flavour of a task")
+
 #undef INCLUDE_LABEL
 #undef INCLUDE_ATTRIBUTE

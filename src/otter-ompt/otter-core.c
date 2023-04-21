@@ -299,8 +299,9 @@ on_ompt_callback_task_create(
 
     /* get the task data of the parent, if it exists */
     task_data_t *parent_task_data = NULL;
-    if (flags & ompt_task_initial) {
+    if (!(flags & ompt_task_initial)) {
         parent_task_data = (task_data_t*) encountering_task->ptr;
+        assert(parent_task_data != NULL);
     }
 
     trace_region_def_t *parent_task_region = NULL;

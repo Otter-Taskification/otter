@@ -5,9 +5,7 @@
 
 using namespace otter;
 
-void step(int n, int n_traversal_tasks);
-void traverse_and_spawn_enclave(int num_enclave_tasks);
-void traverse_and_wait_for_enclave();
+void step(int n_traversal_tasks, int n_enclave_tasks);
 
 int main(int argc, char *argv[]) {
 
@@ -22,22 +20,23 @@ int main(int argc, char *argv[]) {
     auto &root = trace.get_root_task();
 
     for (int i=0; i<steps; i++) {
-        step(i, 4);
+        step(4, 10);
     }
 
     return 0;
 }
 
-void step(int n, int n_traversal_tasks) {
-
-    fprintf(stderr, "TIMESTEP: %2d\n", n);
+void step(int traversal_tasks, int enclave_tasks_per_traversal_task) {
 
     auto &root = Otter::get_otter().get_root_task();
     auto timestep_task = root.make_child();
 
-    for (int j=0; j<n_traversal_tasks; j++) {
+    // traverse and spawn enclave tasks
+    for (int j=0; j<traversal_tasks; j++) {
         auto traversal_task = timestep_task.make_child(3);
-        traverse_and_spawn_enclave(10);
+        for (int t=0; t<enclave_tasks_per_traversal_task; t++) {
+            auto enclave = Otter::get_otter().get_root_task().make_child(1);
+        }
         traversal_task.end_task();
     }
 
@@ -47,22 +46,12 @@ void step(int n, int n_traversal_tasks) {
     // serial part
     usleep(50000);
 
-    for (int j=0; j<n_traversal_tasks; j++) {
+    // traverse again and wait for enclave tasks
+    for (int j=0; j<traversal_tasks; j++) {
         auto traversal_task = timestep_task.make_child(3);
-        traverse_and_wait_for_enclave();
+        Otter::get_otter().get_root_task().synchronise_tasks(otter_sync_children);
         traversal_task.end_task();
     }
     timestep_task.synchronise_tasks(otter_sync_children);
     timestep_task.end_task();
-}
-
-void traverse_and_spawn_enclave(int num_enclave_tasks) {
-    for (int t=0; t<num_enclave_tasks; t++) {
-        // spawn an enclave task as a child of the root task
-        auto enclave = Otter::get_otter().get_root_task().make_child(1);
-    }
-}
-
-void traverse_and_wait_for_enclave() {
-    Otter::get_otter().get_root_task().synchronise_tasks(otter_sync_children);
 }

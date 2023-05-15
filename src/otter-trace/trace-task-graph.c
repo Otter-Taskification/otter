@@ -3,6 +3,8 @@
 #include <otf2/otf2.h>
 #include <time.h>
 #include <pthread.h>
+#include <execinfo.h>
+
 #include "public/debug.h"
 #include "public/otter-common.h"
 #include "public/otter-environment-variables.h"
@@ -18,7 +20,12 @@
 #include "otter-trace/trace-attribute-lookup.h"
 #include "otter-trace/trace-state.h"
 
+#define BACKTRACE_DEPTH 10
 #define OTTER_DUMMY_OTF2_LOCATION_REF        0
+
+enum {
+    void_ptr_top_6_bytes_mask = 0xffffffffffff0000
+};
 
 /* Protects the shared dummy event writer object */
 static pthread_mutex_t lock_shared_evt_writer = PTHREAD_MUTEX_INITIALIZER;
@@ -38,6 +45,34 @@ static inline void release_shared_event_writer(void) {
     pthread_mutex_unlock(&lock_shared_evt_writer);
 }
 
+static inline void *get_user_code_return_address(void) {
+    /**
+     * @brief Get the apparent return address of the code which called into
+     * Otter - the heuristic is that we look for an address which appears to 
+     * come from a different memory-mapped region than Otter appears to occupy.
+     * Detect this by comparing the top bits of addresses in a backtrace for the
+     * first address with different bits.
+     * 
+     * Note that this depends on Otter being built as a shared library and
+     * would stop working if Otter was linked statically
+     */
+    void *ra_buffer[BACKTRACE_DEPTH] = {NULL};
+    int bt_size = backtrace(&ra_buffer[0], BACKTRACE_DEPTH);
+    void *this_frame_top_bits = (void*)(((unsigned long)ra_buffer[1]) & void_ptr_top_6_bytes_mask);
+    LOG_DEBUG("backtrace:");
+    for (int j=0; j<bt_size; j++) {
+        void *address = ra_buffer[j];
+        void *top_bits = (void*)(((unsigned long) address) & void_ptr_top_6_bytes_mask);
+        if (top_bits != this_frame_top_bits) {
+            LOG_DEBUG("    backtrace[%2d] %p with top bits %p <---", j, address, top_bits);
+            return address;
+        } else {
+            LOG_DEBUG("    backtrace[%2d] %p with top bits %p", j, address, top_bits);
+        }
+    }
+    return NULL;
+}
+
 void trace_graph_event_task_begin(trace_state_t *state, otter_task_context *task, trace_task_region_attr_t task_attr)
 {
     /*
@@ -52,6 +87,13 @@ void trace_graph_event_task_begin(trace_state_t *state, otter_task_context *task
     OTF2_AttributeList *attr = OTF2_AttributeList_New();
     unique_id_t task_id = otterTaskContext_get_task_context_id(task);
     unique_id_t parent_task_id = otterTaskContext_get_parent_task_context_id(task);
+
+    err = OTF2_AttributeList_AddUint64(
+        attr,
+        attr_caller_return_address,
+        (uint64_t) get_user_code_return_address()
+    );
+    CHECK_OTF2_ERROR_CODE(err);
 
     err = OTF2_AttributeList_AddInt32(
         attr,
@@ -129,6 +171,13 @@ void trace_graph_event_task_end(trace_state_t *state, otter_task_context *task)
     OTF2_ErrorCode err = OTF2_SUCCESS;
     OTF2_AttributeList *attr = OTF2_AttributeList_New();
     unique_id_t task_id = otterTaskContext_get_task_context_id(task);
+
+    err = OTF2_AttributeList_AddUint64(
+        attr,
+        attr_caller_return_address,
+        (uint64_t) get_user_code_return_address()
+    );
+    CHECK_OTF2_ERROR_CODE(err);
     
     err = OTF2_AttributeList_AddInt32(
         attr,
@@ -202,6 +251,13 @@ void trace_graph_synchronise_tasks(trace_state_t *state, otter_task_context *tas
     OTF2_ErrorCode err = OTF2_SUCCESS;
     OTF2_AttributeList *attr = OTF2_AttributeList_New();
     unique_id_t task_id = otterTaskContext_get_task_context_id(task);
+
+    err = OTF2_AttributeList_AddUint64(
+        attr,
+        attr_caller_return_address,
+        (uint64_t) get_user_code_return_address()
+    );
+    CHECK_OTF2_ERROR_CODE(err);
     
     err = OTF2_AttributeList_AddInt32(
         attr,

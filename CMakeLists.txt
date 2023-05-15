@@ -253,6 +253,7 @@ add_library(otter-dtype OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/types/dt-queue.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/types/dt-stack.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/types/string_value_registry.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/types/vptr_manager.cpp
 )
 target_include_directories(otter-dtype PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(otter-dtype PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_DTYPE})

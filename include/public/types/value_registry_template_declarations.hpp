@@ -32,6 +32,9 @@ public:
     static value_registry<key, label>* make(labelcbk getlabel, destroyfn destructor, destructor_data data);
     static void destroy(value_registry<key, label>* r);
     label insert(key k);
+    void insert_key_value_pair(key k, label l);
+    label get_value(key k);
+    void remove_key(key k);
 private:
     map i_map;
     label i_default_label;

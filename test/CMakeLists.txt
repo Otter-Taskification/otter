@@ -70,7 +70,23 @@ target_link_libraries(
     $<TARGET_OBJECTS:otter-dtype>
 )
 
+add_executable(
+    vptr_manager_test
+    vptr_manager_test.cpp
+)
+target_include_directories(
+    vptr_manager_test
+    PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/../include"
+)
+target_link_libraries(
+    vptr_manager_test
+    gtest_main
+    $<TARGET_OBJECTS:otter-dtype>
+)
+
 include(GoogleTest)
 gtest_discover_tests(queue_test)
 gtest_discover_tests(stack_test)
 gtest_discover_tests(string_registry_test)
+gtest_discover_tests(vptr_manager_test)

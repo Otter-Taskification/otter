@@ -17,6 +17,7 @@
 #include <stdarg.h>
 
 #include "public/otter-version.h"
+#include "public/config.h"
 #include "public/debug.h"
 #include "public/otter-environment-variables.h"
 #include "public/otter-trace/trace-task-graph.h"
@@ -24,8 +25,6 @@
 #include "public/otter-trace/trace-task-context-interface.h"
 #include "public/otter-trace/trace-thread-data.h"
 #include "public/otter-trace/trace-task-manager.h"
-
-#define LOG_EVENT_CALL(file, func, line, ifunc) LOG_DEBUG("%s:%d in %s", file, line, func)
 
 #define SOME_LARGE_NUMBER_I_SHOULD_REDEFINE_LATER 256
 

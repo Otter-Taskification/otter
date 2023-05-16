@@ -31,6 +31,13 @@ void vptr_manager::remove_key(key_type key) {
     return;
 }
 
+template<>
+value_type vptr_manager::pop_value(key_type key) {
+    value_type value = i_map[key];
+    this->remove_key(key);
+    return value;
+}
+
 // C wrappers
 
 vptr_manager* vptr_manager_make() {
@@ -55,3 +62,6 @@ void* vptr_manager_get_item(vptr_manager* manager, const char* key) {
     return manager->get_value(key);
 }
 
+void* vptr_manager_pop_item(vptr_manager* manager, const char* key) {
+    return manager->pop_value(key);
+}

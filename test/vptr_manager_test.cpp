@@ -44,8 +44,7 @@ TEST_F(TestVPtrManager, KeyIsInserted){
     void *pExpected = &foo;
     key k = "key<foo>";
     m1->insert_key_value_pair(k, pExpected);
-    void *pInserted = m1->get_value(k);
-    ASSERT_EQ(pExpected, pInserted);
+    ASSERT_EQ(pExpected, m1->get_value(k));
 }
 
 TEST_F(TestVPtrManager, KeyIsDeleted){
@@ -54,18 +53,26 @@ TEST_F(TestVPtrManager, KeyIsDeleted){
     key k = "key<foo>";
     m1->insert_key_value_pair(k, pFoo);
     m1->remove_key(k);
-    void *pInserted = m1->get_value(k);
-    ASSERT_EQ(nullptr, pInserted);
+    ASSERT_EQ(nullptr, m1->get_value(k));
 }
 
-TEST_F(TestVPtrManager, KeyIsUpdated){
+TEST_F(TestVPtrManager, InsertOverwritesValue){
     int foo, bar;
     void *pFoo = &foo, *pBar = &bar;
     key k = "key<foo>";
     m1->insert_key_value_pair(k, pFoo);
+    ASSERT_EQ(pFoo, m1->get_value(k));
     m1->insert_key_value_pair(k, pBar);
-    void *pInserted = m1->get_value(k);
-    ASSERT_EQ(pBar, pInserted);
+    ASSERT_EQ(pBar, m1->get_value(k));
+}
+
+TEST_F(TestVPtrManager, PoppedKeyIsDeleted) {
+    int foo;
+    void *pFoo = &foo;
+    key k = "key<foo>";
+    m1->insert_key_value_pair(k, pFoo);
+    ASSERT_EQ(m1->pop_value(k), pFoo);
+    ASSERT_EQ(m1->pop_value(k), nullptr);
 }
 
 TEST_F(TestVPtrManager, CanDeleteAbsentKey) {
@@ -76,8 +83,7 @@ TEST_F(TestVPtrManager, CanDeleteAbsentKey) {
 
 TEST_F(TestVPtrManager, AbsentKeyIsNull) {
     key k = "some absent key";
-    void *pResult = m1->get_value(k);
-    ASSERT_EQ(pResult, nullptr);
+    ASSERT_EQ(m1->get_value(k), nullptr);
 }
 
 /*** TEST C FUNCTIONS ***/
@@ -102,8 +108,7 @@ TEST_F(TestVPtrManager, KeyIsDeleted_C) {
     const char* k = "key<foo>";
     vptr_manager_insert_item(m1, k, pFoo);
     vptr_manager_delete_item(m1, k);
-    void *pInserted = vptr_manager_get_item(m1, k);
-    ASSERT_EQ(nullptr, pInserted);
+    ASSERT_EQ(nullptr, vptr_manager_get_item(m1, k));
 }
 
 TEST_F(TestVPtrManager, KeyIsUpdated_C){
@@ -112,8 +117,7 @@ TEST_F(TestVPtrManager, KeyIsUpdated_C){
     const char* k = "key<foo>";
     vptr_manager_insert_item(m1, k, pFoo);
     vptr_manager_insert_item(m1, k, pBar);
-    void *pInserted = vptr_manager_get_item(m1, k);
-    ASSERT_EQ(pBar, pInserted);
+    ASSERT_EQ(pBar, vptr_manager_get_item(m1, k));
 }
 
 TEST_F(TestVPtrManager, CanDeleteAbsentKey_C) {
@@ -124,6 +128,5 @@ TEST_F(TestVPtrManager, CanDeleteAbsentKey_C) {
 
 TEST_F(TestVPtrManager, AbsentKeyIsNull_C) {
     const char* k = "some absent key";
-    void *pResult = vptr_manager_get_item(m1, k);
-    ASSERT_EQ(pResult, nullptr);
+    ASSERT_EQ(nullptr, vptr_manager_get_item(m1, k));
 }

@@ -34,6 +34,7 @@ public:
     label insert(key k);
     void insert_key_value_pair(key k, label l);
     label get_value(key k);
+    label pop_value(key k);
     void remove_key(key k);
 private:
     map i_map;

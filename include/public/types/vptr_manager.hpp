@@ -24,6 +24,7 @@ void vptr_manager_delete(vptr_manager*);
 void vptr_manager_insert_item(vptr_manager*, const char*, void*);
 void vptr_manager_delete_item(vptr_manager*, const char*);
 void* vptr_manager_get_item(vptr_manager*, const char*);
+void* vptr_manager_pop_item(vptr_manager*, const char*);
 
 #if defined(__cplusplus)
 }

@@ -13,8 +13,23 @@
  * @todo Add loop context object to otterLoopIterationBegin/End calls.
  */
 
+/**
+ * TODO: refactor to separate task declaration/definition
+ * 
+ * Need to be able to:
+ * - declare a new null task
+ * - define a new task without starting it
+ * - begin a previously defined task
+ * - end a previously defined task
+ * - synchronise tasks
+ */
+
 #if !defined(OTTER_TASK_GRAPH_H)
 #define OTTER_TASK_GRAPH_H
+
+#if !defined(__cplusplus)
+#include <stdbool.h>
+#endif
 
 /**
  * @brief Declares the existence of the otter_task_context struct.
@@ -114,6 +129,42 @@ void otterTraceStart(void);
 void otterTraceStop(void);
 
 
+/******
+ * Defining Tasks
+ ******/
+
+
+/**
+ * @brief Initialise (but do not begin) a task which is the child of the given
+ * parent. If task_label is not NULL, register the new task under this label.
+ * 
+ * @param task_label
+ * @param flavour
+ * @param parent_task 
+ * @return otter_task_context* 
+ */
+otter_task_context *otterTaskInitialise(const char *task_label, int flavour, otter_task_context *parent_task, bool should_register);
+
+
+/******
+ * Annotating Task Start & End
+ ******/
+
+
+/**
+ * @brief Record the start of a previously defined task at the location
+ * specified by file, func and line arguments. Returns the handle of the started
+ * task.
+ * 
+ * @note This is distinct from `otterTaskBegin` which defines and then 
+ * immediately starts the task.
+ * 
+ * @param task 
+ * @return otter_task_context*
+ */
+otter_task_context *otterTaskStart(const char* file, const char* func, int line, otter_task_context *task, int flavour);
+
+
 /**
  * @brief Indicate the start of a region representing a task.
  * 
@@ -136,6 +187,11 @@ void otterTraceStop(void);
  * event which switches from the encountering task to the new task. If the
  * parent task is non-NULL, the new task is created as a child of the parent.
  * Otherwise, the new task is an orphan task with no parent.
+ * 
+ * @note This is semantically equivalent to:
+    @code
+    otterTaskStart(__FILE__, __func__, __line__, otterTaskDefine("my task", 0, parent_task));
+    @endcode
  * 
  * @warning if a task is falsely created as an orphan when there is infact a 
  * parent (a false orphan), it will not be possible to separate the duration of
@@ -174,6 +230,74 @@ otter_task_context *otterTaskBegin_flavour(const char* file, const char* func, i
 void otterTaskEnd(otter_task_context *task);
 
 
+/******
+ * Registering & Retrieving Tasks
+ ******/
+
+
+/**
+ * @brief Associate the given task with the label. The task can later be 
+ * retrieved by `otterTaskGetLabel`.
+ * 
+ * @param task The task to register
+ * @param task_label The null-terminated label for this task
+ */
+void otterTaskRegisterLabel(otter_task_context *task, const char *task_label);
+
+/**
+ * @brief Variadic version of `otterTaskRegisterLabel`.
+ * 
+ * @param task 
+ * @param format
+ */
+void otterTaskRegisterLabel_v(otter_task_context *task, const char *format, ...);
+
+/**
+ * @brief Look up the task which was previously registered with the given label.
+ * Returns NULL if no such task exists.
+ * 
+ * @param task_label the label of the registered task.
+ * @return otter_task_context* 
+ */
+otter_task_context *otterTaskGetLabel(const char *task_label);
+
+/**
+ * @brief Variadic version of `otterTaskGetLabel`.
+ * 
+ * @param format 
+ * @param ... 
+ * @return otter_task_context* 
+ */
+otter_task_context *otterTaskGetLabel_v(const char *format, ...);
+
+
+/**
+ * @brief Pop the task which was previously registered with the given label.
+ * Returns NULL if no such task exists. Further attempts to get or pop the task
+ * for this label will return NULL until/unless another task is registered
+ * with this label.
+ * 
+ * @param task_label the label of the registered task.
+ * @return otter_task_context* 
+ */
+otter_task_context *otterTaskPopLabel(const char *task_label);
+
+/**
+ * @brief Variadic version of `otterTaskPopLabel`
+ * 
+ * @param format 
+ * @param ... 
+ * @return otter_task_context* 
+ * 
+ */
+otter_task_context *otterTaskPopLabel_v(const char *format, ...);
+
+
+/******
+ * Annotating Task Synchronisation Constraints
+ ******/
+
+
 /**
  * @brief Indicate a synchronisation constraint on the children or descendants
  * of the encountering task. If no encountering task is specified, assume that
@@ -205,6 +329,11 @@ void otterTaskEnd(otter_task_context *task);
  * 
  */
 void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode);
+
+
+/******
+ * Managing Phases
+ ******/
 
 
 /**

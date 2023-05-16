@@ -242,6 +242,7 @@ add_library(otter-trace OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-parallel-data.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-context.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-state.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-manager.c
 )
 target_include_directories(otter-trace PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(otter-trace PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)

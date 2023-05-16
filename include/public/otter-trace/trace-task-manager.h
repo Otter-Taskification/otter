@@ -9,20 +9,34 @@
  * 
  */
 
-#include "api/otter-task-graph/otter-task-graph.h" // for otter_task_context typedef
+#if !defined(OTTER_TRACE_TASK_MANAGER_PUBLIC_H)
+#define OTTER_TRACE_TASK_MANAGER_PUBLIC_H
 
-/**
- * @brief Required functionality:
- * 
- * - register a task handle
- * - retrieve a task handle
- * 
- */
+#define OTTER_TRACE_TASK_MANAGER_ALLOW_ONE  1
+#define OTTER_TRACE_TASK_MANAGER_ALLOW_MANY 2
 
-typedef struct trace_task_manager_t trace_task_manager_t;
+#if TASK_MANAGER_MODE == OTTER_TRACE_TASK_MANAGER_ALLOW_MANY
 
-trace_task_manager_t* trace_task_manager_alloc(void);
-void trace_task_manager_free(trace_task_manager_t*);
-void trace_task_manager_add_task(trace_task_manager_t*, const char*, otter_task_context*);
-otter_task_context* trace_task_manager_get_task(trace_task_manager_t*, const char*);
-otter_task_context* trace_task_manager_pop_task(trace_task_manager_t*, const char*);
+#include "task-manager/one-to-queue.h"
+#define trace_task_manager_alloc       trace_task_manager_one_to_queue_alloc
+#define trace_task_manager_free        trace_task_manager_one_to_queue_free
+#define trace_task_manager_add_task    trace_task_manager_one_to_queue_add_task
+#define trace_task_manager_get_task    trace_task_manager_one_to_queue_get_task
+#define trace_task_manager_pop_task    trace_task_manager_one_to_queue_pop_task
+
+#elif TASK_MANAGER_MODE == OTTER_TRACE_TASK_MANAGER_ALLOW_ONE
+
+#include "task-manager/one-to-one.h"
+#define trace_task_manager_alloc       trace_task_manager_one_to_one_alloc
+#define trace_task_manager_free        trace_task_manager_one_to_one_free
+#define trace_task_manager_add_task    trace_task_manager_one_to_one_add_task
+#define trace_task_manager_get_task    trace_task_manager_one_to_one_get_task
+#define trace_task_manager_pop_task    trace_task_manager_one_to_one_pop_task
+
+#else
+
+#error "TASK_MANAGER_MODE not defined"
+
+#endif
+
+#endif // OTTER_TRACE_TASK_MANAGER_PUBLIC_H

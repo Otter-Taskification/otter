@@ -25,6 +25,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/ar)
 # Set default OTF2 install dir
 set(OTF2_INSTALL_DIR "/opt/otf2" CACHE STRING "OTF2 install directory")
 
+# Set default task manager mode
+set(TASK_MANAGER_MODE "2" CACHE STRING "Otter-trace task manager mode")
+
 if (CMAKE_C_FLAGS)
     message(STATUS "Flags added: \"${CMAKE_C_FLAGS}\"")
 endif()
@@ -223,6 +226,7 @@ add_library(otter-events-task-graph OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-task-graph/otter-task-graph.F90
 )
 target_include_directories(otter-events-task-graph PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(otter-events-task-graph PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include) # config.h
 target_include_directories(otter-events-task-graph PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(otter-events-task-graph BEFORE PRIVATE ${CMAKE_C_FLAGS})
 target_compile_definitions(otter-events-task-graph PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_CORE})
@@ -242,7 +246,8 @@ add_library(otter-trace OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-parallel-data.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-context.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-state.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-manager.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-manager-one-to-one.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-manager-one-to-queue.c
 )
 target_include_directories(otter-trace PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(otter-trace PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -348,6 +353,12 @@ install(FILES ${CMAKE_BINARY_DIR}/lib/fmod/otter_task_graph.mod DESTINATION incl
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/include/public/otter-version.h.in
     ${CMAKE_CURRENT_SOURCE_DIR}/include/public/otter-version.h
+)
+
+# Configure config/.h
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/public/config.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/include/public/config.h # write to build tree
 )
 
 # Link to dependencies

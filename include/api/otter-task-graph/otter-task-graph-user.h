@@ -19,14 +19,7 @@
  * 
  * TODO:
  * 
- *  - make variadic macros the default
- *  - make it clearer which macros do the following jobs:
- *      - declare a task handle
- *      - initialise a task
- *      - register a task with a label
- *      - retrieve a task by its label
- *      - record start/end of a task
- * 
+ *  - update documentation re. registering tasks against labels
  */
 
 #if !defined(OTTER_TASK_GRAPH_API_MACRO_H)
@@ -72,6 +65,7 @@
  * registered against the given label
  * 
  */
+// TODO: accept variadic label, rename should_register -> push_task
 #define OTTER_TASK_GRAPH_INIT_TASK(task, label, flavour, parent, should_register) \
     task = otterTaskInitialise(label, flavour, parent, should_register)
 
@@ -81,17 +75,9 @@
  * handle if the label was previously registered.
  * 
  */
+// TODO: rename to OTTER_TASK_GRAPH_POP_TASK
 #define OTTER_TASK_GRAPH_REGISTER_TASK(task, format, ...) \
     otterTaskRegisterLabel_v(task, format PASS_ARGS(__VA_ARGS__))
-
-/**
- * @brief Get the task handle prevously registered with the label given by the
- * format string and any subsequent values, or null if no task was previously
- * registered.
- * 
- */
-#define OTTER_TASK_GRAPH_GET_TASK(task, format, ...) \
-    task = otterTaskGetLabel_v(format PASS_ARGS(__VA_ARGS__))
 
 /**
  * @brief Pop and assign the task handle previously registered with the label 

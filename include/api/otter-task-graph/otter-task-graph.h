@@ -253,25 +253,6 @@ void otterTaskRegisterLabel(otter_task_context *task, const char *task_label);
 void otterTaskRegisterLabel_v(otter_task_context *task, const char *format, ...);
 
 /**
- * @brief Look up the task which was previously registered with the given label.
- * Returns NULL if no such task exists.
- * 
- * @param task_label the label of the registered task.
- * @return otter_task_context* 
- */
-otter_task_context *otterTaskGetLabel(const char *task_label);
-
-/**
- * @brief Variadic version of `otterTaskGetLabel`.
- * 
- * @param format 
- * @param ... 
- * @return otter_task_context* 
- */
-otter_task_context *otterTaskGetLabel_v(const char *format, ...);
-
-
-/**
  * @brief Pop the task which was previously registered with the given label.
  * Returns NULL if no such task exists. Further attempts to get or pop the task
  * for this label will return NULL until/unless another task is registered

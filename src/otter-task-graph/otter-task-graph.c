@@ -174,28 +174,6 @@ void otterTaskRegisterLabel_v(otter_task_context *task, const char *format, ...)
 
 }
 
-otter_task_context *otterTaskGetLabel(const char *task_label)
-{
-    TASK_MANAGER_LOCK();
-    otter_task_context *task = trace_task_manager_get_task(task_manager, task_label);
-    TASK_MANAGER_UNLOCK();
-    return task;
-}
-
-otter_task_context *otterTaskGetLabel_v(const char *format, ...)
-{
-    char label_buffer[SOME_LARGE_NUMBER_I_SHOULD_REDEFINE_LATER] = {0};
-    va_list args;
-    va_start(args, format);
-    vsnprintf(&label_buffer[0], SOME_LARGE_NUMBER_I_SHOULD_REDEFINE_LATER, format, args);
-    va_end(args);
-    LOG_DEBUG("get task with label: %s", label_buffer);
-    TASK_MANAGER_LOCK();
-    otter_task_context *task = trace_task_manager_get_task(task_manager, label_buffer);
-    TASK_MANAGER_UNLOCK();
-    return task;
-}
-
 otter_task_context *otterTaskPopLabel(const char *task_label)
 {
     TASK_MANAGER_LOCK();

@@ -41,6 +41,12 @@
  */
 typedef struct otter_task_context otter_task_context;
 
+typedef struct {
+    const char* file;
+    const char* func;
+    int         line;
+} otter_source_args;
+
 /**
  * @brief Convenience macro function for use with functions that require file,
  * func & line arguments.
@@ -143,7 +149,21 @@ void otterTraceStop(void);
  * @param parent_task 
  * @return otter_task_context* 
  */
-otter_task_context *otterTaskInitialise(const char *task_label, int flavour, otter_task_context *parent_task, bool should_register);
+otter_task_context *otterTaskInitialise(const char *task_label, int flavour, otter_task_context *parent_task, bool should_register, otter_source_args init_location);
+
+
+/**
+ * @brief Initialise a task handle with the given flavour as a child of parent.
+ * If `push_task` is true, the task will be stored internally under a label
+ * given by format and any subsequent arguments.
+ * 
+ * @param parent_task: otter_task_context* or NULL
+ * @param flavour: int
+ * @param push_task: bool
+ * @param format: a string literal used to interpret subsequent arguments.
+ * 
+ */
+otter_task_context *otterTaskInitialise_v(otter_task_context *parent_task, int flavour, bool push_task, otter_source_args init_location, const char *format, ...);
 
 
 /******
@@ -162,7 +182,7 @@ otter_task_context *otterTaskInitialise(const char *task_label, int flavour, ott
  * @param task 
  * @return otter_task_context*
  */
-otter_task_context *otterTaskStart(const char* file, const char* func, int line, otter_task_context *task, int flavour);
+otter_task_context *otterTaskStart(const char* file, const char* func, int line, otter_task_context *task);
 
 
 /**
@@ -242,15 +262,15 @@ void otterTaskEnd(otter_task_context *task);
  * @param task The task to register
  * @param task_label The null-terminated label for this task
  */
-void otterTaskRegisterLabel(otter_task_context *task, const char *task_label);
+void otterTaskPushLabel(otter_task_context *task, const char *task_label);
 
 /**
- * @brief Variadic version of `otterTaskRegisterLabel`.
+ * @brief Variadic version of `otterTaskPushLabel`.
  * 
  * @param task 
  * @param format
  */
-void otterTaskRegisterLabel_v(otter_task_context *task, const char *format, ...);
+void otterTaskPushLabel_v(otter_task_context *task, const char *format, ...);
 
 /**
  * @brief Pop the task which was previously registered with the given label.
@@ -272,6 +292,16 @@ otter_task_context *otterTaskPopLabel(const char *task_label);
  * 
  */
 otter_task_context *otterTaskPopLabel_v(const char *format, ...);
+
+/**
+ * @brief Borrow a task which was previously registered with the given label.
+ * Returns NULL if no such task exists. Note that the caller does not own the
+ * borrowed task handle.
+ * 
+ * @param format a format string controlling the formatting of a label using the
+ * subsequent arguments.
+ */
+otter_task_context *otterTaskBorrowLabel_v(const char *format, ...);
 
 
 /******

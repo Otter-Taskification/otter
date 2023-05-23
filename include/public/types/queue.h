@@ -18,6 +18,7 @@ typedef struct otter_queue_t otter_queue_t;
 otter_queue_t *queue_create(void);
 bool     queue_push(otter_queue_t *q, data_item_t item);
 bool     queue_pop(otter_queue_t *q, data_item_t *dest);
+bool     queue_peek(otter_queue_t *q, data_item_t *dest);
 size_t   queue_length(otter_queue_t *q);
 bool     queue_is_empty(otter_queue_t *q);
 void     queue_destroy(otter_queue_t *q, bool items, data_destructor_t destructor);

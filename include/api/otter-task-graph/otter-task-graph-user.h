@@ -17,9 +17,6 @@
  * 
  * - call otterPhaseBegin/otterPhaseSwitch/otterPhaseEnd
  * 
- * TODO:
- * 
- *  - update documentation re. registering tasks against labels
  */
 
 #if !defined(OTTER_TASK_GRAPH_API_MACRO_H)
@@ -31,17 +28,17 @@
 /* detect whether __VA_OPT__ supported 
    credit: https://stackoverflow.com/a/48045656
 */
-#define THIRD_ARG(a,b,c,...) c
-#define VA_OPT_AVAIL_I(...) THIRD_ARG(__VA_OPT__(,),1,0,)
-#define VA_OPT_AVAIL VA_OPT_AVAIL_I(?)
+#define OTTER_IMPL_THIRD_ARG(a,b,c,...) c
+#define OTTER_IMPL_VA_OPT_AVAIL_I(...) OTTER_IMPL_THIRD_ARG(__VA_OPT__(,),1,0,)
+#define OTTER_IMPL_VA_OPT_AVAIL OTTER_IMPL_VA_OPT_AVAIL_I(?)
 
 /* my addition to make variadic macros agnostic of __VA_OPT__ support */
-#if VA_OPT_AVAIL
-#define PASS_ARGS_I(...) __VA_OPT__(,) __VA_ARGS__
+#if OTTER_IMPL_VA_OPT_AVAIL
+#define OTTER_IMPL_PASS_ARGS_I(...) __VA_OPT__(,) __VA_ARGS__
 #else
-#define PASS_ARGS_I(...) , ##__VA_ARGS__
+#define OTTER_IMPL_PASS_ARGS_I(...) , ##__VA_ARGS__
 #endif
-#define PASS_ARGS(...) PASS_ARGS_I(__VA_ARGS__)
+#define OTTER_IMPL_PASS_ARGS(...) OTTER_IMPL_PASS_ARGS_I(__VA_ARGS__)
 
 #define OTTER_INVALID_TASK 0
 
@@ -52,56 +49,73 @@
     otterTraceFinalise()
 
 /**
- * @brief Declares a null task handle
+ * @brief Declares a null task handle in the current scope.
  * 
  */
-#define OTTER_TASK_GRAPH_DECLARE_TASK(task) \
+#define OTTER_DECLARE(task) \
     otter_task_context* task = OTTER_INVALID_TASK
 
 /**
- * @brief Initialise and optionally register a task handle with a given label
- * and flavour. If `parent` is non-null, the initialised task is considered a
- * child of the given parent. If `should_register` is true, the task will be 
- * registered against the given label
+ * @brief Initialise a task handle with the given flavour as a child of parent.
+ * If `parent` is NULL, the new task handle has no parent task. If `push_task`
+ * is true, the task will be stored internally under a label given by `format`
+ * and any subsequent arguments.
+ * 
+ * @param task: otter_task_context*
+ * @param parent: otter_task_context* or NULL
+ * @param flavour: int
+ * @param push_task: bool
+ * @param format: a string literal used to interpret subsequent arguments.
  * 
  */
-// TODO: accept variadic label, rename should_register -> push_task
-#define OTTER_TASK_GRAPH_INIT_TASK(task, label, flavour, parent, should_register) \
-    task = otterTaskInitialise(label, flavour, parent, should_register)
+#define OTTER_INIT(task, parent, flavour, push_task, format, ...) \
+    task = otterTaskInitialise_v(parent, flavour, push_task, (otter_source_args) {.file=__FILE__, .func=__func__, .line=__LINE__}, format OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
- * @brief Register the initialised task handle with the label given by the 
- * format string and any subsequent values. Silently overwrites the registered
- * handle if the label was previously registered.
+ * @brief Push the initialised task handle into the set of tasks associated with
+ * the label given by the format string and subsequent values.
+ * 
+ * @warning No check is performed if a given task handle is added to the same
+ * label multiple times.
  * 
  */
-// TODO: rename to OTTER_TASK_GRAPH_POP_TASK
-#define OTTER_TASK_GRAPH_REGISTER_TASK(task, format, ...) \
-    otterTaskRegisterLabel_v(task, format PASS_ARGS(__VA_ARGS__))
+#define OTTER_PUSH(task, format, ...) \
+    otterTaskPushLabel_v(task, format OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
- * @brief Pop and assign the task handle previously registered with the label 
- * given by the format string and any subsequent values, or null if no task was
- * registered.
+ * @brief Pop a task handle from the set of tasks associated with the label
+ * given by the format string and subsequent values. Returns NULL if no tasks
+ * are available under the given label.
  * 
  */
-#define OTTER_TASK_GRAPH_POP_TASK(task, format, ...) \
-    task = otterTaskPopLabel_v(format PASS_ARGS(__VA_ARGS__))
+#define OTTER_POP(task, format, ...) \
+    task = otterTaskPopLabel_v(format OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
+
+/**
+ * @brief Borrow a task handle from the set of tasks associated with the label
+ * given by the format string and subsequent values. Returns NULL if no tasks
+ * are available under the given label. Note that the caller does not own the
+ * returned task handle and should not call OTTER_TASK_START or
+ * OTTER_TASK_FINISH with it.
+ * 
+ */
+#define OTTER_BORROW(task, format, ...) \
+    task = otterTaskBorrowLabel_v(format OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
  * @brief Indicate the start of a region of code representing the given task
  * handle.
  * 
  */
-#define OTTER_TASK_GRAPH_START_TASK(task, flavour) \
-    task = otterTaskStart(OTTER_SRC_ARGS(), task, flavour)
+#define OTTER_TASK_START(task) \
+    task = otterTaskStart(OTTER_SRC_ARGS(), task)
 
 /**
  * @brief Indicate the end of a region of code representing the given task
  * handle.
  * 
  */
-#define OTTER_TASK_GRAPH_FINISH_TASK(task) \
+#define OTTER_TASK_FINISH(task) \
     otterTaskEnd(task)
 
 /**
@@ -111,21 +125,27 @@
  * `children` or `descendants`.
  * 
  */
-#define OTTER_TASK_GRAPH_SYNCHRONISE_TASKS(task, mode) \
+#define OTTER_SYNCHRONISE(task, mode) \
     otterSynchroniseTasks(task, otter_sync_ ## mode)
+
+#undef OTTER_IMPL_THIRD_ARG
+#undef OTTER_IMPL_VA_OPT_AVAIL_I
+#undef OTTER_IMPL_VA_OPT_AVAIL
+#undef OTTER_IMPL_PASS_ARGS_I
+#undef OTTER_IMPL_PASS_ARGS_I
+#undef OTTER_IMPL_PASS_ARGS
 
 #else
 
 #define OTTER_INITIALISE()
 #define OTTER_FINALISE()
-#define OTTER_TASK_GRAPH_DECLARE_TASK(...)
-#define OTTER_TASK_GRAPH_INIT_TASK(...)
-#define OTTER_TASK_GRAPH_REGISTER_TASK(...)
-#define OTTER_TASK_GRAPH_GET_TASK(...)
-#define OTTER_TASK_GRAPH_POP_TASK(...)
-#define OTTER_TASK_GRAPH_START_TASK(...)
-#define OTTER_TASK_GRAPH_FINISH_TASK(...)
-#define OTTER_TASK_GRAPH_SYNCHRONISE_TASKS(...)
+#define OTTER_DECLARE(...)
+#define OTTER_INIT(...)
+#define OTTER_PUSH(...)
+#define OTTER_POP(...)
+#define OTTER_TASK_START(...)
+#define OTTER_TASK_FINISH(...)
+#define OTTER_SYNCHRONISE(...)
 
 #endif
 

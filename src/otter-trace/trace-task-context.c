@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <assert.h>
+#include <limits.h>
 #include <otf2/otf2.h>
 #include "public/otter-version.h"
 #include "public/debug.h"
@@ -27,6 +28,8 @@ struct otter_task_context
     uint64_t             task_create_time;
     uint64_t             task_start_time;
     uint64_t             task_end_time;
+    int                  flavour;
+    otter_src_ref_t      init_location;
 };
 
 otter_task_context *otterTaskContext_alloc(void)
@@ -35,11 +38,13 @@ otter_task_context *otterTaskContext_alloc(void)
     return malloc(sizeof(otter_task_context));
 }
 
-void otterTaskContext_init(otter_task_context *task, otter_task_context *parent)
+void otterTaskContext_init(otter_task_context *task, otter_task_context *parent, int flavour, otter_src_ref_t init_location)
 {
     assert(task != NULL);
     static unique_id_t unique_id=0;
     task->task_context_id = __sync_fetch_and_add(&unique_id, 1L);
+    task->flavour = flavour;
+    task->init_location = init_location;
     if (parent == NULL) {
         task->parent_task_context_id = TASK_ID_UNDEFINED;
     } else {
@@ -67,4 +72,14 @@ unique_id_t otterTaskContext_get_parent_task_context_id(otter_task_context *task
 {
     // assert(task != NULL);
     return task==NULL ? 0 :  task->parent_task_context_id;
+}
+
+int otterTaskContext_get_task_flavour(otter_task_context *task)
+{
+    return task==NULL ? INT_MAX : task->flavour;
+}
+
+otter_src_ref_t otterTaskContext_get_init_location(otter_task_context *task)
+{
+    return task==NULL ? (otter_src_ref_t){0,0,0} : task->init_location;
 }

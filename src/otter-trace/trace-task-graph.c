@@ -1,5 +1,12 @@
 #define _GNU_SOURCE
 
+/**
+ * TODO:
+ * 
+ *  - manage source locations somewhere - map file & line to OTF2_SourceCodeLocationRef
+ *  - use OTF2_GlobalDefWriter_WriteSourceCodeLocation to write source locations
+ */
+
 #include <otf2/otf2.h>
 #include <time.h>
 #include <pthread.h>
@@ -149,6 +156,7 @@ void trace_graph_event_task_begin(trace_state_t *state, otter_task_context *task
         attr_task_flavour,
         task_attr.flavour
     );
+    CHECK_OTF2_ERROR_CODE(err);
 
     // Record event
     err = OTF2_EvtWriter_ThreadTaskSwitch(

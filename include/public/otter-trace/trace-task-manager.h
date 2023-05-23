@@ -23,6 +23,7 @@
 #define trace_task_manager_add_task    trace_task_manager_one_to_queue_add_task
 #define trace_task_manager_get_task    trace_task_manager_one_to_queue_get_task
 #define trace_task_manager_pop_task    trace_task_manager_one_to_queue_pop_task
+#define trace_task_manager_borrow_task trace_task_manager_one_to_queue_borrow_task
 
 #elif TASK_MANAGER_MODE == OTTER_TRACE_TASK_MANAGER_ALLOW_ONE
 

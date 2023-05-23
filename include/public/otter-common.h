@@ -13,6 +13,12 @@ typedef struct otter_src_location_t {
     int   line;
 } otter_src_location_t;
 
+typedef struct otter_src_ref_t {
+    otter_string_ref_t file;
+    otter_string_ref_t func;
+    int                line;
+} otter_src_ref_t;
+
 typedef enum {
     otter_event_model_omp,
     otter_event_model_serial,

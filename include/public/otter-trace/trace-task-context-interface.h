@@ -29,8 +29,9 @@ otter_task_context *otterTaskContext_alloc(void);
  * 
  * @param task The task to initialise. Must not be NULL.
  * @param parent The parent of `task`, or NULL if `task` has no parent.
+ * @param flavour The flavour of the new task.
  */
-void otterTaskContext_init(otter_task_context *task, otter_task_context *parent);
+void otterTaskContext_init(otter_task_context *task, otter_task_context *parent, int flavour, otter_src_ref_t init_location);
 
 /**
  * @brief Delete a task context.
@@ -56,3 +57,17 @@ unique_id_t otterTaskContext_get_task_context_id(otter_task_context *task);
  * @return unique_id_t 
  */
 unique_id_t otterTaskContext_get_parent_task_context_id(otter_task_context *task);
+
+/**
+ * @brief Get the flavour of a task
+ * 
+ * @param task The task to inspect.
+ * @return int
+ */
+int otterTaskContext_get_task_flavour(otter_task_context *task);
+
+/**
+ * @brief Get the source location where a task was initialised
+ * 
+ */
+otter_src_ref_t otterTaskContext_get_init_location(otter_task_context *task);

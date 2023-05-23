@@ -45,6 +45,16 @@ static trace_task_manager_t *task_manager = NULL;
 #define TASK_MANAGER_LOCK() pthread_mutex_lock(&task_manager_mutex)
 #define TASK_MANAGER_UNLOCK() pthread_mutex_unlock(&task_manager_mutex)
 
+static void otter_register_task_label_va_list(otter_task_context *task, const char *format, va_list args)
+{
+    char label_buffer[SOME_LARGE_NUMBER_I_SHOULD_REDEFINE_LATER] = {0};
+    vsnprintf(&label_buffer[0], SOME_LARGE_NUMBER_I_SHOULD_REDEFINE_LATER, format, args);
+    LOG_DEBUG("register task with label: %s", label_buffer);
+    TASK_MANAGER_LOCK();
+    trace_task_manager_add_task(task_manager, &label_buffer[0], task);
+    TASK_MANAGER_UNLOCK();
+}
+
 void otterTraceInitialise(void)
 {
     // Initialise archive    
@@ -95,20 +105,35 @@ void otterTraceFinalise(void)
     return;
 }
 
-otter_task_context *otterTaskInitialise(const char *task_label, int flavour, otter_task_context *parent, bool should_register)
+otter_task_context *otterTaskInitialise(const char *task_label, int flavour, otter_task_context *parent, bool should_register, otter_source_args init_location)
 {
-    // TODO: store flavour in the task itself
     otter_task_context *task = otterTaskContext_alloc();
-    otterTaskContext_init(task, parent);
+    otterTaskContext_init(task, parent, flavour, (otter_src_ref_t) {0});
     if (task_label != NULL && should_register) {
-        TASK_MANAGER_LOCK();
-        trace_task_manager_add_task(task_manager, task_label, task);
-        TASK_MANAGER_UNLOCK();
+        otterTaskPushLabel_v(task, task_label);
     }
     return task;
 }
 
-otter_task_context *otterTaskStart(const char* file, const char* func, int line, otter_task_context *task, int flavour)
+otter_task_context *otterTaskInitialise_v(otter_task_context *parent, int flavour, bool push_task, otter_source_args init_location, const char *format, ...)
+{
+    otter_task_context *task = otterTaskContext_alloc();
+    trace_state_lock_string_registry(state);
+    string_registry* strings = trace_state_get_string_registry(state);
+    uint32_t file_ref = string_registry_insert(strings, init_location.file);
+    uint32_t func_ref = string_registry_insert(strings, init_location.func);
+    trace_state_unlock_string_registry(state);
+    otterTaskContext_init(task, parent, flavour, (otter_src_ref_t) {file_ref, func_ref, init_location.line});
+    if (push_task) {
+        va_list args;
+        va_start(args, format);
+        otter_register_task_label_va_list(task, format, args);
+        va_end(args);
+    }
+    return task;
+}
+
+otter_task_context *otterTaskStart(const char* file, const char* func, int line, otter_task_context *task)
 {
     if (task == NULL) {
         LOG_ERROR("IGNORED (tried to start null task at %s:%d in %s)", file, line, func);
@@ -118,8 +143,9 @@ otter_task_context *otterTaskStart(const char* file, const char* func, int line,
     task_attr.type = otter_task_explicit;
     task_attr.id = otterTaskContext_get_task_context_id(task);
     task_attr.parent_id = otterTaskContext_get_parent_task_context_id(task);
-    task_attr.flavour = flavour;
+    task_attr.flavour = otterTaskContext_get_task_flavour(task);
     LOG_DEBUG("[%lu] begin task (child of %lu)", task_attr.id, task_attr.parent_id);
+    otter_src_ref_t init_location = otterTaskContext_get_init_location(task);
     trace_graph_event_task_begin(state, task, task_attr);
     return task;
 }
@@ -127,12 +153,17 @@ otter_task_context *otterTaskStart(const char* file, const char* func, int line,
 otter_task_context *otterTaskBegin_flavour(const char* file, const char* func, int line, otter_task_context *parent, int flavour)
 {
     otter_task_context *task = otterTaskContext_alloc();
-    otterTaskContext_init(task, parent);
+    trace_state_lock_string_registry(state);
+    string_registry* strings = trace_state_get_string_registry(state);
+    uint32_t file_ref = string_registry_insert(strings, file);
+    uint32_t func_ref = string_registry_insert(strings, func);
+    trace_state_unlock_string_registry(state);
+    otterTaskContext_init(task, parent, flavour, (otter_src_ref_t) {file_ref, func_ref, line});
     trace_task_region_attr_t task_attr;
     task_attr.type = otter_task_explicit;
     task_attr.id = otterTaskContext_get_task_context_id(task);
     task_attr.parent_id = parent==NULL ? (unique_id_t) (~0) : otterTaskContext_get_task_context_id(parent);
-    task_attr.flavour = flavour;
+    task_attr.flavour = otterTaskContext_get_task_flavour(task);
     LOG_DEBUG("[%lu] begin task (child of %lu)", task_attr.id, task_attr.parent_id);
     trace_graph_event_task_begin(state, task, task_attr);
     return task;
@@ -150,7 +181,7 @@ void otterTaskEnd(otter_task_context *task)
     otterTaskContext_delete(task);
 }
 
-void otterTaskRegisterLabel(otter_task_context *task, const char *task_label)
+void otterTaskPushLabel(otter_task_context *task, const char *task_label)
 {
     if (task_label == NULL) return;
     TASK_MANAGER_LOCK();
@@ -159,19 +190,13 @@ void otterTaskRegisterLabel(otter_task_context *task, const char *task_label)
     return;
 }
 
-void otterTaskRegisterLabel_v(otter_task_context *task, const char *format, ...)
+void otterTaskPushLabel_v(otter_task_context *task, const char *format, ...)
 {
-    char label_buffer[SOME_LARGE_NUMBER_I_SHOULD_REDEFINE_LATER] = {0};
     va_list args;
     va_start(args, format);
-    vsnprintf(&label_buffer[0], SOME_LARGE_NUMBER_I_SHOULD_REDEFINE_LATER, format, args);
+    otter_register_task_label_va_list(task, format, args);
     va_end(args);
-    LOG_DEBUG("register task with label: %s", label_buffer);
-    TASK_MANAGER_LOCK();
-    trace_task_manager_add_task(task_manager, &label_buffer[0], task);
-    TASK_MANAGER_UNLOCK();
     return;
-
 }
 
 otter_task_context *otterTaskPopLabel(const char *task_label)
@@ -196,6 +221,19 @@ otter_task_context *otterTaskPopLabel_v(const char *format, ...)
     return task;
 }
 
+otter_task_context *otterTaskBorrowLabel_v(const char *format, ...)
+{
+    char label_buffer[SOME_LARGE_NUMBER_I_SHOULD_REDEFINE_LATER] = {0};
+    va_list args;
+    va_start(args, format);
+    vsnprintf(&label_buffer[0], SOME_LARGE_NUMBER_I_SHOULD_REDEFINE_LATER, format, args);
+    va_end(args);
+    LOG_DEBUG("pop task with label: %s", label_buffer);
+    TASK_MANAGER_LOCK();
+    otter_task_context *task = trace_task_manager_borrow_task(task_manager, label_buffer);
+    TASK_MANAGER_UNLOCK();
+    return task;
+}
 
 void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode)
 {

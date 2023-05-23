@@ -95,6 +95,26 @@ queue_pop(otter_queue_t *q, data_item_t *dest)
     return true;
 }
 
+bool   
+queue_peek(otter_queue_t *q, data_item_t *dest)
+{
+    if (q == NULL)
+    {
+        LOG_WARN("queue is null");
+        return false;
+    }
+
+    if (q->head == NULL)
+    {
+        LOG_DEBUG("%p[0]=%p", q, q->head);
+        return false;
+    }
+
+    if (dest != NULL) *dest = q->head->data;
+    LOG_DEBUG("%p[0] -> %p", q, dest->ptr);
+    return true;
+}
+
 size_t         
 queue_length(otter_queue_t *q)
 {

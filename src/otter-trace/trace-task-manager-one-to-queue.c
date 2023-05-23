@@ -102,3 +102,28 @@ otter_task_context* trace_task_manager_one_to_queue_pop_task(trace_task_manager_
 
     return task;
 }
+
+otter_task_context* trace_task_manager_one_to_queue_borrow_task(trace_task_manager_t* manager, const char* task_key) {
+
+    // get the queue for this key. If no queue, warn and return NULL
+    otter_queue_t* task_queue = (otter_queue_t*) vptr_manager_get_item((vptr_manager*) manager, task_key);
+    if (task_queue == NULL) {
+        LOG_WARN("(manager=%p) no task queue found for key: '%s'", manager, task_key);
+        return NULL;
+    }
+
+    // borrow the next task by peeking at the front of the queue. Do not pop.
+    otter_task_context* task = NULL;
+    if (!queue_is_empty(task_queue)) {
+        queue_peek(task_queue, (data_item_t*) &task);
+    }
+
+    LOG_DEBUG("got task (manager=%p, task=%p, task_unique_id=%lu, task_key='%s'",
+        manager,
+        task,
+        otterTaskContext_get_task_context_id(task),
+        task_key
+    );
+
+    return task;
+}

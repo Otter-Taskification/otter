@@ -24,3 +24,4 @@ void trace_task_manager_one_to_queue_free(trace_task_manager_t*);
 void trace_task_manager_one_to_queue_add_task(trace_task_manager_t*, const char*, otter_task_context*);
 otter_task_context* trace_task_manager_one_to_queue_get_task(trace_task_manager_t*, const char*);
 otter_task_context* trace_task_manager_one_to_queue_pop_task(trace_task_manager_t*, const char*);
+otter_task_context* trace_task_manager_one_to_queue_borrow_task(trace_task_manager_t*, const char*);

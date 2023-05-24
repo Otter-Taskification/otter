@@ -7,10 +7,10 @@
 // Defines template & explicitly instantiates the specialisations required by public header
 template<>
 string_registry::value_registry(string_registry::labelcbk getlabel, string_registry::destroycbk destructor, destructor_data data) :
+    i_map{},
+    i_default_label{},
     i_get_label{getlabel},
     i_destroy_entry{},
-    i_default_label{},
-    i_map{},
     i_destroy_entry_fn{},
     i_have_destroyfn{},
     i_destructor_data{data}
@@ -26,10 +26,10 @@ string_registry::value_registry(string_registry::labelcbk getlabel, string_regis
 
 template<>
 string_registry::value_registry(string_registry::labelcbk getlabel, string_registry::destroyfn destructor, destructor_data data) :
+    i_map{},
+    i_default_label{},
     i_get_label{getlabel},
     i_destroy_entry{},
-    i_default_label{},
-    i_map{},
     i_destroy_entry_fn{destructor},
     i_have_destroyfn{true},
     i_destructor_data{data}

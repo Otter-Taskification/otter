@@ -221,7 +221,7 @@ set_property(TARGET otter-events-serial PROPERTY POSITION_INDEPENDENT_CODE ON)
 # Task-graph event source
 add_library(otter-events-task-graph OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-task-graph/otter-task-graph.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-task-graph/otter-task-graph-cpp-wrapper.cpp
+    # ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-task-graph/otter-task-graph-cpp-wrapper.cpp
     # Fortran entrypoints to otter-task-graph.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-task-graph/otter-task-graph.F90
 )

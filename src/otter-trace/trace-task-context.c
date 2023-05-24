@@ -53,7 +53,7 @@ void otterTaskContext_init(otter_task_context *task, otter_task_context *parent,
     LOG_DEBUG("initialised task context: %lu", task->task_context_id);
 }
 
-void otterTaskContext_delete(otter_task_context *task)
+void otterTaskContext_delete(otter_task_context *const task)
 {
     LOG_DEBUG("delete task context: %lu", task->task_context_id);
     free(task);
@@ -61,25 +61,25 @@ void otterTaskContext_delete(otter_task_context *task)
 
 // Getters
 
-unique_id_t otterTaskContext_get_task_context_id(otter_task_context *task)
+unique_id_t otterTaskContext_get_task_context_id(const otter_task_context *task)
 {
     // ! HACK ! only here to temporarily work around ExaHyPE not managing task pointers
     // assert(task != NULL);
     return task==NULL ? 0 : task->task_context_id;
 }
 
-unique_id_t otterTaskContext_get_parent_task_context_id(otter_task_context *task)
+unique_id_t otterTaskContext_get_parent_task_context_id(const otter_task_context *task)
 {
     // assert(task != NULL);
     return task==NULL ? 0 :  task->parent_task_context_id;
 }
 
-int otterTaskContext_get_task_flavour(otter_task_context *task)
+int otterTaskContext_get_task_flavour(const otter_task_context *task)
 {
     return task==NULL ? INT_MAX : task->flavour;
 }
 
-otter_src_ref_t otterTaskContext_get_init_location(otter_task_context *task)
+otter_src_ref_t otterTaskContext_get_init_location_ref(const otter_task_context *task)
 {
     return task==NULL ? (otter_src_ref_t){0,0,0} : task->init_location;
 }

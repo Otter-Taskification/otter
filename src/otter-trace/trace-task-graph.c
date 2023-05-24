@@ -89,7 +89,7 @@ static inline void *get_user_code_return_address(void) {
     return NULL;
 }
 
-void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_attr_t task_attr)
+void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_attr_t task_attr, otter_src_ref_t start_ref)
 {
     /*
     Record event: OTF2_EvtWriter_ThreadTaskSwitch()
@@ -103,6 +103,7 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
     OTF2_AttributeList *attr = OTF2_AttributeList_New();
     unique_id_t task_id = otterTaskContext_get_task_context_id(task);
     unique_id_t parent_task_id = otterTaskContext_get_parent_task_context_id(task);
+    otter_src_ref_t init_ref = otterTaskContext_get_init_location_ref(task);
 
     err = OTF2_AttributeList_AddUint64(
         attr,
@@ -167,6 +168,54 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
     );
     CHECK_OTF2_ERROR_CODE(err);
 
+    // ---- The location where the task was initialised
+    {
+        err = OTF2_AttributeList_AddStringRef(
+            attr,
+            attr_task_init_file,
+            init_ref.file
+        );
+        CHECK_OTF2_ERROR_CODE(err);
+
+        err = OTF2_AttributeList_AddStringRef(
+            attr,
+            attr_task_init_func,
+            init_ref.func
+        );
+        CHECK_OTF2_ERROR_CODE(err);
+
+        err = OTF2_AttributeList_AddStringRef(
+            attr,
+            attr_task_init_line,
+            init_ref.line
+        );
+        CHECK_OTF2_ERROR_CODE(err);
+    }
+
+    // The location where the task was started
+    {
+        err = OTF2_AttributeList_AddStringRef(
+            attr,
+            attr_source_file,
+            start_ref.file
+        );
+        CHECK_OTF2_ERROR_CODE(err);
+
+        err = OTF2_AttributeList_AddStringRef(
+            attr,
+            attr_source_func,
+            start_ref.func
+        );
+        CHECK_OTF2_ERROR_CODE(err);
+
+        err = OTF2_AttributeList_AddStringRef(
+            attr,
+            attr_source_line,
+            start_ref.line
+        );
+        CHECK_OTF2_ERROR_CODE(err);
+    }
+
     // Record event
     err = OTF2_EvtWriter_ThreadTaskSwitch(
         get_shared_event_writer(),
@@ -181,7 +230,7 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
     OTF2_AttributeList_Delete(attr);
 }
 
-void trace_graph_event_task_end(otter_task_context *task)
+void trace_graph_event_task_end(otter_task_context *task, otter_src_ref_t end_ref)
 {
     LOG_DEBUG("record task-graph event: task end");
 
@@ -216,9 +265,6 @@ void trace_graph_event_task_end(otter_task_context *task)
         attr_label_ref[attr_task_type_explicit_task]
     );
     CHECK_OTF2_ERROR_CODE(err);
-    
-    
-    // Event type
 
     // Event type
     err = OTF2_AttributeList_AddStringRef(
@@ -247,6 +293,30 @@ void trace_graph_event_task_end(otter_task_context *task)
         attr_endpoint,
         attr_label_ref[attr_endpoint_leave]
     );
+
+    // The location where the task ended
+    {
+        err = OTF2_AttributeList_AddStringRef(
+            attr,
+            attr_source_file,
+            end_ref.file
+        );
+        CHECK_OTF2_ERROR_CODE(err);
+
+        err = OTF2_AttributeList_AddStringRef(
+            attr,
+            attr_source_func,
+            end_ref.func
+        );
+        CHECK_OTF2_ERROR_CODE(err);
+
+        err = OTF2_AttributeList_AddStringRef(
+            attr,
+            attr_source_line,
+            end_ref.line
+        );
+        CHECK_OTF2_ERROR_CODE(err);
+    }
 
     err = OTF2_EvtWriter_ThreadTaskSwitch(
         get_shared_event_writer(),

@@ -154,9 +154,20 @@ INCLUDE_LABEL(prior_task_status,  late_fulfil   )
 INCLUDE_LABEL(prior_task_status,  switch        )
 
 /* task source location */
+// TODO: remove these 3 attributes
 INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT32, source_line_number, "the line number of the construct which caused this region to be created")
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, source_file_name, "the source file containing the construct which caused this region to be created")
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, source_func_name, "the name of the function containing the construct which caused this region to be created")
+
+/* event source locations */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT32, source_line, "the line where this event happened")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, source_file, "the file in which this event happened")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, source_func, "the function in which this event happened")
+
+/* task initialisation locations */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT32, task_init_line, "the line where the task was initialised")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_init_file, "the file in which the task was initialised")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_init_func, "the function in which the task was initialised")
 
 /* phase name */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, phase_name, "the name of an algorithmic phase")

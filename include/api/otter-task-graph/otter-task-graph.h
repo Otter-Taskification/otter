@@ -7,21 +7,6 @@
  * @date 2022-10-03
  * 
  * @copyright Copyright (c) 2022, Adam Tuft. All rights reserved.
- * 
- * @todo Implement threadsafe variable storing last task context created.
- * @todo Add loop context object to otterLoopBegin/End calls.
- * @todo Add loop context object to otterLoopIterationBegin/End calls.
- */
-
-/**
- * TODO: refactor to separate task declaration/definition
- * 
- * Need to be able to:
- * - declare a new null task
- * - define a new task without starting it
- * - begin a previously defined task
- * - end a previously defined task
- * - synchronise tasks
  */
 
 #if !defined(OTTER_TASK_GRAPH_H)
@@ -32,11 +17,7 @@
 #endif
 
 /**
- * @brief Declares the existence of the otter_task_context struct.
- * 
- * This struct is an opaque representation of a task context used by the 
- * `otter-task-graph.h` tracing API. The definition of this struct is hidden 
- * from the user as an implementation detail.
+ * @brief Forward declaration of the otter_task_context struct.
  * 
  */
 typedef struct otter_task_context otter_task_context;
@@ -141,29 +122,25 @@ void otterTraceStop(void);
 
 
 /**
- * @brief Initialise (but do not begin) a task which is the child of the given
- * parent. If task_label is not NULL, register the new task under this label.
- * 
- * @param task_label
- * @param flavour
- * @param parent_task 
- * @return otter_task_context* 
- */
-otter_task_context *otterTaskInitialise(const char *task_label, int flavour, otter_task_context *parent_task, bool should_register, otter_source_args init_location);
-
-
-/**
  * @brief Initialise a task handle with the given flavour as a child of parent.
  * If `push_task` is true, the task will be stored internally under a label
  * given by format and any subsequent arguments.
  * 
- * @param parent_task: otter_task_context* or NULL
- * @param flavour: int
- * @param push_task: bool
- * @param format: a string literal used to interpret subsequent arguments.
+ * @warning if a task is falsely created as an orphan when there is infact a 
+ * parent (a false orphan), it will not be possible to separate the duration of
+ * the orphan from that of the true parent task i.e. the execution time of the
+ * true parent will silently include the execution time of the false orphan.
+ * 
+ * @note Does not record any events in the trace.
+ * 
+ * @param parent_task: The handle of the parent of the new task.
+ * @param flavour: The user-defined flavour of the new task.
+ * @param push_task: Whether to associate the task with the given label.
+ * @param init: The source location where the task was initialised.
+ * @param format: the format of the label, using subsequent arguments.
  * 
  */
-otter_task_context *otterTaskInitialise_v(otter_task_context *parent_task, int flavour, bool push_task, otter_source_args init_location, const char *format, ...);
+otter_task_context *otterTaskInitialise(otter_task_context *parent_task, int flavour, bool push_task, otter_source_args init, const char *format, ...);
 
 
 /******
@@ -172,82 +149,44 @@ otter_task_context *otterTaskInitialise_v(otter_task_context *parent_task, int f
 
 
 /**
- * @brief Record the start of a previously defined task at the location
- * specified by file, func and line arguments. Returns the handle of the started
+ * @brief Record the start of a region which represents previously initialised
  * task.
  * 
- * @note This is distinct from `otterTaskBegin` which defines and then 
- * immediately starts the task.
- * 
- * @param task 
- * @return otter_task_context*
- */
-otter_task_context *otterTaskStart(const char* file, const char* func, int line, otter_task_context *task);
-
-
-/**
- * @brief Indicate the start of a region representing a task.
- * 
  * Indicate that the code enclosed by a matching `otterTaskEnd()` represents a
- * task which could be scheduled on some thread. Note that this does not mean
- * that the enclosed code is actually a task, rather that it could/should be a
- * task after parallelisation.
+ * task which could be scheduled. Note that this does not mean that the enclosed
+ * code is actually a task, rather that it could/should be a task after
+ * parallelisation.
  * 
  * 
  * ## Usage
  * 
  * - Must be matched by a `otterTaskEnd()` call enclosing a region which could/
  *   should be a task.
- * - No synchronisation constraints are applied by default. To indicate that
+ * - No synchronisation constraints are recorded by default. To indicate that
  *   a task should be synchronised, see `otterSynchroniseTasks()`.
  * 
  * ## Semantics
  * 
- * Creates a unique representation of this task and records a `task-switch` 
- * event which switches from the encountering task to the new task. If the
- * parent task is non-NULL, the new task is created as a child of the parent.
- * Otherwise, the new task is an orphan task with no parent.
+ * Records a `task-switch` event at the current source location which indicates
+ * a switch from the encountering task to the new task.
  * 
- * @note This is semantically equivalent to:
-    @code
-    otterTaskStart(__FILE__, __func__, __line__, otterTaskDefine("my task", 0, parent_task));
-    @endcode
+ * @param task The handle to the task representing the annotated region of code.
+ * @param start The source location at which the task was started.
  * 
- * @warning if a task is falsely created as an orphan when there is infact a 
- * parent (a false orphan), it will not be possible to separate the duration of
- * the orphan from that of the true parent task i.e. the execution time of the
- * true parent will silently include the execution time of the false orphan.
- * 
- * @param file The path to the source file containing this call.
- * @param func The name of the enclosing function.
- * @param line The line at which this call appears.
- * @param parent_task The context representing the parent task. If NULL, the new
- * task is created as an orphan task (i.e. with no parent).
- * 
- * @returns A pointer to a otter_task_context which represents the new task
+ * @returns A pointer to a otter_task_context which represents the started task
  */
-otter_task_context *otterTaskBegin(const char* file, const char* func, int line, otter_task_context *parent_task);
-
+otter_task_context *otterTaskStart(otter_task_context *task, otter_source_args start);
 
 /**
- * @brief The same as otterTaskBegin but associates a particular flavour with the
- * created task. Useful for distinguishing tasks created in different places or
- * for different reasons.
+ * @brief Counterpart to `otterTaskStart()`, indicating the end of the code 
+ * representing the given task.
  * 
- */
-otter_task_context *otterTaskBegin_flavour(const char* file, const char* func, int line, otter_task_context *parent, int flavour);
-
-
-/**
- * @brief Counterpart to `otterTaskBegin()`, indicating the end of a region 
- * representing a task.
- * 
- * @param task The context representing the completed task which was returned by
- * `otterTaskBegin()`.
+ * @param task The completed task.
+ * @param end The source location at which the task ended.
  *
  * @see `otterTaskBegin()`
  */
-void otterTaskEnd(otter_task_context *task);
+void otterTaskEnd(otter_task_context *task, otter_source_args end);
 
 
 /******
@@ -262,7 +201,6 @@ void otterTaskEnd(otter_task_context *task);
  * @param task The task to register
  * @param task_label The null-terminated label for this task
  */
-void otterTaskPushLabel(otter_task_context *task, const char *task_label);
 
 /**
  * @brief Variadic version of `otterTaskPushLabel`.
@@ -270,7 +208,7 @@ void otterTaskPushLabel(otter_task_context *task, const char *task_label);
  * @param task 
  * @param format
  */
-void otterTaskPushLabel_v(otter_task_context *task, const char *format, ...);
+void otterTaskPushLabel(otter_task_context *task, const char *format, ...);
 
 /**
  * @brief Pop the task which was previously registered with the given label.
@@ -281,7 +219,6 @@ void otterTaskPushLabel_v(otter_task_context *task, const char *format, ...);
  * @param task_label the label of the registered task.
  * @return otter_task_context* 
  */
-otter_task_context *otterTaskPopLabel(const char *task_label);
 
 /**
  * @brief Variadic version of `otterTaskPopLabel`
@@ -291,7 +228,7 @@ otter_task_context *otterTaskPopLabel(const char *task_label);
  * @return otter_task_context* 
  * 
  */
-otter_task_context *otterTaskPopLabel_v(const char *format, ...);
+otter_task_context *otterTaskPopLabel(const char *format, ...);
 
 /**
  * @brief Borrow a task which was previously registered with the given label.
@@ -301,7 +238,7 @@ otter_task_context *otterTaskPopLabel_v(const char *format, ...);
  * @param format a format string controlling the formatting of a label using the
  * subsequent arguments.
  */
-otter_task_context *otterTaskBorrowLabel_v(const char *format, ...);
+otter_task_context *otterTaskBorrowLabel(const char *format, ...);
 
 
 /******

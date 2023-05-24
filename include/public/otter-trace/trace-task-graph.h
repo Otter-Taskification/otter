@@ -18,8 +18,8 @@
 #include "public/otter-trace/trace-region-attr.h"
 #include "api/otter-task-graph/otter-task-graph.h" // only needed for otter_task_context typedef
 
-void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_attr_t task_attr);
-void trace_graph_event_task_end(otter_task_context *task);
+void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_attr_t task_attr, otter_src_ref_t start_ref);
+void trace_graph_event_task_end(otter_task_context *task, otter_src_ref_t end_ref);
 void trace_graph_synchronise_tasks(otter_task_context *task, trace_sync_region_attr_t sync_attr);
 
 #endif // OTTER_TRACE_TASK_GRAPH_H

@@ -48,7 +48,7 @@ void otterTaskContext_delete(otter_task_context *task);
  * @param task The task to inspect.
  * @return unique_id_t 
  */
-unique_id_t otterTaskContext_get_task_context_id(otter_task_context *task);
+unique_id_t otterTaskContext_get_task_context_id(const otter_task_context *task);
 
 /**
  * @brief Get the ID of the parent of a task context
@@ -56,7 +56,7 @@ unique_id_t otterTaskContext_get_task_context_id(otter_task_context *task);
  * @param task The task to inspect.
  * @return unique_id_t 
  */
-unique_id_t otterTaskContext_get_parent_task_context_id(otter_task_context *task);
+unique_id_t otterTaskContext_get_parent_task_context_id(const otter_task_context *task);
 
 /**
  * @brief Get the flavour of a task
@@ -64,10 +64,10 @@ unique_id_t otterTaskContext_get_parent_task_context_id(otter_task_context *task
  * @param task The task to inspect.
  * @return int
  */
-int otterTaskContext_get_task_flavour(otter_task_context *task);
+int otterTaskContext_get_task_flavour(const otter_task_context *task);
 
 /**
  * @brief Get the source location where a task was initialised
  * 
  */
-otter_src_ref_t otterTaskContext_get_init_location(otter_task_context *task);
+otter_src_ref_t otterTaskContext_get_init_location_ref(const otter_task_context *task);

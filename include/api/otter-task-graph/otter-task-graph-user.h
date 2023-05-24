@@ -33,8 +33,6 @@
 #endif
 #define OTTER_IMPL_PASS_ARGS(...) OTTER_IMPL_PASS_ARGS_I(__VA_ARGS__)
 
-#define OTTER_INVALID_TASK 0
-
 #define OTTER_SOURCE_LOCATION() \
     ((otter_source_args) {.file=__FILE__, .func=__func__, .line=__LINE__})
 
@@ -49,7 +47,7 @@
  * 
  */
 #define OTTER_DECLARE(task) \
-    otter_task_context* task = OTTER_INVALID_TASK
+    otter_task_context* task = 0
 
 /**
  * @brief Initialise a task handle with the given flavour as a child of parent.
@@ -70,7 +68,7 @@
  * 
  */
 #define OTTER_INIT(task, parent, flavour, push_task, format, ...) \
-    task = otterTaskInitialise_v(parent, flavour, push_task, OTTER_SOURCE_LOCATION(), format OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
+    task = otterTaskInitialise(parent, flavour, push_task, OTTER_SOURCE_LOCATION(), format OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
  * @brief Push the initialised task handle into the set of tasks associated with
@@ -81,7 +79,7 @@
  * 
  */
 #define OTTER_PUSH(task, format, ...) \
-    otterTaskPushLabel_v(task, format OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
+    otterTaskPushLabel(task, format OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
  * @brief Pop a task handle from the set of tasks associated with the label
@@ -90,7 +88,7 @@
  * 
  */
 #define OTTER_POP(task, format, ...) \
-    task = otterTaskPopLabel_v(format OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
+    task = otterTaskPopLabel(format OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
  * @brief Borrow a task handle from the set of tasks associated with the label
@@ -101,7 +99,7 @@
  * 
  */
 #define OTTER_BORROW(task, format, ...) \
-    task = otterTaskBorrowLabel_v(format OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
+    task = otterTaskBorrowLabel(format OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
  * @brief Record the start of a region which represents previously initialised
@@ -173,13 +171,6 @@
  */
 #define OTTER_SYNCHRONISE(task, mode) \
     otterSynchroniseTasks(task, otter_sync_ ## mode)
-
-#undef OTTER_IMPL_THIRD_ARG
-#undef OTTER_IMPL_VA_OPT_AVAIL_I
-#undef OTTER_IMPL_VA_OPT_AVAIL
-#undef OTTER_IMPL_PASS_ARGS_I
-#undef OTTER_IMPL_PASS_ARGS_I
-#undef OTTER_IMPL_PASS_ARGS
 
 #else // define macros as no-op
 

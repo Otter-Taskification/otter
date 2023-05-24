@@ -184,7 +184,7 @@ otter_task_context *otterTaskStart(otter_task_context *task, otter_source_args s
  * @param task The completed task.
  * @param end The source location at which the task ended.
  *
- * @see `otterTaskBegin()`
+ * @see `otterTaskStart()`
  */
 void otterTaskEnd(otter_task_context *task, otter_source_args end);
 

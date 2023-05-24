@@ -221,9 +221,15 @@ set_property(TARGET otter-events-serial PROPERTY POSITION_INDEPENDENT_CODE ON)
 # Task-graph event source
 add_library(otter-events-task-graph OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-task-graph/otter-task-graph.c
+
+    # temporarily removed
     # ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-task-graph/otter-task-graph-cpp-wrapper.cpp
+
+    # TODO: temporarily removed while the task-graph API is changing. Some
+    # functions have been renamed e.g. otterTaskBegin -> otterTaskStart and
+    # their semantics changed. Temporarily remove to prevent linkage errors 
     # Fortran entrypoints to otter-task-graph.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-task-graph/otter-task-graph.F90
+    # ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-task-graph/otter-task-graph.F90
 )
 target_include_directories(otter-events-task-graph PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(otter-events-task-graph PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include) # config.h
@@ -245,6 +251,7 @@ add_library(otter-trace OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-data.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-parallel-data.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-context.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/source-location.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-manager-one-to-one.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-manager-one-to-queue.c
 )

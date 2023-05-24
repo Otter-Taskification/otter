@@ -33,8 +33,8 @@ typedef struct trace_state_t {
     } strings;
 } trace_state_t;
 
-#if defined(OTTER_TRACE_STATE_STATIC_DECL)
-static trace_state_t state = {
+#if defined(OTTER_TRACE_STATE_GLOBAL_DECL)
+trace_state_t state = {
     {NULL},                            // archive
     {NULL, PTHREAD_MUTEX_INITIALIZER}, // global_def_writer
     {NULL, PTHREAD_MUTEX_INITIALIZER}  // strings

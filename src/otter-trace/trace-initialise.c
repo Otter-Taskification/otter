@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include "public/debug.h"
 #include "public/otter-trace/trace-initialise.h"
-#define OTTER_TRACE_STATE_STATIC_DECL
+#define OTTER_TRACE_STATE_GLOBAL_DECL
 #include "otter-trace/trace-state.h"
 #include "otter-trace/trace-unique-refs.h"
 #include "otter-trace/trace-static-constants.h"

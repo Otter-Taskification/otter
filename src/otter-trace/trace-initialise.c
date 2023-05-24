@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include "public/debug.h"
 #include "public/otter-trace/trace-initialise.h"
+#define OTTER_TRACE_STATE_STATIC_DECL
 #include "otter-trace/trace-state.h"
 #include "otter-trace/trace-unique-refs.h"
 #include "otter-trace/trace-static-constants.h"
@@ -26,7 +27,7 @@ static void write_str_ref_cbk(const char *s, OTF2_StringRef ref, destructor_data
  */
 static void trace_copy_proc_maps(otter_opt_t *opt);
 
-bool trace_initialise(otter_opt_t *opt, trace_state_t **state)
+bool trace_initialise(otter_opt_t *opt)
 {
     // Determine the archive name from the options
     static char archive_name[default_name_buf_sz+1] = {0};
@@ -61,20 +62,15 @@ bool trace_initialise(otter_opt_t *opt, trace_state_t **state)
     /* Store archive name in options struct */
     opt->archive_name = &archive_name[0];
 
-    OTF2_Archive *archive = NULL;
-    OTF2_GlobalDefWriter *global_def_writer = NULL;
-
     bool archive_initialised = trace_initialise_archive(
         &archive_path[0],
         opt->archive_name,
         opt->event_model,
-        &archive,
-        &global_def_writer
+        &state.archive.instance,
+        &state.global_def_writer.instance
     );
 
-    string_registry *registry = string_registry_make(get_unique_str_ref, write_str_ref_cbk, (destructor_data) global_def_writer);
-
-    *state = trace_state_new(archive, global_def_writer, registry);
+    state.strings.instance = string_registry_make(get_unique_str_ref, write_str_ref_cbk, (destructor_data) state.global_def_writer.instance);
 
     trace_copy_proc_maps(opt);
 
@@ -132,11 +128,10 @@ exit_error:
     return;
 }
 
-bool trace_finalise(trace_state_t *state)
+bool trace_finalise(void)
 {
-    string_registry_delete(trace_state_get_string_registry(state));
-    bool result = trace_finalise_archive(trace_state_get_archive(state));
-    trace_state_destroy(state);
+    string_registry_delete(state.strings.instance);
+    bool result = trace_finalise_archive(state.archive.instance);
     return result;
 }
 

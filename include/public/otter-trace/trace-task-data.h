@@ -10,7 +10,6 @@ typedef struct task_data_t task_data_t;
 
 task_data_t *
 new_task_data(
-    trace_state_t   *state,
     trace_location_def_t  *loc,
     trace_region_def_t    *parent_task_region,
     otter_task_flag_t      flags,

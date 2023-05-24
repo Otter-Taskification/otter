@@ -22,7 +22,7 @@
 void trace_event_thread_begin(trace_location_def_t *self);
 void trace_event_thread_end(trace_location_def_t *self);
 void trace_event_enter(trace_location_def_t *self, trace_region_def_t *region);
-void trace_event_leave(trace_state_t *state, trace_location_def_t *self);
+void trace_event_leave(trace_location_def_t *self);
 void trace_event_task_create(trace_location_def_t *self, trace_region_def_t *created_task);
 void trace_event_task_schedule(trace_location_def_t *self, trace_region_def_t *prior_task, otter_task_status_t prior_status);
 void trace_event_task_switch(trace_location_def_t *self, trace_region_def_t *prior_task, otter_task_status_t prior_status, trace_region_def_t *next_task);

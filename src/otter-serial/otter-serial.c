@@ -33,9 +33,6 @@ static otter_opt_t opt = {
     .append_hostname  = false
 };
 
-/* Store otter-trace state */
-static trace_state_t* state = NULL;
-
 static task_data_t *get_encountering_task(void)
 {
     task_data_t *t = NULL;
@@ -67,14 +64,14 @@ void otterTraceInitialise(const char* file, const char* func, const int line)
     LOG_INFO("%-30s %s", ENV_VAR_TRACE_OUTPUT, opt.tracename);
     LOG_INFO("%-30s %s", ENV_VAR_APPEND_HOST,  opt.append_hostname?"Yes":"No");
 
-    trace_initialise(&opt, &state);
+    trace_initialise(&opt);
 
     task_stack = stack_create();
     parallel_stack = stack_create();
 
     tracingActive = true;
 
-    thread_data = new_thread_data(state, otter_thread_initial);
+    thread_data = new_thread_data(otter_thread_initial);
     location = thread_data->location;
     thread_id = thread_data->id;
     trace_event_thread_begin(location);
@@ -88,7 +85,6 @@ void otterTraceInitialise(const char* file, const char* func, const int line)
 
     // initial task
     task_data_t *initial_task = new_task_data(
-        state,
         location,
         NULL,
         otter_task_initial,
@@ -110,7 +106,7 @@ void otterTraceFinalise(void)
     LOG_DEBUG("=== finalising archive ===");
 
     // initial task
-    trace_event_leave(state, location);
+    trace_event_leave(location);
 
     /* For initial-task-end event, must manually record region defintion
         as it never gets handed off to an enclosing parallel region to be
@@ -118,7 +114,7 @@ void otterTraceFinalise(void)
     trace_region_def_t *initial_task_region = NULL;
     trace_location_get_region_def(location, &initial_task_region);
     LOG_DEBUG("writing initial-task region definition from thread queue: %p", initial_task_region);
-    trace_region_write_definition(state, initial_task_region);
+    trace_region_write_definition(initial_task_region);
     trace_destroy_task_region(initial_task_region);
     initial_task_region = NULL;
 
@@ -140,7 +136,7 @@ void otterTraceFinalise(void)
     while (trace_location_get_region_def(location, &region)) {
         trace_region_type_t region_type = trace_region_get_type(region);
         LOG_DEBUG("writing region definition %p (%d)", region, region_type);
-        trace_region_write_definition(state, region);
+        trace_region_write_definition(region);
         switch (region_type) {
             /*
             Only phase regions may appear outside a parallel region.
@@ -155,8 +151,8 @@ void otterTraceFinalise(void)
     }
 
     trace_event_thread_end(location);
-    thread_destroy(state, thread_data);
-    trace_finalise(state);
+    thread_destroy(thread_data);
+    trace_finalise();
 
     stack_destroy(task_stack, false, NULL);
     stack_destroy(parallel_stack, false, NULL);
@@ -202,7 +198,6 @@ void otterThreadsBegin(const char* file, const char* func, const int line)
     LOG_EVENT_CALL(src_location.file, src_location.func, src_location.line, __func__);
 
     task_data_t *implicit_task = new_task_data(
-        state,
         location,
         trace_task_get_region_def(encountering_task),
         otter_task_implicit,
@@ -232,11 +227,11 @@ void otterThreadsEnd(void)
     parallel_data_t *parallel_data = NULL;
 
     stack_pop(task_stack, (data_item_t*) &implicit_task);
-    trace_event_leave(state, location); // implicit task
+    trace_event_leave( location); // implicit task
     task_destroy(implicit_task);
 
     stack_pop(parallel_stack, (data_item_t*) &parallel_data);
-    trace_event_leave(state, location); // parallel
+    trace_event_leave(location); // parallel
     parallel_destroy(parallel_data);
     return;
 }
@@ -265,7 +260,6 @@ void otterTaskBegin(const char* file, const char* func, const int line)
     trace_region_def_t *encountering_task_region = trace_task_get_region_def(encountering_task);
 
     task_data_t *task = new_task_data(
-        state,
         location,
         encountering_task_region,
         otter_task_explicit,
@@ -352,7 +346,7 @@ void otterLoopEnd(void)
         LOG_DEBUG("[INACTIVE]");
         return;
     }
-    trace_event_leave(state, location);
+    trace_event_leave(location);
     return;
 }
 
@@ -397,7 +391,7 @@ void otterSynchroniseTasks(otter_task_sync_t mode)
     );
     trace_location_store_region_def(location, taskwait);
     trace_event_enter(location, taskwait);
-    trace_event_leave(state, location);
+    trace_event_leave(location);
     return;
 }
 
@@ -428,7 +422,7 @@ void otterSynchroniseDescendantTasksEnd(void)
         LOG_DEBUG("[INACTIVE]");
         return;
     }
-    trace_event_leave(state, location);
+    trace_event_leave(location);
     return;
 }
 
@@ -469,7 +463,6 @@ void otterPhaseBegin(const char* name)
 
     task_data_t *encountering_task = get_encountering_task();
     trace_region_def_t *phase = trace_new_phase_region(
-        state,
         otter_phase_region_generic,
         trace_task_get_id(encountering_task),
         name
@@ -504,6 +497,6 @@ void otterPhaseEnd(void)
     }
 
     LOG_DEBUG("end phase");
-    trace_event_leave(state, location);
+    trace_event_leave(location);
     return;
 }

@@ -12,16 +12,16 @@
 #if !defined(OTTER_TRACE_STATE_TYPEDEF_H)
 #define OTTER_TRACE_STATE_TYPEDEF_H
 
-#include "public/types/string_value_registry.hpp"
+// #include "public/types/string_value_registry.hpp"
 
 /**
  * @brief Opaque handle to an Otter trace state.
  * 
  */
-typedef struct trace_state_t trace_state_t;
+// typedef struct trace_state_t trace_state_t;
 
-string_registry *trace_state_get_string_registry(trace_state_t * state);
-void trace_state_lock_string_registry(trace_state_t * state);
-void trace_state_unlock_string_registry(trace_state_t * state);
+// string_registry *trace_state_get_string_registry(trace_state_t * state);
+// void trace_state_lock_string_registry(trace_state_t * state);
+// void trace_state_unlock_string_registry(trace_state_t * state);
 
 #endif // OTTER_TRACE_STATE_TYPEDEF_H

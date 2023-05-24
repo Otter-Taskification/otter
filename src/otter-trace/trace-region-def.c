@@ -80,7 +80,6 @@ trace_new_parallel_region(
 
 trace_region_def_t *
 trace_new_phase_region(
-    trace_state_t  *state,
     otter_phase_region_t  type,
     unique_id_t           encountering_task_id,
     const char           *phase_name)
@@ -99,10 +98,9 @@ trace_new_phase_region(
     };
 
     if (phase_name != NULL) {
-        trace_state_lock_string_registry(state);
-        string_registry *registry = trace_state_get_string_registry(state);
-        new->attr.phase.name = string_registry_insert(registry, phase_name);
-        trace_state_unlock_string_registry(state);
+        pthread_mutex_lock(&state.strings.lock);
+        new->attr.phase.name = string_registry_insert(state.strings.instance, phase_name);
+        pthread_mutex_unlock(&state.strings.lock);
     } else {
         new->attr.phase.name = 0;
     }
@@ -142,7 +140,6 @@ trace_new_sync_region(
 
 trace_region_def_t *
 trace_new_task_region(
-    trace_state_t   *state,
     trace_region_def_t    *parent_task_region, 
     unique_id_t            id,
     otter_task_flag_t      flags,
@@ -183,11 +180,10 @@ trace_new_task_region(
     new->encountering_task_id = new->attr.task.parent_id;
 
     if (src_location != NULL) {
-        trace_state_lock_string_registry(state);
-        string_registry *registry = trace_state_get_string_registry(state);
-        new->attr.task.source_file_name_ref = string_registry_insert(registry, src_location->file);
-        new->attr.task.source_func_name_ref = string_registry_insert(registry, src_location->func);
-        trace_state_unlock_string_registry(state);
+        pthread_mutex_lock(&state.strings.lock);
+        new->attr.task.source_file_name_ref = string_registry_insert(state.strings.instance, src_location->file);
+        new->attr.task.source_func_name_ref = string_registry_insert(state.strings.instance, src_location->func);
+        pthread_mutex_unlock(&state.strings.lock);
         new->attr.task.source_line_number = src_location->line;
     } else {
         new->attr.task.source_file_name_ref = 0;
@@ -240,7 +236,7 @@ trace_destroy_master_region(trace_region_def_t *rgn)
 }
 
 void
-trace_destroy_parallel_region(trace_state_t *state, trace_region_def_t *rgn)
+trace_destroy_parallel_region(trace_region_def_t *rgn)
 {
     if (rgn->type != trace_region_parallel)
     {
@@ -253,7 +249,7 @@ trace_destroy_parallel_region(trace_state_t *state, trace_region_def_t *rgn)
         rgn->attr.parallel.id, n_defs);
 
     /* Write parallel region's definition */
-    trace_region_write_definition(state, rgn);
+    trace_region_write_definition(rgn);
 
     /* write region's nested region definitions */
     trace_region_def_t *r = NULL;
@@ -263,7 +259,7 @@ trace_destroy_parallel_region(trace_state_t *state, trace_region_def_t *rgn)
         LOG_DEBUG("[parallel=%lu] writing region definition %d/%lu (region %3u)",
             rgn->attr.parallel.id, count+1, n_defs, r->ref);
         count++;
-        trace_region_write_definition(state, r);
+        trace_region_write_definition(r);
 
         /* destroy each region once its definition is written */
         switch (r->type)
@@ -586,7 +582,7 @@ trace_region_dec_ref_count(trace_region_def_t *region)
 
 
 // Write region definition to a trace
-void trace_region_write_definition(trace_state_t *state, trace_region_def_t *region)
+void trace_region_write_definition(trace_region_def_t *region)
 {
     if (region == NULL)
     {
@@ -597,8 +593,8 @@ void trace_region_write_definition(trace_state_t *state, trace_region_def_t *reg
     LOG_DEBUG("writing region definition %3u (type=%3d, role=%3u) %p",
         region->ref, region->type, region->role, region);
     
-    trace_state_lock_global_def_writer(state);
-    OTF2_GlobalDefWriter *writer = trace_state_get_global_def_writer(state);
+    pthread_mutex_lock(&state.global_def_writer.lock);
+    OTF2_GlobalDefWriter *writer = state.global_def_writer.instance;
 
     switch (region->type)
     {
@@ -695,6 +691,6 @@ void trace_region_write_definition(trace_state_t *state, trace_region_def_t *reg
             LOG_ERROR("unexpected region type %d", region->type);
         }
     }
-    trace_state_unlock_global_def_writer(state);
+    pthread_mutex_unlock(&state.global_def_writer.lock);
     return;
 }

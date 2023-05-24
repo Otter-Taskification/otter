@@ -20,6 +20,7 @@
 #include "public/config.h"
 #include "public/debug.h"
 #include "public/otter-environment-variables.h"
+#include "public/otter-trace/trace-initialise.h"
 #include "public/otter-trace/trace-task-graph.h"
 #include "api/otter-task-graph/otter-task-graph.h"
 #include "public/otter-trace/trace-task-context-interface.h"
@@ -37,9 +38,7 @@ static otter_opt_t opt = {
     .append_hostname  = false
 };
 
-/* store otter-trace state */
-static trace_state_t *state = NULL;
-
+// TODO: move into trace_state_t
 static pthread_mutex_t task_manager_mutex = PTHREAD_MUTEX_INITIALIZER;
 static trace_task_manager_t *task_manager = NULL;
 #define TASK_MANAGER_LOCK() pthread_mutex_lock(&task_manager_mutex)
@@ -78,7 +77,7 @@ void otterTraceInitialise(void)
     LOG_INFO("%-30s %s", ENV_VAR_TRACE_OUTPUT, opt.tracename);
     LOG_INFO("%-30s %s", ENV_VAR_APPEND_HOST,  opt.append_hostname?"Yes":"No");
 
-    trace_initialise(&opt, &state);
+    trace_initialise(&opt);
     task_manager = trace_task_manager_alloc();
 
     // Write the definition of a dummy location
@@ -93,10 +92,10 @@ void otterTraceFinalise(void)
     LOG_DEBUG("=== finalising archive ===");
 
     // Ensure a single location definition is written to the archive
-    thread_data_t *dummy_thread = new_thread_data(state, otter_thread_initial);
-    thread_destroy(state, dummy_thread);
+    thread_data_t *dummy_thread = new_thread_data(otter_thread_initial);
+    thread_destroy(dummy_thread);
 
-    trace_finalise(state);
+    trace_finalise();
     trace_task_manager_free(task_manager);
     char trace_folder[PATH_MAX] = {0};
     realpath(opt.tracepath, &trace_folder[0]);
@@ -118,12 +117,12 @@ otter_task_context *otterTaskInitialise(const char *task_label, int flavour, ott
 otter_task_context *otterTaskInitialise_v(otter_task_context *parent, int flavour, bool push_task, otter_source_args init_location, const char *format, ...)
 {
     otter_task_context *task = otterTaskContext_alloc();
-    trace_state_lock_string_registry(state);
-    string_registry* strings = trace_state_get_string_registry(state);
-    uint32_t file_ref = string_registry_insert(strings, init_location.file);
-    uint32_t func_ref = string_registry_insert(strings, init_location.func);
-    trace_state_unlock_string_registry(state);
-    otterTaskContext_init(task, parent, flavour, (otter_src_ref_t) {file_ref, func_ref, init_location.line});
+    // trace_state_lock_string_registry(state);
+    // string_registry* strings = trace_state_get_string_registry(state);
+    // uint32_t file_ref = string_registry_insert(strings, init_location.file);
+    // uint32_t func_ref = string_registry_insert(strings, init_location.func);
+    // trace_state_unlock_string_registry(state);
+    otterTaskContext_init(task, parent, flavour, (otter_src_ref_t) {0, 0, init_location.line});
     if (push_task) {
         va_list args;
         va_start(args, format);
@@ -146,26 +145,26 @@ otter_task_context *otterTaskStart(const char* file, const char* func, int line,
     task_attr.flavour = otterTaskContext_get_task_flavour(task);
     LOG_DEBUG("[%lu] begin task (child of %lu)", task_attr.id, task_attr.parent_id);
     otter_src_ref_t init_location = otterTaskContext_get_init_location(task);
-    trace_graph_event_task_begin(state, task, task_attr);
+    trace_graph_event_task_begin(task, task_attr);
     return task;
 }
 
 otter_task_context *otterTaskBegin_flavour(const char* file, const char* func, int line, otter_task_context *parent, int flavour)
 {
     otter_task_context *task = otterTaskContext_alloc();
-    trace_state_lock_string_registry(state);
-    string_registry* strings = trace_state_get_string_registry(state);
-    uint32_t file_ref = string_registry_insert(strings, file);
-    uint32_t func_ref = string_registry_insert(strings, func);
-    trace_state_unlock_string_registry(state);
-    otterTaskContext_init(task, parent, flavour, (otter_src_ref_t) {file_ref, func_ref, line});
+    // trace_state_lock_string_registry(state);
+    // string_registry* strings = trace_state_get_string_registry(state);
+    // uint32_t file_ref = string_registry_insert(strings, file);
+    // uint32_t func_ref = string_registry_insert(strings, func);
+    // trace_state_unlock_string_registry(state);
+    otterTaskContext_init(task, parent, flavour, (otter_src_ref_t) {0, 0, line});
     trace_task_region_attr_t task_attr;
     task_attr.type = otter_task_explicit;
     task_attr.id = otterTaskContext_get_task_context_id(task);
     task_attr.parent_id = parent==NULL ? (unique_id_t) (~0) : otterTaskContext_get_task_context_id(parent);
     task_attr.flavour = otterTaskContext_get_task_flavour(task);
     LOG_DEBUG("[%lu] begin task (child of %lu)", task_attr.id, task_attr.parent_id);
-    trace_graph_event_task_begin(state, task, task_attr);
+    trace_graph_event_task_begin(task, task_attr);
     return task;
 }
 
@@ -177,7 +176,7 @@ otter_task_context *otterTaskBegin(const char* file, const char* func, int line,
 void otterTaskEnd(otter_task_context *task)
 {
     LOG_DEBUG("[%lu] end task", otterTaskContext_get_task_context_id(task));
-    trace_graph_event_task_end(state, task);
+    trace_graph_event_task_end(task);
     otterTaskContext_delete(task);
 }
 
@@ -242,7 +241,7 @@ void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode)
     sync_attr.type = otter_sync_region_taskwait;
     sync_attr.sync_descendant_tasks = mode == otter_sync_descendants ? true : false;
     sync_attr.encountering_task_id = otterTaskContext_get_task_context_id(task);
-    trace_graph_synchronise_tasks(state, task, sync_attr);
+    trace_graph_synchronise_tasks(task, sync_attr);
     return;
 }
 

@@ -16,13 +16,11 @@ typedef struct thread_data_t {
 
 thread_data_t *
 new_thread_data(
-    trace_state_t *state,
     otter_thread_t type
 );
 
 void
 thread_destroy(
-    trace_state_t *state,
     thread_data_t *thread_data
 );
 

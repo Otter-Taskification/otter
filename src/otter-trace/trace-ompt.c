@@ -244,7 +244,7 @@ trace_event_enter(
 }
 
 void
-trace_event_leave(trace_state_t *state, trace_location_def_t *self)
+trace_event_leave(trace_location_def_t *self)
 {
     OTF2_ErrorCode err = OTF2_SUCCESS;
     OTF2_AttributeList *attributes = NULL;
@@ -329,7 +329,7 @@ trace_event_leave(trace_state_t *state, trace_location_def_t *self)
         if (trace_region_get_shared_ref_count(region) == 0)
         {
             trace_region_unlock(region);
-            trace_destroy_parallel_region(state, region);
+            trace_destroy_parallel_region(region);
         } else {
             trace_region_unlock(region);
         }

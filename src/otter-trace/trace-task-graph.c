@@ -34,22 +34,31 @@ enum {
     void_ptr_top_6_bytes_mask = 0xffffffffffff0000
 };
 
-/* Protects the shared dummy event writer object */
-static pthread_mutex_t lock_shared_evt_writer = PTHREAD_MUTEX_INITIALIZER;
+struct shared_evt_writer {
+    OTF2_EvtWriter *instance;
+    pthread_mutex_t lock;
+};
 
-static inline OTF2_EvtWriter *get_shared_event_writer(trace_state_t *state) {
-    OTF2_Archive *archive = trace_state_get_archive(state);
+static struct shared_evt_writer evt_writer = {
+    NULL,
+    PTHREAD_MUTEX_INITIALIZER
+};
+
+static inline OTF2_EvtWriter *get_shared_event_writer(void) {
     LOG_DEBUG("locking shared event writer");
-    pthread_mutex_lock(&lock_shared_evt_writer);
-    return OTF2_Archive_GetEvtWriter(
-        archive,
-        OTTER_DUMMY_OTF2_LOCATION_REF
-    );
+    pthread_mutex_lock(&evt_writer.lock);
+    if (evt_writer.instance == NULL) {
+        evt_writer.instance = OTF2_Archive_GetEvtWriter(
+            state.archive.instance,
+            OTTER_DUMMY_OTF2_LOCATION_REF
+        );
+    }
+    return evt_writer.instance;
 }
 
 static inline void release_shared_event_writer(void) {
     LOG_DEBUG("releasing shared event writer");
-    pthread_mutex_unlock(&lock_shared_evt_writer);
+    pthread_mutex_unlock(&evt_writer.lock);
 }
 
 static inline void *get_user_code_return_address(void) {
@@ -80,7 +89,7 @@ static inline void *get_user_code_return_address(void) {
     return NULL;
 }
 
-void trace_graph_event_task_begin(trace_state_t *state, otter_task_context *task, trace_task_region_attr_t task_attr)
+void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_attr_t task_attr)
 {
     /*
     Record event: OTF2_EvtWriter_ThreadTaskSwitch()
@@ -160,7 +169,7 @@ void trace_graph_event_task_begin(trace_state_t *state, otter_task_context *task
 
     // Record event
     err = OTF2_EvtWriter_ThreadTaskSwitch(
-        get_shared_event_writer(state),
+        get_shared_event_writer(),
         attr,
         get_timestamp(),
         OTF2_UNDEFINED_COMM,
@@ -172,7 +181,7 @@ void trace_graph_event_task_begin(trace_state_t *state, otter_task_context *task
     OTF2_AttributeList_Delete(attr);
 }
 
-void trace_graph_event_task_end(trace_state_t *state, otter_task_context *task)
+void trace_graph_event_task_end(otter_task_context *task)
 {
     LOG_DEBUG("record task-graph event: task end");
 
@@ -240,7 +249,7 @@ void trace_graph_event_task_end(trace_state_t *state, otter_task_context *task)
     );
 
     err = OTF2_EvtWriter_ThreadTaskSwitch(
-        get_shared_event_writer(state),
+        get_shared_event_writer(),
         attr,
         get_timestamp(),
         OTF2_UNDEFINED_COMM,
@@ -252,7 +261,7 @@ void trace_graph_event_task_end(trace_state_t *state, otter_task_context *task)
     OTF2_AttributeList_Delete(attr);
 }
 
-void trace_graph_synchronise_tasks(trace_state_t *state, otter_task_context *task, trace_sync_region_attr_t sync_attr)
+void trace_graph_synchronise_tasks(otter_task_context *task, trace_sync_region_attr_t sync_attr)
 {
     LOG_DEBUG("record task-graph event: synchronise");
 
@@ -310,7 +319,7 @@ void trace_graph_synchronise_tasks(trace_state_t *state, otter_task_context *tas
     CHECK_OTF2_ERROR_CODE(err);
 
     err = OTF2_EvtWriter_Enter(
-        get_shared_event_writer(state),
+        get_shared_event_writer(),
         attr,
         get_timestamp(),
         OTF2_UNDEFINED_REGION

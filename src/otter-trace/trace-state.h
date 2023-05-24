@@ -1,7 +1,8 @@
 /**
  * @file trace-state.h
  * @author Adam Tuft
- * @brief Defines the interface for interacting with the trace_state struct
+ * @brief Defines the trace_state struct which gatyhers various objects which
+ * represent the collective state of the application. 
  * @version 0.1
  * @date 2023-04-16
  * 
@@ -9,16 +10,37 @@
  * 
  */
 
+#if !defined(OTTER_TRACE_STATE_IMPL_H)
+#define OTTER_TRACE_STATE_IMPL_H
+
+#include <pthread.h>
 #include <otf2/OTF2_Archive.h>
 #include <otf2/OTF2_GlobalDefWriter.h>
 #include "public/types/string_value_registry.hpp"
-#include "public/otter-trace/trace-state.h"
 
-trace_state_t *trace_state_new(OTF2_Archive *archive, OTF2_GlobalDefWriter *global_def_writer, string_registry *registry);
-void trace_state_destroy(trace_state_t *state);
+typedef struct trace_state_t {
+    struct {
+        OTF2_Archive *instance;
+        // no lock
+    } archive;
+    struct {
+        OTF2_GlobalDefWriter *instance;
+        pthread_mutex_t       lock;
+    } global_def_writer;
+    struct {
+        string_registry *instance;
+        pthread_mutex_t  lock;
+    } strings;
+} trace_state_t;
 
-OTF2_Archive *trace_state_get_archive(trace_state_t * state);
+#if defined(OTTER_TRACE_STATE_STATIC_DECL)
+static trace_state_t state = {
+    {NULL},                            // archive
+    {NULL, PTHREAD_MUTEX_INITIALIZER}, // global_def_writer
+    {NULL, PTHREAD_MUTEX_INITIALIZER}  // strings
+};
+#else
+extern trace_state_t state;
+#endif
 
-OTF2_GlobalDefWriter *trace_state_get_global_def_writer(trace_state_t * state);
-void trace_state_lock_global_def_writer(trace_state_t * state);
-void trace_state_unlock_global_def_writer(trace_state_t * state);
+#endif // OTTER_TRACE_STATE_IMPL_H

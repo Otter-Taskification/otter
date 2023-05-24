@@ -16,11 +16,10 @@
 #include "public/otter-common.h"
 #include "public/otter-trace/trace-types.h"
 #include "public/otter-trace/trace-region-attr.h"
-#include "public/otter-trace/trace-initialise.h"
-
 #include "api/otter-task-graph/otter-task-graph.h" // only needed for otter_task_context typedef
-void trace_graph_event_task_begin(trace_state_t *state, otter_task_context *task, trace_task_region_attr_t task_attr);
-void trace_graph_event_task_end(trace_state_t *state, otter_task_context *task);
-void trace_graph_synchronise_tasks(trace_state_t *state, otter_task_context *task, trace_sync_region_attr_t sync_attr);
+
+void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_attr_t task_attr);
+void trace_graph_event_task_end(otter_task_context *task);
+void trace_graph_synchronise_tasks(otter_task_context *task, trace_sync_region_attr_t sync_attr);
 
 #endif // OTTER_TRACE_TASK_GRAPH_H

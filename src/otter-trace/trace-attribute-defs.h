@@ -160,12 +160,12 @@ INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, source_file_name, "the source file containin
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, source_func_name, "the name of the function containing the construct which caused this region to be created")
 
 /* event source locations */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT32, source_line, "the line where this event happened")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_INT32, source_line, "the line where this event happened")
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, source_file, "the file in which this event happened")
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, source_func, "the function in which this event happened")
 
 /* task initialisation locations */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT32, task_init_line, "the line where the task was initialised")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_INT32, task_init_line, "the line where the task was initialised")
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_init_file, "the file in which the task was initialised")
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_init_func, "the function in which the task was initialised")
 

@@ -184,7 +184,7 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
         );
         CHECK_OTF2_ERROR_CODE(err);
 
-        err = OTF2_AttributeList_AddStringRef(
+        err = OTF2_AttributeList_AddInt32(
             attr,
             attr_task_init_line,
             init_ref.line
@@ -208,7 +208,7 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
         );
         CHECK_OTF2_ERROR_CODE(err);
 
-        err = OTF2_AttributeList_AddStringRef(
+        err = OTF2_AttributeList_AddInt32(
             attr,
             attr_source_line,
             start_ref.line
@@ -310,7 +310,7 @@ void trace_graph_event_task_end(otter_task_context *task, otter_src_ref_t end_re
         );
         CHECK_OTF2_ERROR_CODE(err);
 
-        err = OTF2_AttributeList_AddStringRef(
+        err = OTF2_AttributeList_AddInt32(
             attr,
             attr_source_line,
             end_ref.line

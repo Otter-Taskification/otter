@@ -60,6 +60,8 @@ typedef struct {
     otter_task_status_t task_status;
     otter_string_ref_t  source_file_name_ref;
     otter_string_ref_t  source_func_name_ref;
+    otter_src_ref_t     init;
+    otter_string_ref_t  label_ref;
     int                 source_line_number;
     const void         *task_create_ra;
     int                 flavour;

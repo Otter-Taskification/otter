@@ -198,15 +198,9 @@ void otterTaskEnd(otter_task_context *task, otter_source_args end);
  * @brief Associate the given task with the label. The task can later be 
  * retrieved by `otterTaskGetLabel`.
  * 
- * @param task The task to register
- * @param task_label The null-terminated label for this task
- */
-
-/**
- * @brief Variadic version of `otterTaskPushLabel`.
+ * @param task The task to associate with the label
+ * @param format The format of the label, used to format subsequent arguments.
  * 
- * @param task 
- * @param format
  */
 void otterTaskPushLabel(otter_task_context *task, const char *format, ...);
 
@@ -216,16 +210,7 @@ void otterTaskPushLabel(otter_task_context *task, const char *format, ...);
  * for this label will return NULL until/unless another task is registered
  * with this label.
  * 
- * @param task_label the label of the registered task.
- * @return otter_task_context* 
- */
-
-/**
- * @brief Variadic version of `otterTaskPopLabel`
- * 
- * @param format 
- * @param ... 
- * @return otter_task_context* 
+ * @param format The format of the label, used to format subsequent arguments.
  * 
  */
 otter_task_context *otterTaskPopLabel(const char *format, ...);

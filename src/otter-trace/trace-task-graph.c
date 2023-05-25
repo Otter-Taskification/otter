@@ -101,9 +101,6 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
 
     OTF2_ErrorCode err = OTF2_SUCCESS;
     OTF2_AttributeList *attr = OTF2_AttributeList_New();
-    unique_id_t task_id = otterTaskContext_get_task_context_id(task);
-    unique_id_t parent_task_id = otterTaskContext_get_parent_task_context_id(task);
-    otter_src_ref_t init_ref = otterTaskContext_get_init_location_ref(task);
 
     err = OTF2_AttributeList_AddUint64(
         attr,
@@ -122,7 +119,7 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
     err = OTF2_AttributeList_AddUint64(
         attr,
         attr_encountering_task_id,
-        parent_task_id
+        task_attr.parent_id
     );
     CHECK_OTF2_ERROR_CODE(err);
 
@@ -143,14 +140,14 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
     err = OTF2_AttributeList_AddUint64(
         attr,
         attr_unique_id,
-        task_id
+        task_attr.id
     );
     CHECK_OTF2_ERROR_CODE(err);
 
     err = OTF2_AttributeList_AddUint64(
         attr,
         attr_parent_task_id,
-        parent_task_id
+        task_attr.parent_id
     );
     CHECK_OTF2_ERROR_CODE(err);
 
@@ -173,21 +170,21 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
         err = OTF2_AttributeList_AddStringRef(
             attr,
             attr_task_init_file,
-            init_ref.file
+            task_attr.init.file
         );
         CHECK_OTF2_ERROR_CODE(err);
 
         err = OTF2_AttributeList_AddStringRef(
             attr,
             attr_task_init_func,
-            init_ref.func
+            task_attr.init.func
         );
         CHECK_OTF2_ERROR_CODE(err);
 
         err = OTF2_AttributeList_AddInt32(
             attr,
             attr_task_init_line,
-            init_ref.line
+            task_attr.init.line
         );
         CHECK_OTF2_ERROR_CODE(err);
     }
@@ -214,6 +211,16 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
             start_ref.line
         );
         CHECK_OTF2_ERROR_CODE(err);
+    }
+
+    // The label a task was associated with
+    {
+        err = OTF2_AttributeList_AddStringRef(
+            attr,
+            attr_task_label,
+            task_attr.label_ref
+        );
+        CHECK_OTF2_ERROR_CODE(err);        
     }
 
     // Record event

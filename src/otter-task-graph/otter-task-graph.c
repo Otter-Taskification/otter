@@ -27,6 +27,7 @@
 #include "public/otter-trace/trace-thread-data.h"
 #include "public/otter-trace/trace-task-manager.h"
 #include "public/otter-trace/source-location.h"
+#include "public/otter-trace/strings.h"
 
 #define SOME_LARGE_NUMBER_I_SHOULD_REDEFINE_LATER 256
 
@@ -53,6 +54,8 @@ static void otter_register_task_label_va_list(otter_task_context *task, const ch
     TASK_MANAGER_LOCK();
     trace_task_manager_add_task(task_manager, &label_buffer[0], task);
     TASK_MANAGER_UNLOCK();
+    otter_string_ref_t task_label_ref = get_string_ref(&label_buffer[0]);
+    otterTaskContext_set_task_label_ref(task, task_label_ref);
 }
 
 void otterTraceInitialise(void)
@@ -129,11 +132,14 @@ otter_task_context *otterTaskStart(otter_task_context *task, otter_source_args s
         LOG_ERROR("IGNORED (tried to start null task at %s:%d in %s)", start.file, start.line, start.func);
         return NULL;
     }
+    // TODO: not great to pass this struct by value since I only need a few of the fields here
     trace_task_region_attr_t task_attr;
     task_attr.type = otter_task_explicit;
     task_attr.id = otterTaskContext_get_task_context_id(task);
     task_attr.parent_id = otterTaskContext_get_parent_task_context_id(task);
     task_attr.flavour = otterTaskContext_get_task_flavour(task);
+    task_attr.label_ref = otterTaskContext_get_task_label_ref(task);
+    task_attr.init = otterTaskContext_get_init_location_ref(task);
     LOG_DEBUG("[%lu] begin task (child of %lu)", task_attr.id, task_attr.parent_id);
     otter_src_ref_t start_ref = get_source_location_ref((otter_src_location_t){
         .file = start.file, 

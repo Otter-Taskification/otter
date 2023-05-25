@@ -30,6 +30,7 @@ struct otter_task_context
     uint64_t             task_end_time;
     int                  flavour;
     otter_src_ref_t      init_location;
+    otter_string_ref_t   label;
 };
 
 otter_task_context *otterTaskContext_alloc(void)
@@ -45,6 +46,7 @@ void otterTaskContext_init(otter_task_context *task, otter_task_context *parent,
     task->task_context_id = __sync_fetch_and_add(&unique_id, 1L);
     task->flavour = flavour;
     task->init_location = init_location;
+    task->label = OTTER_STRING_UNDEFINED;
     if (parent == NULL) {
         task->parent_task_context_id = TASK_ID_UNDEFINED;
     } else {
@@ -82,4 +84,14 @@ int otterTaskContext_get_task_flavour(const otter_task_context *task)
 otter_src_ref_t otterTaskContext_get_init_location_ref(const otter_task_context *task)
 {
     return task==NULL ? (otter_src_ref_t){0,0,0} : task->init_location;
+}
+
+otter_string_ref_t otterTaskContext_get_task_label_ref(const otter_task_context *task)
+{
+    return task == NULL ? OTTER_STRING_UNDEFINED : task->label;
+}
+
+void otterTaskContext_set_task_label_ref(otter_task_context *task, otter_string_ref_t label)
+{
+    if (task != NULL) task->label = label;
 }

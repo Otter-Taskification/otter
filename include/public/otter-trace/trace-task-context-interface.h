@@ -71,3 +71,14 @@ int otterTaskContext_get_task_flavour(const otter_task_context *task);
  * 
  */
 otter_src_ref_t otterTaskContext_get_init_location_ref(const otter_task_context *task);
+
+/**
+ * @brief Get the label associated with this task, if any.
+ * 
+ */
+otter_string_ref_t otterTaskContext_get_task_label_ref(const otter_task_context *task);
+
+/**
+ * @brief Set the label a task was associated with.
+ */
+void otterTaskContext_set_task_label_ref(otter_task_context *task, otter_string_ref_t label);

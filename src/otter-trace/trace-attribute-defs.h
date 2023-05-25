@@ -169,6 +169,9 @@ INCLUDE_ATTRIBUTE(OTF2_TYPE_INT32, task_init_line, "the line where the task was 
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_init_file, "the file in which the task was initialised")
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_init_func, "the function in which the task was initialised")
 
+/* task label */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_label, "the user-supplied label for a task")
+
 /* phase name */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, phase_name, "the name of an algorithmic phase")
 

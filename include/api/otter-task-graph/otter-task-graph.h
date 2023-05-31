@@ -29,23 +29,27 @@ typedef struct {
 } otter_source_args;
 
 /**
- * @brief Convenience macro function for use with functions that require file,
- * func & line arguments.
- * 
- */
-#define OTTER_SRC_ARGS() __FILE__, __func__, __LINE__
-
-/**
  * @brief Indicates whether a task synchronisation construct should apply a 
  * synchronisation constraint to immediate child tasks or all descendant tasks.
  * 
- * @see otterSynchroniseTasks()
+ * @see otterSynchroniseTasks
  * 
  */
 typedef enum otter_task_sync_t {
     otter_sync_children,
     otter_sync_descendants
 } otter_task_sync_t;
+
+/**
+ * @brief Used to indicate whether a task should be added to a given task pool.
+ * 
+ * @see otterTaskInitialise
+ * 
+ */
+typedef enum otter_add_to_pool_t {
+    otter_no_add_to_pool,
+    otter_add_to_pool
+} otter_add_to_pool_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -140,7 +144,7 @@ void otterTraceStop(void);
  * @param format: the format of the label, using subsequent arguments.
  * 
  */
-otter_task_context *otterTaskInitialise(otter_task_context *parent_task, int flavour, bool push_task, otter_source_args init, const char *format, ...);
+otter_task_context *otterTaskInitialise(otter_task_context *parent_task, int flavour, otter_add_to_pool_t add_to_pool, otter_source_args init, const char *format, ...);
 
 
 /******

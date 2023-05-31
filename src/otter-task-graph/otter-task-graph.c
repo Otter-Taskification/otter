@@ -108,7 +108,7 @@ void otterTraceFinalise(void)
     return;
 }
 
-otter_task_context *otterTaskInitialise(otter_task_context *parent, int flavour, bool push_task, otter_source_args init, const char *format, ...)
+otter_task_context *otterTaskInitialise(otter_task_context *parent, int flavour, otter_add_to_pool_t add_to_pool, otter_source_args init, const char *format, ...)
 {
     otter_task_context *task = otterTaskContext_alloc();
     otter_src_ref_t init_ref = get_source_location_ref((otter_src_location_t){
@@ -117,7 +117,7 @@ otter_task_context *otterTaskInitialise(otter_task_context *parent, int flavour,
         .line = init.line
     });
     otterTaskContext_init(task, parent, flavour, init_ref);
-    if (push_task) {
+    if (add_to_pool == otter_add_to_pool) {
         va_list args;
         va_start(args, format);
         otter_register_task_label_va_list(task, format, args);

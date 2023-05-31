@@ -19,8 +19,8 @@ int main(int argc, char *argv[]) {
 
     OTTER_INITIALISE();
 
-    OTTER_DECLARE(root);
-    OTTER_INIT(root, NULL, 0, true, fib_format, n);
+    OTTER_DECLARE_HANDLE(root);
+    OTTER_INIT_TASK(root, OTTER_NULL_TASK, 0, otter_add_to_pool, fib_format, n);
     OTTER_TASK_START(root);
     fibn = fib(n);
     OTTER_TASK_END(root);
@@ -37,22 +37,22 @@ int fib(int n) {
     if (n<2) return n;
     int i, j;
 
-    OTTER_DECLARE(parent);
-    OTTER_POP(parent, fib_format, n);
+    OTTER_DECLARE_HANDLE(parent);
+    OTTER_REMOVE_FROM_POOL(parent, fib_format, n);
 
-    OTTER_DECLARE(child1);
-    OTTER_INIT(child1, parent, 0, true, fib_format, n-1);
+    OTTER_DECLARE_HANDLE(child1);
+    OTTER_INIT_TASK(child1, parent, 0, otter_add_to_pool, fib_format, n-1);
     OTTER_TASK_START(child1);
     i = fib(n-1);
     OTTER_TASK_END(child1);
 
-    OTTER_DECLARE(child2);
-    OTTER_INIT(child2, parent, 0, true, fib_format, n-2);
+    OTTER_DECLARE_HANDLE(child2);
+    OTTER_INIT_TASK(child2, parent, 0, otter_add_to_pool, fib_format, n-2);
     OTTER_TASK_START(child2);
     j = fib(n-2);
     OTTER_TASK_END(child2);
 
-    OTTER_SYNCHRONISE(parent, children);
+    OTTER_TASK_WAIT_FOR(parent, children);
 
     return i+j;
 }

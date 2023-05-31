@@ -12,6 +12,9 @@
  * 
  */
 
+// TODO: add combined OTTER_DECLARE + OTTER_INIT macro (OTTER_DEFINE_TASK?)
+// TODO: choose more expressive macro names
+
 #if !defined(OTTER_TASK_GRAPH_API_MACRO_H)
 #define OTTER_TASK_GRAPH_API_MACRO_H
 
@@ -61,6 +64,7 @@
  * 
  * @note Does not record any events in the trace.
  * 
+ * @param task: The handle of the task to initialise.
  * @param parent: The handle of the parent of the new task.
  * @param flavour: The user-defined flavour of the new task.
  * @param push_task: Whether to associate the task with the given label.

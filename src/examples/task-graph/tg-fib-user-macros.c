@@ -3,6 +3,8 @@
 #define OTTER_TASK_GRAPH_ENABLE_USER
 #include "api/otter-task-graph/otter-task-graph-user.h"
 
+static const char* fib_format = "fib(%d)";
+
 int fib(int n);
 
 int main(int argc, char *argv[]) {
@@ -17,67 +19,40 @@ int main(int argc, char *argv[]) {
 
     OTTER_INITIALISE();
 
-    OTTER_TASK_GRAPH_DECLARE_TASK(root);
-    OTTER_TASK_GRAPH_INIT_TASK(root, NULL, 0, NULL, false);
-    OTTER_TASK_GRAPH_REGISTER_TASK(root, "fib(%d)", n);
-
-    OTTER_TASK_GRAPH_START_TASK(root, 0);
+    OTTER_DECLARE(root);
+    OTTER_INIT(root, NULL, 0, true, fib_format, n);
+    OTTER_TASK_START(root);
     fibn = fib(n);
-    OTTER_TASK_GRAPH_FINISH_TASK(root);
+    OTTER_TASK_END(root);
 
-    printf("f(%d) = %d\n", n, fibn);
+    printf("fib(%d) = %d\n", n, fibn);
 
     OTTER_FINALISE();
 
     return 0;
 }
 
-#define FIB_GET_PARENT 1
 
 int fib(int n) {
     if (n<2) return n;
     int i, j;
 
-#if FIB_GET_PARENT
-    OTTER_TASK_GRAPH_DECLARE_TASK(parent);
-    OTTER_TASK_GRAPH_GET_TASK(parent, "fib(%d)", n); // CAUTION: there might be multiple tasks with the same label!
-    /**
-     * fib(n)
-     *  |
-     *  |- fib(n-1)
-     *  |   |
-     *  |   |- fib(n-2) <-- registers label "fib(n-2)"
-     *  |   |
-     *  |   \- fib(n-3)
-     *  |
-     *  \- fib(n-2) <-- registers label "fib(n-2)"
-     *      |
-     *      |- fib(n-3)
-     *      |
-     *      \- fib(n-4)
-     * 
-     */
-#endif
+    OTTER_DECLARE(parent);
+    OTTER_POP(parent, fib_format, n);
 
-    OTTER_TASK_GRAPH_DECLARE_TASK(child1);
-    OTTER_TASK_GRAPH_INIT_TASK(child1, NULL, 0, NULL, false);
-    OTTER_TASK_GRAPH_REGISTER_TASK(child1, "fib(%d)", n-1);
-
-    OTTER_TASK_GRAPH_START_TASK(child1, 0);
+    OTTER_DECLARE(child1);
+    OTTER_INIT(child1, parent, 0, true, fib_format, n-1);
+    OTTER_TASK_START(child1);
     i = fib(n-1);
-    OTTER_TASK_GRAPH_FINISH_TASK(child1); // deletes child
+    OTTER_TASK_END(child1);
 
-    OTTER_TASK_GRAPH_DECLARE_TASK(child2);
-    OTTER_TASK_GRAPH_INIT_TASK(child2, NULL, 0, NULL, false);
-    OTTER_TASK_GRAPH_REGISTER_TASK(child2, "fib(%d)", n-2);
+    OTTER_DECLARE(child2);
+    OTTER_INIT(child2, parent, 0, true, fib_format, n-2);
+    OTTER_TASK_START(child2);
+    j = fib(n-2);
+    OTTER_TASK_END(child2);
 
-    OTTER_TASK_GRAPH_START_TASK(child2, 0);
-        j = fib(n-2);
-    OTTER_TASK_GRAPH_FINISH_TASK(child2);
-
-#if FIB_GET_PARENT
-    OTTER_TASK_GRAPH_SYNCHRONISE_TASKS(parent, children);
-#endif
+    OTTER_SYNCHRONISE(parent, children);
 
     return i+j;
 }

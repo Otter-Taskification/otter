@@ -354,7 +354,8 @@ add_api_headers(otter-task-graph)
 install(TARGETS otter-task-graph LIBRARY DESTINATION lib PUBLIC_HEADER DESTINATION include/otter)
 
 # otter-task-graph Fortran module file
-install(FILES ${CMAKE_BINARY_DIR}/lib/fmod/otter_task_graph.mod DESTINATION include/otter)
+# TODO: temporarily removed while the task-graph API is changing.
+# install(FILES ${CMAKE_BINARY_DIR}/lib/fmod/otter_task_graph.mod DESTINATION include/otter)
 
 # Configure version header
 configure_file(

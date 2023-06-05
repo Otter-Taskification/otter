@@ -12,10 +12,6 @@
 #if !defined(OTTER_TASK_GRAPH_H)
 #define OTTER_TASK_GRAPH_H
 
-#if !defined(__cplusplus)
-#include <stdbool.h>
-#endif
-
 /**
  * @brief Forward declaration of the otter_task_context struct.
  * 

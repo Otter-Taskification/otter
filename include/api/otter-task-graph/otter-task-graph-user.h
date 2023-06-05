@@ -12,10 +12,6 @@
  * 
  */
 
-// TODO: add combined OTTER_DECLARE + OTTER_INIT macro (OTTER_DEFINE_TASK?)
-// TODO: choose more expressive macro names
-// TODO: use type system to differentiate borrowed tasks
-
 #if !defined(OTTER_TASK_GRAPH_API_MACRO_H)
 #define OTTER_TASK_GRAPH_API_MACRO_H
 
@@ -49,7 +45,11 @@
  * no parent.
  * 
  */
+#ifdef __cplusplus
+#define OTTER_NULL_TASK nullptr
+#else
 #define OTTER_NULL_TASK ((void*)0)
+#endif
 
 /**
  * @brief Start Otter. Must be invoked before any other Otter function or macro.

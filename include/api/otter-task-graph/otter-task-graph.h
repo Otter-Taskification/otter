@@ -73,7 +73,7 @@ extern "C" {
  *  - Sets up a trace and initialises Otter's internals ready to begin tracing.
  * 
  */
-void otterTraceInitialise(void);
+void otterTraceInitialise(otter_source_args source_location);
 
 
 /**

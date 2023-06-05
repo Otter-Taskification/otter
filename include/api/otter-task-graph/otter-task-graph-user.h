@@ -56,7 +56,7 @@
  * 
  */
 #define OTTER_INITIALISE() \
-    otterTraceInitialise()
+    otterTraceInitialise(OTTER_SOURCE_LOCATION())
 
 /**
  * @brief Shut down Otter. Must be called just before program termination.

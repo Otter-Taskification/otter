@@ -58,7 +58,7 @@ static void otter_register_task_label_va_list(otter_task_context *task, const ch
     otterTaskContext_set_task_label_ref(task, task_label_ref);
 }
 
-void otterTraceInitialise(void)
+void otterTraceInitialise(otter_source_args source_location)
 {
     // Initialise archive    
 

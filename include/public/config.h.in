@@ -1,6 +1,6 @@
 #if !defined(OTTER_CONFIG_H)
 #define OTTER_CONFIG_H
 
-#cmakedefine TASK_MANAGER_MODE @TASK_MANAGER_MODE@
+
 
 #endif // OTTER_CONFIG_H

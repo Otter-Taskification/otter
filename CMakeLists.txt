@@ -253,7 +253,6 @@ add_library(otter-trace OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-context.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/source-location.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/strings.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-manager-one-to-one.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-manager-one-to-queue.c
 )
 target_include_directories(otter-trace PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

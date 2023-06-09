@@ -3,12 +3,9 @@
 #include "public/types/vptr_manager.hpp"
 
 struct vptr_manager {
-    using key = std::string;
-    using label = void*;
-    using map = std::map<key,label>;
-    using counter = std::map<key, int>;
-    map i_map;
-    counter i_count;
+    using mapping = std::map<std::string, void*>;
+    mapping i_map;
+    std::map<mapping::key_type, int>   i_count;
 };
 
 // C wrappers
@@ -27,24 +24,24 @@ void vptr_manager_delete(vptr_manager* manager, vptr_callback *callback) {
 }
 
 void vptr_manager_insert_item(vptr_manager* manager, const char* s, void* value) {
-    vptr_manager::key key(s);
+    vptr_manager::mapping::key_type key(s);
     manager->i_map[key] = value;
     manager->i_count[key]++;
     return;
 }
 
 void vptr_manager_delete_item(vptr_manager* manager, const char* s) {
-    manager->i_map.erase(vptr_manager::key(s));
+    manager->i_map.erase(vptr_manager::mapping::key_type(s));
     return;
 }
 
 void* vptr_manager_get_item(vptr_manager* manager, const char* s) {
-    return manager->i_map[vptr_manager::key(s)];
+    return manager->i_map[vptr_manager::mapping::key_type(s)];
 }
 
 void* vptr_manager_pop_item(vptr_manager* manager, const char* s) {
-    vptr_manager::key key(s);
-    vptr_manager::label result = manager->i_map[key];
+    vptr_manager::mapping::key_type key(s);
+    vptr_manager::mapping::mapped_type value = manager->i_map[key];
     manager->i_map.erase(key);
-    return result;
+    return value;
 }

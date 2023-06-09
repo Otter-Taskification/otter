@@ -1,6 +1,6 @@
 // PUBLIC HEADER
 #if defined(__cplusplus)
-
+#include <cstdint>
 #include <string>
 #include <functional>
 #include "public/types/value_registry_template_declarations.hpp"
@@ -23,7 +23,7 @@ extern "C" {
 // Callback types
 typedef uint32_t(*labelcbk)(void);
 typedef void* destructor_data;
-typedef void(*destroycbk)(const char*, uint32_t, destructor_data);
+typedef void(*destroycbk)(const char*, uint32_t, int, destructor_data);
 
 // Defined elsewhere
 string_registry* string_registry_make(labelcbk, destroycbk, destructor_data);

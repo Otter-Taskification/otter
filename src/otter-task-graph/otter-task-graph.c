@@ -9,12 +9,15 @@
  * 
  */
 
+#define OTTER_USE_PHASES 1
+
 #define __USE_POSIX // HOST_NAME_MAX
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <limits.h>
 #include <stdarg.h>
+#include <assert.h>
 
 #include "public/otter-version.h"
 #include "public/config.h"
@@ -29,7 +32,9 @@
 #include "public/otter-trace/source-location.h"
 #include "public/otter-trace/strings.h"
 
-#define SOME_LARGE_NUMBER_I_SHOULD_REDEFINE_LATER 256
+#define LABEL_BUFFER_MAX_CHARS 256
+
+static void debug_print_count(const char* str, int count);
 
 /* detect environment variables */
 static otter_opt_t opt = {
@@ -40,20 +45,29 @@ static otter_opt_t opt = {
     .append_hostname  = false
 };
 
+// The implicit root task
+static otter_task_context *root_task = NULL;
+static otter_task_context *phase_task = NULL;
+
 // TODO: move into trace_state_t
 static pthread_mutex_t task_manager_mutex = PTHREAD_MUTEX_INITIALIZER;
 static trace_task_manager_t *task_manager = NULL;
 #define TASK_MANAGER_LOCK() pthread_mutex_lock(&task_manager_mutex)
 #define TASK_MANAGER_UNLOCK() pthread_mutex_unlock(&task_manager_mutex)
 
-static void otter_register_task_label_va_list(otter_task_context *task, const char *format, va_list args)
+static void otter_register_task_label_va_list(otter_task_context *task, bool add_to_task_manager, const char *format, va_list args)
 {
-    char label_buffer[SOME_LARGE_NUMBER_I_SHOULD_REDEFINE_LATER] = {0};
-    vsnprintf(&label_buffer[0], SOME_LARGE_NUMBER_I_SHOULD_REDEFINE_LATER, format, args);
-    LOG_DEBUG("register task with label: %s", label_buffer);
-    TASK_MANAGER_LOCK();
-    trace_task_manager_add_task(task_manager, &label_buffer[0], task);
-    TASK_MANAGER_UNLOCK();
+    char label_buffer[LABEL_BUFFER_MAX_CHARS] = {0};
+    int chars_required = vsnprintf(&label_buffer[0], LABEL_BUFFER_MAX_CHARS, format, args);
+    if (chars_required >= LABEL_BUFFER_MAX_CHARS) {
+        LOG_WARN("label truncated (%d/%d chars written): %s", LABEL_BUFFER_MAX_CHARS, chars_required, label_buffer);
+    }
+    if (add_to_task_manager) {
+        LOG_DEBUG("register task with label: %s", label_buffer);
+        TASK_MANAGER_LOCK();
+        trace_task_manager_add_task(task_manager, &label_buffer[0], task);
+        TASK_MANAGER_UNLOCK();
+    }
     otter_string_ref_t task_label_ref = get_string_ref(&label_buffer[0]);
     otterTaskContext_set_task_label_ref(task, task_label_ref);
 }
@@ -87,20 +101,33 @@ void otterTraceInitialise(otter_source_args source_location)
     // Write the definition of a dummy location
     // trace_write_location_definition(...)? or simply via OTF2_GlobalDefWriter_WriteLocation(...)
 
+    // Define the implicit root task
+    // TODO: want to be able to set additional task attributes here e.g. task type
+    root_task = otterTaskInitialise(NULL, 0, otter_no_add_to_pool, source_location, "OTTER ROOT TASK (%s:%d)", source_location.func, source_location.line);
+    otterTaskStart(root_task, source_location);
+
     return;
 }
 
-void otterTraceFinalise(void)
+void otterTraceFinalise(otter_source_args source)
 {
     // Finalise arhchive
     LOG_DEBUG("=== finalising archive ===");
+
+    if (phase_task != NULL) {
+        otterPhaseEnd(source);
+    }
+
+    // TODO: add implicit synchronisation for root_task here.
+
+    otterTaskEnd(root_task, source);
 
     // Ensure a single location definition is written to the archive
     thread_data_t *dummy_thread = new_thread_data(otter_thread_initial);
     thread_destroy(dummy_thread);
 
     trace_finalise();
-    trace_task_manager_free(task_manager);
+    trace_task_manager_free(task_manager, debug_print_count);
     char trace_folder[PATH_MAX] = {0};
     realpath(opt.tracepath, &trace_folder[0]);
     fprintf(stderr, "%s%s/%s\n",
@@ -110,19 +137,31 @@ void otterTraceFinalise(void)
 
 otter_task_context *otterTaskInitialise(otter_task_context *parent, int flavour, otter_add_to_pool_t add_to_pool, otter_source_args init, const char *format, ...)
 {
+    LOG_DEBUG("%s:%d in %s", init.file, init.line, init.func);
     otter_task_context *task = otterTaskContext_alloc();
     otter_src_ref_t init_ref = get_source_location_ref((otter_src_location_t){
         .file = init.file,
         .func = init.func,
         .line = init.line
     });
-    otterTaskContext_init(task, parent, flavour, init_ref);
-    if (add_to_pool == otter_add_to_pool) {
-        va_list args;
-        va_start(args, format);
-        otter_register_task_label_va_list(task, format, args);
-        va_end(args);
+
+    // If no parent given, set the current phase (or root) task as the parent.
+    // Only the implicit root task may have a NULL parent.
+    if (parent == NULL) {
+        if (phase_task != NULL) {
+            parent = phase_task;
+        } else if (root_task != NULL) {
+            parent = root_task;
+        } else {
+            parent = NULL;
+        }
     }
+
+    otterTaskContext_init(task, parent, flavour, init_ref);
+    va_list args;
+    va_start(args, format);
+    otter_register_task_label_va_list(task, add_to_pool == otter_add_to_pool ? true : false, format, args);
+    va_end(args);
     return task;
 }
 
@@ -166,17 +205,20 @@ void otterTaskPushLabel(otter_task_context *task, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
-    otter_register_task_label_va_list(task, format, args);
+    otter_register_task_label_va_list(task, true, format, args);
     va_end(args);
     return;
 }
 
 otter_task_context *otterTaskPopLabel(const char *format, ...)
 {
-    char label_buffer[SOME_LARGE_NUMBER_I_SHOULD_REDEFINE_LATER] = {0};
+    char label_buffer[LABEL_BUFFER_MAX_CHARS] = {0};
     va_list args;
     va_start(args, format);
-    vsnprintf(&label_buffer[0], SOME_LARGE_NUMBER_I_SHOULD_REDEFINE_LATER, format, args);
+    int chars_required = vsnprintf(&label_buffer[0], LABEL_BUFFER_MAX_CHARS, format, args);
+    if (chars_required >= LABEL_BUFFER_MAX_CHARS) {
+        LOG_WARN("label truncated (%d/%d chars written): %s", LABEL_BUFFER_MAX_CHARS, chars_required, label_buffer);
+    }
     va_end(args);
     LOG_DEBUG("pop task with label: %s", label_buffer);
     TASK_MANAGER_LOCK();
@@ -187,10 +229,13 @@ otter_task_context *otterTaskPopLabel(const char *format, ...)
 
 otter_task_context *otterTaskBorrowLabel(const char *format, ...)
 {
-    char label_buffer[SOME_LARGE_NUMBER_I_SHOULD_REDEFINE_LATER] = {0};
+    char label_buffer[LABEL_BUFFER_MAX_CHARS] = {0};
     va_list args;
     va_start(args, format);
-    vsnprintf(&label_buffer[0], SOME_LARGE_NUMBER_I_SHOULD_REDEFINE_LATER, format, args);
+    int chars_required = vsnprintf(&label_buffer[0], LABEL_BUFFER_MAX_CHARS, format, args);
+    if (chars_required >= LABEL_BUFFER_MAX_CHARS) {
+        LOG_WARN("label truncated (%d/%d chars written): %s", LABEL_BUFFER_MAX_CHARS, chars_required, label_buffer);
+    }
     va_end(args);
     LOG_DEBUG("pop task with label: %s", label_buffer);
     TASK_MANAGER_LOCK();
@@ -202,6 +247,15 @@ otter_task_context *otterTaskBorrowLabel(const char *format, ...)
 void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode)
 {
     LOG_DEBUG("synchronise tasks: %d", mode);
+
+    if (task == NULL) {
+        if (phase_task != NULL) {
+            task = phase_task;
+        } else {
+            task = root_task;
+        }
+    }
+
     trace_sync_region_attr_t sync_attr;
     sync_attr.type = otter_sync_region_taskwait;
     sync_attr.sync_descendant_tasks = mode == otter_sync_descendants ? true : false;
@@ -218,14 +272,49 @@ void otterTraceStop(void) {
     LOG_DEBUG("not currently implemented - ignored");
 }
 
-void otterPhaseBegin( const char* name )  {
-    LOG_DEBUG("not currently implemented - ignored");
+void otterPhaseBegin(const char* name, otter_source_args source) {
+#if OTTER_USE_PHASES
+    assert(name != NULL);
+    assert(phase_task == NULL);
+    assert(root_task != NULL);
+    phase_task = otterTaskInitialise(root_task, 0, otter_no_add_to_pool, source, "OTTER PHASE: \"%s\" (%s:%d)", name, source.func, source.line);
+    unique_id_t phase_id = otterTaskContext_get_task_context_id(phase_task);
+    LOG_DEBUG("<phase %lu> OTTER PHASE: \"%s\" (%s:%d)", phase_id, name, source.func, source.line);
+    otterTaskStart(phase_task, source);
+#else
+    LOG_WARN("phases are disabled - ignoring (name=%s)", name);
+#endif
+    return;
 }
 
-void otterPhaseEnd()  {
-    LOG_DEBUG("not currently implemented - ignored");
+void otterPhaseEnd(otter_source_args source) {
+#if OTTER_USE_PHASES
+    assert(phase_task != NULL);
+    unique_id_t phase_id = otterTaskContext_get_task_context_id(phase_task);
+    LOG_DEBUG("<phase %lu> (%s:%d)", phase_id, source.func, source.line);
+    otterTaskEnd(phase_task, source);
+    phase_task = NULL;
+#else
+    LOG_WARN("phases are disabled - ignoring.");
+#endif
+    return;
 }
 
-void otterPhaseSwitch( const char* name )  {
-    LOG_DEBUG("not currently implemented - ignored");
+void otterPhaseSwitch(const char* name, otter_source_args source) {
+#if OTTER_USE_PHASES
+    if (phase_task != NULL) {
+        otterPhaseEnd(source);
+    }
+    otterPhaseBegin(name, source);
+#else
+    LOG_WARN("phases are disabled - ignoring (name=%s)", name);
+#endif
+    return;
+}
+
+static void
+debug_print_count(const char* str, int count)
+{
+    LOG_DEBUG("%s %d", str, count);
+    return;
 }

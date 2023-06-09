@@ -17,6 +17,7 @@ vptr_manager::~value_registry() {
 template<>
 void vptr_manager::insert_key_value_pair(key_type key, value_type value) {
     i_map[key] = value;
+    i_count[key]++;
     return;
 }
 
@@ -38,13 +39,26 @@ value_type vptr_manager::pop_value(key_type key) {
     return value;
 }
 
+template<>
+void vptr_manager::apply_callback(countcbk callback) {
+    if (callback) {
+        for (auto&[key, count] : i_count) {
+            callback(key.c_str(), count);
+        }
+    }
+    return;
+}
+
 // C wrappers
 
 vptr_manager* vptr_manager_make() {
     return new vptr_manager(nullptr, nullptr, nullptr);
 }
 
-void vptr_manager_delete(vptr_manager* manager) {
+void vptr_manager_delete(vptr_manager* manager, void(*callback)(const char*, int)) {
+    if (callback) {
+        manager->apply_callback(callback);
+    }
     delete manager;
 }
 

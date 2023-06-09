@@ -8,10 +8,12 @@ public:
     using key = KeyType;
     using label = LabelType;
     using map = std::map<key,label>;
+    using counter = std::map<key, int>;
     using labelcbk = label(*)(void);
     using destructor_data = void*;
-    using destroycbk = void(*)(key, label, destructor_data);
-    using destroyfn = std::function<void(key, label, destructor_data)>;
+    using destroycbk = void(*)(key, label, int, destructor_data);
+    using destroyfn = std::function<void(key, label, int, destructor_data)>;
+    using countcbk = void(*)(const char *, int);
 
     // ctor
     value_registry(labelcbk getlabel, destroycbk destructor, destructor_data data);
@@ -36,8 +38,10 @@ public:
     label get_value(key k);
     label pop_value(key k);
     void remove_key(key k);
+    void apply_callback(countcbk cbk);
 private:
     map i_map;
+    counter i_count;
     label i_default_label;
     labelcbk i_get_label;
     destroycbk i_destroy_entry;

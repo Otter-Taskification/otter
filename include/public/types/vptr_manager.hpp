@@ -1,19 +1,8 @@
-// PUBLIC HEADER
-#if defined(__cplusplus)
+#if !defined(OTTER_VPTR_MANAGER_PUBLIC_H)
+#define OTTER_VPTR_MANAGER_PUBLIC_H
 
-#include <string>
-#include <functional>
-#include "public/types/value_registry_template_declarations.hpp"
-using vptr_manager = value_registry<std::string, void*>;
-
-#else // C definitions
-
-#include <stdint.h>
-
-// Opaque struct
 typedef struct vptr_manager vptr_manager;
-
-#endif
+typedef void(vptr_callback)(const char*, int);
 
 #if defined(__cplusplus)
 extern "C" {
@@ -32,7 +21,7 @@ vptr_manager* vptr_manager_make();
  * key-value pair stored.
  * 
  */
-void vptr_manager_delete(vptr_manager*, void(*)(const char*, int));
+void vptr_manager_delete(vptr_manager*, vptr_callback*);
 
 /**
  * @brief Insert a key-value pair.
@@ -63,3 +52,5 @@ void* vptr_manager_pop_item(vptr_manager*, const char*);
 #if defined(__cplusplus)
 }
 #endif
+
+#endif // OTTER_VPTR_MANAGER_PUBLIC_H

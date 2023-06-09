@@ -19,16 +19,25 @@ int main(int argc, char *argv[]) {
 
     OTTER_INITIALISE();
 
+    char phase[256] = {0};
+    snprintf(&phase[0], 255, "calculate fib(%d)", n);
+
     OTTER_DECLARE_HANDLE(root);
     OTTER_INIT_TASK(root, OTTER_NULL_TASK, 0, otter_add_to_pool, fib_format, n);
+
+    OTTER_PHASE_BEGIN(phase);
     OTTER_TASK_START(root);
     fibn = fib(n);
     OTTER_TASK_END(root);
+    OTTER_PHASE_END();
+
+    OTTER_TASK_WAIT_FOR(OTTER_NULL_TASK, children);
 
     printf("fib(%d) = %d\n", n, fibn);
 
     OTTER_FINALISE();
 
+    printf("%s\n", phase);
     return 0;
 }
 

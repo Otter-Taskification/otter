@@ -7,7 +7,7 @@
 #include "public/otter-trace/trace-task-context-interface.h"
 
 /**
- * @brief Invatiants:
+ * @brief Invariants:
  * 
  *  - the task pointers represent valid tasks
  *  - a null task is never added to any queue in the manager
@@ -22,10 +22,10 @@ trace_task_manager_t* trace_task_manager_one_to_queue_alloc(void) {
     return manager;
 }
 
-void trace_task_manager_one_to_queue_free(trace_task_manager_t* manager) {
+void trace_task_manager_one_to_queue_free(trace_task_manager_t* manager, void(*callback)(const char*, int)) {
     LOG_DEBUG("freeing task manager: %p", manager);
     // TODO: clean up any queues left in the manager
-    vptr_manager_delete((vptr_manager*) manager);
+    vptr_manager_delete((vptr_manager*) manager, callback);
 }
 
 void trace_task_manager_one_to_queue_add_task(trace_task_manager_t* manager, const char* task_key, otter_task_context* task) {

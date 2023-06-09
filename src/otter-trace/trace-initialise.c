@@ -16,7 +16,7 @@
 
 enum { char_buff_sz = 1024 };
 
-static void write_str_ref_cbk(const char *s, OTF2_StringRef ref, destructor_data def_writer);
+static void write_str_ref_cbk(const char *s, OTF2_StringRef ref, int unused, destructor_data def_writer);
 
 /**
  * @brief Copy the process' memory map from /proc/self/maps to aux/maps within
@@ -136,7 +136,7 @@ bool trace_finalise(void)
 }
 
 static void
-write_str_ref_cbk(const char *s, OTF2_StringRef ref, destructor_data def_writer)
+write_str_ref_cbk(const char *s, OTF2_StringRef ref, int unused, destructor_data def_writer)
 {
     trace_archive_write_string_ref((OTF2_GlobalDefWriter*) def_writer, ref, s);
 }

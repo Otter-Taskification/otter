@@ -55,22 +55,20 @@
  * @brief Start Otter. Must be invoked before any other Otter function or macro.
  * 
  */
-#define OTTER_INITIALISE() \
-    otterTraceInitialise(OTTER_SOURCE_LOCATION())
+#define OTTER_INITIALISE() otterTraceInitialise(OTTER_SOURCE_LOCATION())
 
 /**
  * @brief Shut down Otter. Must be called just before program termination.
  * 
  */
-#define OTTER_FINALISE() \
-    otterTraceFinalise()
+#define OTTER_FINALISE() otterTraceFinalise(OTTER_SOURCE_LOCATION())
 
 /**
  * @brief Declares a null task handle in the current scope.
  * 
  */
 #define OTTER_DECLARE_HANDLE(task) \
-    otter_task_context* task = 0
+    otter_task_context* task = OTTER_NULL_TASK
 
 /**
  * @brief Initialise a new task instance using the given handle.
@@ -198,6 +196,69 @@
 #define OTTER_TASK_WAIT_FOR(task, mode) \
     otterSynchroniseTasks(task, otter_sync_ ## mode)
 
+/**
+ * @brief Start a new algorithmic phase.
+ *
+ * By default, all trace events fall into the same global phase. However, some
+ * codes run through particular phases and will want to study these phases
+ * independently. With the present routine you mark the begin of such a phase.
+ * Each phase has to be given a unique name.
+ * 
+ * 
+ * ## Usage
+ * 
+ * - Must be matched by a corresponding `OTTER_PHASE_END()` or
+ * `OTTER_PHASE_SWITCH()`.
+ * 
+ * 
+ * ## Semantics
+ * 
+ * Creates a meta-region to nest all other regions encountered within it.
+ * 
+ * 
+ * @param name A unique string identifying this phase.
+ * 
+ * @see `OTTER_PHASE_END()`
+ * @see `OTTER_PHASE_SWITCH()`
+ * 
+ */
+#define OTTER_PHASE_BEGIN(name) \
+    otterPhaseBegin((name), OTTER_SOURCE_LOCATION())
+
+/**
+ * @brief End the present algorithmic phase.
+ * 
+ * Indicates the end of the present algorithmic phase and return to the
+ * default global phase.
+ * 
+ * @see `OTTER_PHASE_BEGIN()`
+ * @see `OTTER_PHASE_SWITCH()`
+ * 
+ */
+#define OTTER_PHASE_END() \
+    otterPhaseEnd(OTTER_SOURCE_LOCATION())
+
+/**
+ * @brief End the present algorithmic phase and immediately switch to another.
+ * 
+ * Indicates the end of the present algorithmic phase and the immediate start
+ * of another.
+ * 
+ * Equivalent to:
+ * 
+ *     OTTER_PHASE_END();
+ *     OTTER_PHASE_BEGIN(...);
+ * 
+ * @param name The name of the next phase to begin.
+ * 
+ * @see `OTTER_PHASE_BEGIN()`
+ * @see `OTTER_PHASE_END()`
+ * 
+ */
+#define OTTER_PHASE_SWITCH(name) \
+    otterPhaseSwitch((name), OTTER_SOURCE_LOCATION())
+
+
 #else // define macros as no-op
 
 #define OTTER_INITIALISE()
@@ -210,6 +271,9 @@
 #define OTTER_TASK_START(...)
 #define OTTER_TASK_END(...)
 #define OTTER_TASK_WAIT_FOR(...)
+#define OTTER_PHASE_BEGIN(...)
+#define OTTER_PHASE_END(...)
+#define OTTER_PHASE_SWITCH(...)
 
 #endif
 

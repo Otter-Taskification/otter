@@ -82,7 +82,7 @@ void otterTraceInitialise(otter_source_args source_location);
  * 
  * @see `otterTraceInitialise()`
  */
-void otterTraceFinalise(void);
+void otterTraceFinalise(otter_source_args source_location);
 
 
 /**
@@ -140,7 +140,7 @@ void otterTraceStop(void);
  * @param format: the format of the label, using subsequent arguments.
  * 
  */
-otter_task_context *otterTaskInitialise(otter_task_context *parent_task, int flavour, otter_add_to_pool_t add_to_pool, otter_source_args init, const char *format, ...);
+otter_task_context *otterTaskInitialise(otter_task_context *parent_task, int flavour, otter_add_to_pool_t add_to_pool, otter_source_args init_location, const char *format, ...);
 
 
 /******
@@ -175,7 +175,7 @@ otter_task_context *otterTaskInitialise(otter_task_context *parent_task, int fla
  * 
  * @returns A pointer to a otter_task_context which represents the started task
  */
-otter_task_context *otterTaskStart(otter_task_context *task, otter_source_args start);
+otter_task_context *otterTaskStart(otter_task_context *task, otter_source_args start_location);
 
 /**
  * @brief Counterpart to `otterTaskStart()`, indicating the end of the code 
@@ -186,7 +186,7 @@ otter_task_context *otterTaskStart(otter_task_context *task, otter_source_args s
  *
  * @see `otterTaskStart()`
  */
-void otterTaskEnd(otter_task_context *task, otter_source_args end);
+void otterTaskEnd(otter_task_context *task, otter_source_args end_location);
 
 
 /******
@@ -233,9 +233,9 @@ otter_task_context *otterTaskBorrowLabel(const char *format, ...);
 
 /**
  * @brief Indicate a synchronisation constraint on the children or descendants
- * of the encountering task. If no encountering task is specified, assume that
- * the synchronisation constraint applies to all orphan tasks (and their 
- * descendants) previously created and not already synchronised.
+ * of the encountering task. If no encountering task is specified, the
+ * synchronisation applies to child/descendant tasks of the current phase, or
+ * the implicit global phase if no phase is active.
  * 
  * 
  * ## Usage
@@ -270,55 +270,52 @@ void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode);
 
 
 /**
- * @brief Start a new algorithmic phase
+ * @brief Start a new algorithmic phase.
  *
- * By default, all trace events fall into the same global phase. However, some
- * codes run through particular phases and will want to study these phases
- * independently. With the present routine you mark the begin of such a phase.
- * Each phase has to be given a unique name.
+ * By default, all trace events fall into the same implicit global phase.
+ * However, some codes run through particular phases and will want to study
+ * these phases independently. With the present routine you mark the start of
+ * such a phase. Each phase has to be given a unique name.
  * 
  * 
  * ## Usage
  * 
- * - Must be matched by a corresponding `otterPhaseEnd()`.
+ * - Must be matched by a corresponding `otterPhaseEnd()` or
+ * `otterPhaseSwitch()`.
  * 
  * 
  * ## Semantics
  * 
- * Creates a meta-region to nest all other regions encountered within it. Phases
- * may themselves be nested.
+ * Creates a meta-region to nest all other regions encountered within it.
  * 
  * 
- * @param name A unique identifier for this phase
+ * @param name A unique identifier for this phase.
+ * @param source The location in source where this phase began.
  * 
  * @see `otterPhaseEnd()`
  * @see `otterPhaseSwitch()`
  * 
- * @todo Probably want to introduce an `otterPhaseContext` type for book-keeping
- * during phase.
- * 
  */
-void otterPhaseBegin( const char* name );
+void otterPhaseBegin(const char* name, otter_source_args source_location);
 
 
 /**
- * @brief End the present algorithmic phase
+ * @brief End the present algorithmic phase.
  * 
  * Indicates the end of the present algorithmic phase and return to the
- * encountering task.
-  * 
+ * default global phase.
+ *
+ * @param source The location in source where this phase ended.
+ * 
  * @see `otterPhaseBegin()`
  * @see `otterPhaseSwitch()`
  * 
- * @todo Should probably accept some sort of `otterPhaseContext` for easier
- * book-keeping.
- * 
  */
-void otterPhaseEnd();
+void otterPhaseEnd(otter_source_args source_location);
 
 
 /**
- * @brief End the present algorithmic phase and immediately proceed to another.
+ * @brief End the present algorithmic phase and immediately switch to another.
  * 
  * Indicates the end of the present algorithmic phase and the immediate start
  * of another.
@@ -328,16 +325,14 @@ void otterPhaseEnd();
  *     otterPhaseEnd();
  *     otterPhaseBegin(...);
  * 
- * @param name The name of the next phase to begin
+ * @param name The name of the next phase to begin.
+ * @param source The location in source where this phase switch occurred.
  * 
  * @see `otterPhaseBegin()`
  * @see `otterPhaseEnd()`
  * 
- * @todo Should probably accept & return some sort of `otterPhaseContext` for 
- * easier book-keeping.
- * 
  */
-void otterPhaseSwitch( const char* name );
+void otterPhaseSwitch(const char* name, otter_source_args source_location);
 
 
 #ifdef __cplusplus

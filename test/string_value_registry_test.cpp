@@ -4,55 +4,51 @@
 #include <gtest/gtest.h>
 #include "public/types/string_value_registry.hpp"
 
-template<typename V>
-static V registry_label;
+static uint32_t registry_label;
 static int inserted;
 static int deleted;
 static bool called_with_nullptr;
 
-template<typename V>
-V mock_labeller();
-
-template<typename K, typename V>
-void mock_deleter(K key, V value, destructor_data data);
-
-void mock_deleter_cstr(const char* key, uint32_t label, destructor_data data);
-void mock_deleter_cstr_increments_int_ptr(const char* key, uint32_t label, destructor_data data);
-void mock_deleter_cstr_checks_called_with_nullptr(const char* key, uint32_t label, destructor_data data);
+labeller_fn mock_labeller;
+deleter_fn mock_deleter;
+deleter_fn mock_deleter_cstr;
+deleter_fn mock_deleter_cstr_increments_int_ptr;
+deleter_fn mock_deleter_cstr_checks_called_with_nullptr;
 
 namespace {
 class TestStringRegistry: public testing::Test {
 public:
-    using registry = string_registry;
-    using key = registry::key;
-    using label = registry::label;
+    using key_type = std::string;
+    using label_type = uint32_t;
 protected:
-    registry *r;
-    registry *s;
-    registry *t;
+    string_registry *r;
+    string_registry *s;
+    string_registry *t;
 
     void SetUp() override {
-        registry::labelcbk labeller = &mock_labeller<label>;
-        registry::destroycbk destructor = &mock_deleter<key, label>;
-        r = registry::make(labeller, destructor, nullptr);
+        labeller_fn *labeller = &mock_labeller;
+        deleter_fn *deleter = &mock_deleter;
+        r = string_registry_make(labeller);
         s = nullptr;
         t = nullptr;
-        registry_label<label> = 1;
+        registry_label = 1;
         inserted = 0;
         deleted = 0;
         called_with_nullptr = false;
     }
 
-    void SafeDelete(registry*& reg) {
-        delete reg;
-        reg = nullptr;
+    void SafeDelete(string_registry*& reg, deleter_fn *deleter, deleter_data data) {
+        if (reg) {
+            string_registry_delete(reg, deleter, data);
+            reg = nullptr;
+        }
     }
 
     virtual void TearDown() override {
-        SafeDelete(r);
-        SafeDelete(s);
-        SafeDelete(t);
-        registry_label<label> = 1;
+        SafeDelete(r, nullptr, nullptr);
+        SafeDelete(s, nullptr, nullptr);
+        SafeDelete(t, nullptr, nullptr);
+        registry_label = 1;
         inserted = 0;
         deleted = 0;
         called_with_nullptr = false;
@@ -62,25 +58,23 @@ protected:
 
 } // namespace
 
-template<typename V>
-V mock_labeller()
+uint32_t mock_labeller()
 {
-    inserted ++; return registry_label<V>++;
+    inserted ++; return registry_label++;
 }
 
-template<typename K, typename V>
-void mock_deleter(K key, V value, destructor_data data)
+void mock_deleter(const char *key, uint32_t value, deleter_data data)
 {
     deleted++;
 }
 
-void mock_deleter_cstr(const char* key, uint32_t label, destructor_data data)
+void mock_deleter_cstr(const char* key, uint32_t label, deleter_data data)
 {
     std::cerr << "mock_deleter_cstr(" << key << ")" << std::endl;
     deleted++;
 }
 
-void mock_deleter_cstr_increments_int_ptr(const char* key, uint32_t label, destructor_data data)
+void mock_deleter_cstr_increments_int_ptr(const char* key, uint32_t label, deleter_data data)
 {
     auto value = static_cast<int*>(data);
     std::cerr << "mock_deleter_cstr(" << key << ")" << std::endl;
@@ -88,7 +82,7 @@ void mock_deleter_cstr_increments_int_ptr(const char* key, uint32_t label, destr
     (*value)++;
 }
 
-void mock_deleter_cstr_checks_called_with_nullptr(const char* key, uint32_t label, destructor_data data)
+void mock_deleter_cstr_checks_called_with_nullptr(const char* key, uint32_t label, deleter_data data)
 {
     if (data == nullptr) {
         called_with_nullptr = true;
@@ -106,135 +100,120 @@ TEST_F(TestStringRegistry, IsNonNull){
 }
 
 TEST_F(TestStringRegistry, AcceptsNullDeleter){
-    s = TestStringRegistry::registry::make(&mock_labeller<TestStringRegistry::label>, nullptr, nullptr);
+    s = string_registry_make(mock_labeller);
     ASSERT_NE(s, nullptr);
 }
 
 TEST_F(TestStringRegistry, KeyIsLabelled){
-    TestStringRegistry::key key = "foo";
-    TestStringRegistry::label id = r->insert(key);
-    ASSERT_EQ(id, 1);
+    const char *key = "foo";
+    TestStringRegistry::label_type label = string_registry_insert(r, key);
+    ASSERT_EQ(label, 1);
 }
 
 TEST_F(TestStringRegistry, SameKeySameLabel){
-    TestStringRegistry::key key = "foo";
-    TestStringRegistry::label id1 = r->insert(key);
-    TestStringRegistry::label id2 = r->insert(key);
-    ASSERT_EQ(id1, id2);
+    const char *key = "foo";
+    TestStringRegistry::label_type label1 = string_registry_insert(r, key);
+    TestStringRegistry::label_type label2 = string_registry_insert(r, key);
+    ASSERT_EQ(label1, label2);
 }
 
 TEST_F(TestStringRegistry, DiffKeyDiffLabel){
-    TestStringRegistry::key key1 = "foo";
-    TestStringRegistry::key key2 = "bar";
-    TestStringRegistry::label id1 = r->insert(key1);
-    TestStringRegistry::label id2 = r->insert(key2);
-    ASSERT_EQ(id1+1, id2);
+    const char *key1 = "foo";
+    const char *key2 = "bar";
+    TestStringRegistry::label_type label1 = string_registry_insert(r, key1);
+    TestStringRegistry::label_type label2 = string_registry_insert(r, key2);
+    ASSERT_NE(label1, label2);
 }
 
 TEST_F(TestStringRegistry, InsertedEqDeleted){
-    TestStringRegistry::key keys[] = {"foo", "bar", "baz"};
+    const char *keys[] = {"foo", "bar", "baz"};
     for (auto& key : keys)
     {
-        r->insert(key);
+        string_registry_insert(r, key);
     }
     ASSERT_EQ(inserted, 3);
-    TestStringRegistry::SafeDelete(r);
+    TestStringRegistry::SafeDelete(r, mock_deleter, nullptr);
     ASSERT_EQ(deleted, 3);
 }
-
-/*** DEATH TESTS ***/
-
 TEST_F(TestStringRegistryDeath, DeathOnNullLabeller){
     ASSERT_DEATH({
-        s = TestStringRegistryDeath::registry::make(nullptr, &mock_deleter<TestStringRegistryDeath::key, TestStringRegistryDeath::label>, nullptr);
+        s = string_registry_make(nullptr);
     }, ".*");
 }
 
-/*** TEST C FUNCTIONS ***/
-
-TEST_F(TestStringRegistry_C, CreateWithNullDeleter){
-    t = string_registry_make(&mock_labeller<TestStringRegistry::label>, nullptr, nullptr);
-    ASSERT_NE(t, nullptr);
-}
-
-TEST_F(TestStringRegistry_C, CreateWithDeleter){
-    t = string_registry_make(&mock_labeller<TestStringRegistry::label>, &mock_deleter_cstr, nullptr);
-    ASSERT_NE(t, nullptr);
-}
-
 TEST_F(TestStringRegistry_C, KeyIsLabelled){
-    t = string_registry_make(&mock_labeller<TestStringRegistry::label>, &mock_deleter_cstr, nullptr);
-    TestStringRegistry::key key = "foo";
-    TestStringRegistry::label id = t->insert(key);
+    t = string_registry_make(mock_labeller);
+    const char * key = "foo";
+    TestStringRegistry::label_type id = string_registry_insert(t,key);
     ASSERT_EQ(id, 1);
-    TestStringRegistry::SafeDelete(t);
+    TestStringRegistry::SafeDelete(t, nullptr, nullptr);
 }
 
 TEST_F(TestStringRegistry_C, SameKeySameLabel){
-    t = string_registry_make(&mock_labeller<TestStringRegistry::label>, &mock_deleter_cstr, nullptr);
-    TestStringRegistry::key key = "foo";
-    TestStringRegistry::label id1 = t->insert(key);
-    TestStringRegistry::label id2 = t->insert(key);
+    t = string_registry_make(mock_labeller);
+    const char * key = "foo";
+    TestStringRegistry::label_type id1 = string_registry_insert(t,key);
+    TestStringRegistry::label_type id2 = string_registry_insert(t,key);
     ASSERT_EQ(id1, id2);
-    TestStringRegistry::SafeDelete(t);
+    TestStringRegistry::SafeDelete(t, nullptr, nullptr);
 }
 
 TEST_F(TestStringRegistry_C, DiffKeyDiffLabel){
-    t = string_registry_make(&mock_labeller<TestStringRegistry::label>, &mock_deleter_cstr, nullptr);
-    TestStringRegistry::key key1 = "foo";
-    TestStringRegistry::key key2 = "bar";
-    TestStringRegistry::label id1 = t->insert(key1);
-    TestStringRegistry::label id2 = t->insert(key2);
+    t = string_registry_make(mock_labeller);
+    const char * key1 = "foo";
+    const char * key2 = "bar";
+    TestStringRegistry::label_type id1 = string_registry_insert(t,key1);
+    TestStringRegistry::label_type id2 = string_registry_insert(t,key2);
     ASSERT_EQ(id1+1, id2);
-    TestStringRegistry::SafeDelete(t);
+    TestStringRegistry::SafeDelete(t, nullptr, nullptr);
 }
 
 TEST_F(TestStringRegistry_C, InsertedEqDeleted){
-    t = string_registry_make(&mock_labeller<TestStringRegistry::label>, &mock_deleter_cstr, nullptr);
-    TestStringRegistry::key keys[] = {"foo", "bar", "baz"};
+    t = string_registry_make(mock_labeller);
+    const char * keys[] = {"foo", "bar", "baz"};
     for (auto &key : keys)
     {
-        t->insert(key);
+        string_registry_insert(t,key);
     }
     ASSERT_EQ(inserted, 3);
-    TestStringRegistry::SafeDelete(t);
+    TestStringRegistry::SafeDelete(t, mock_deleter, nullptr);
     ASSERT_EQ(deleted, 3);
 }
 
 TEST_F(TestStringRegistry_C, DeleterCalledWithNullData){
-    t = string_registry_make(&mock_labeller<TestStringRegistry::label>, &mock_deleter_cstr_checks_called_with_nullptr, nullptr);
-    TestStringRegistry::key key = "foo";
-    TestStringRegistry::label id = t->insert(key);
-    TestStringRegistry::SafeDelete(t);
+    t = string_registry_make(mock_labeller);
+    const char * key = "foo";
+    TestStringRegistry::label_type id = string_registry_insert(t,key);
+    TestStringRegistry::SafeDelete(t, mock_deleter_cstr_checks_called_with_nullptr, nullptr);
     ASSERT_TRUE(called_with_nullptr);
 }
 
 TEST_F(TestStringRegistry_C, DeleterCalledWithData){
     int count = 0;
-    t = string_registry_make(&mock_labeller<TestStringRegistry::label>, &mock_deleter_cstr_increments_int_ptr, (destructor_data) &count);
-    TestStringRegistry::key keys[] = {"foo", "bar", "baz"};
+    t = string_registry_make(mock_labeller);
+    const char * keys[] = {"foo", "bar", "baz"};
     for (auto &key : keys)
     {
-        t->insert(key);
+        string_registry_insert(t,key);
     }
-    TestStringRegistry::SafeDelete(t);
+    TestStringRegistry::SafeDelete(t, mock_deleter_cstr_increments_int_ptr, (deleter_data) &count);
     ASSERT_EQ(count, 3);
 }
 
 TEST_F(TestStringRegistry_C, ArgOutlivesScope){
-    auto print_values = [](const char* str, uint32_t label, destructor_data data) -> void {
+    auto print_values = [](const char* str, uint32_t label, deleter_data data) -> void {
         std::cerr << "(" << label << "," << str << ")" << std::endl;
     };
-    t = string_registry_make(&mock_labeller<TestStringRegistry::label>, print_values, nullptr);
+    t = string_registry_make(mock_labeller);
     {
-        std::string s1 = "foo";
-        std::string s2 = "bar";
-        std::string s3 = "baz";
-        string_registry_insert(t, s1.c_str());
-        string_registry_insert(t, s2.c_str());
-        string_registry_insert(t, s3.c_str());
+        const char *s1 = "foo";
+        const char *s2 = "bar";
+        const char *s3 = "baz";
+        string_registry_insert(t, s1);
+        string_registry_insert(t, s2);
+        string_registry_insert(t, s3);
     }
-    TestStringRegistry::SafeDelete(t);
+    TestStringRegistry::SafeDelete(t, print_values, nullptr);
     ASSERT_EQ(inserted, 3);
     ASSERT_EQ(deleted, 0);
 }

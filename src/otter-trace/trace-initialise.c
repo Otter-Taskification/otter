@@ -16,7 +16,7 @@
 
 enum { char_buff_sz = 1024 };
 
-static void write_str_ref_cbk(const char *s, OTF2_StringRef ref, int unused, destructor_data def_writer);
+static void write_str_ref_cbk(const char *s, OTF2_StringRef ref, deleter_data def_writer);
 
 /**
  * @brief Copy the process' memory map from /proc/self/maps to aux/maps within
@@ -70,7 +70,7 @@ bool trace_initialise(otter_opt_t *opt)
         &state.global_def_writer.instance
     );
 
-    state.strings.instance = string_registry_make(get_unique_str_ref, write_str_ref_cbk, (destructor_data) state.global_def_writer.instance);
+    state.strings.instance = string_registry_make(get_unique_str_ref);
 
     trace_copy_proc_maps(opt);
 
@@ -130,13 +130,13 @@ exit_error:
 
 bool trace_finalise(void)
 {
-    string_registry_delete(state.strings.instance);
+    string_registry_delete(state.strings.instance, write_str_ref_cbk, (deleter_data) state.global_def_writer.instance);
     bool result = trace_finalise_archive(state.archive.instance);
     return result;
 }
 
 static void
-write_str_ref_cbk(const char *s, OTF2_StringRef ref, int unused, destructor_data def_writer)
+write_str_ref_cbk(const char *s, OTF2_StringRef ref, deleter_data def_writer)
 {
     trace_archive_write_string_ref((OTF2_GlobalDefWriter*) def_writer, ref, s);
 }

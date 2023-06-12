@@ -2,7 +2,7 @@
 #define OTTER_VPTR_MANAGER_PUBLIC_H
 
 typedef struct vptr_manager vptr_manager;
-typedef void(vptr_callback)(const char*, int);
+typedef void(vptr_callback)(const char*, int, void*);
 
 #if defined(__cplusplus)
 extern "C" {
@@ -17,11 +17,18 @@ extern "C" {
 vptr_manager* vptr_manager_make();
 
 /**
+ * @brief Apply a callback to each key that was inserted into the manager,
+ * passing it each key and the number of times it was updated.
+ * 
+ */
+void vptr_manager_count_inserts(vptr_manager*, vptr_callback*, void*);
+
+/**
  * @brief Delete a `vptr_manager`, applying an optional callback to each
  * key-value pair stored.
  * 
  */
-void vptr_manager_delete(vptr_manager*, vptr_callback*);
+void vptr_manager_delete(vptr_manager*);
 
 /**
  * @brief Insert a key-value pair.

@@ -14,6 +14,7 @@ trace_task_manager_t* trace_task_manager_one_to_one_alloc(void) {
 
 void trace_task_manager_one_to_one_free(trace_task_manager_t* manager) {
     LOG_DEBUG("freeing task manager: %p", manager);
+    vptr_manager_count_inserts(...);
     vptr_manager_delete((vptr_manager*) manager);
 }
 

@@ -25,7 +25,8 @@ trace_task_manager_t* trace_task_manager_one_to_queue_alloc(void) {
 void trace_task_manager_one_to_queue_free(trace_task_manager_t* manager, void(*callback)(const char*, int)) {
     LOG_DEBUG("freeing task manager: %p", manager);
     // TODO: clean up any queues left in the manager
-    vptr_manager_delete((vptr_manager*) manager, callback);
+    vptr_manager_count_inserts((vptr_manager*) manager, callback, NULL);
+    vptr_manager_delete((vptr_manager*) manager);
 }
 
 void trace_task_manager_one_to_queue_add_task(trace_task_manager_t* manager, const char* task_key, otter_task_context* task) {

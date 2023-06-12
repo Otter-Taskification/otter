@@ -1,10 +1,15 @@
+#include <map>
+#include <string>
 #include <gtest/gtest.h>
 #include "public/types/vptr_manager.hpp"
 
 static int inserted;
 static int deleted;
+static bool callback_triggered;
 
 vptr_callback mock_vptr_callback;
+
+using string_counter = std::map<std::string, int>;
 
 namespace {
 class TestVPtrManager: public testing::Test {
@@ -18,17 +23,21 @@ protected:
         m1 = vptr_manager_make();
         inserted = 0;
         deleted = 0;
+        callback_triggered = false;
     }
 
-    void SafeDelete(vptr_manager*& manager, vptr_callback callback) {
-        vptr_manager_delete(manager, callback);
+    void SafeDelete(vptr_manager*& manager) {
+        vptr_manager_delete(manager);
         manager = nullptr;
     }
 
     virtual void TearDown() override {
-        SafeDelete(m1, nullptr);
+        if (m1) {
+            SafeDelete(m1);
+        }
         inserted = 0;
         deleted = 0;
+        callback_triggered = false;
     }
 
 };
@@ -131,4 +140,75 @@ TEST_F(TestVPtrManager, CanDeleteAbsentKey_C) {
 TEST_F(TestVPtrManager, AbsentKeyIsNull_C) {
     const char* k = "some absent key";
     ASSERT_EQ(nullptr, vptr_manager_get_item(m1, k));
+}
+
+TEST_F(TestVPtrManager, CallbackIsTriggered) {
+    const char* k = "the key";
+    auto callback = [](const char *k, int count, void *triggered) -> void {
+        *static_cast<bool*>(triggered) = true;
+    };
+    vptr_manager_insert_item(m1, k, nullptr);
+    vptr_manager_count_inserts(m1, callback, static_cast<void*>(&callback_triggered));
+    ASSERT_TRUE(callback_triggered);
+}
+
+TEST_F(TestVPtrManager, CallbackCountsInsertions) {
+    const char* k = "the key";
+    int insertions = 0;
+    auto callback = [](const char *k, int count, void *counter) -> void {
+        auto total = static_cast<int*>(counter);
+        *total = *total + 1;
+    };
+    vptr_manager_insert_item(m1, k, nullptr);
+    vptr_manager_count_inserts(m1, callback, static_cast<void*>(&insertions));
+    ASSERT_EQ(insertions, 1);
+}
+
+TEST_F(TestVPtrManager, CallbackCountsInsertionsPerKey) {
+
+    // Insert data
+    const char* k1 = "the key";
+    const char* k2 = "another key";
+    string_counter expected, observed;
+    expected[k1] = 2;
+    expected[k2] = 1;
+
+    for (auto[key, required_count] : expected) {
+        while (required_count--) {
+            vptr_manager_insert_item(m1, key.c_str(), nullptr);
+        }
+    }
+
+    auto callback = [](const char *k, int count, void *data) -> void {
+        auto& observed = *static_cast<string_counter*>(data);
+        observed[k] = count;
+    };
+
+    vptr_manager_count_inserts(m1, callback, static_cast<void*>(&observed));
+    ASSERT_EQ(observed, expected);
+}
+
+TEST_F(TestVPtrManager, CallbackCountsDeletedKeys) {
+
+    // Insert data
+    const char* k1 = "the key";
+    const char* k2 = "another key";
+    string_counter expected, observed;
+    expected[k1] = 2;
+    expected[k2] = 1;
+
+    for (auto[key, required_count] : expected) {
+        while (required_count--) {
+            vptr_manager_insert_item(m1, key.c_str(), nullptr);
+            vptr_manager_delete_item(m1, key.c_str());
+        }
+    }
+
+    auto callback = [](const char *k, int count, void *data) -> void {
+        auto& observed = *static_cast<string_counter*>(data);
+        observed[k] = count;
+    };
+
+    vptr_manager_count_inserts(m1, callback, static_cast<void*>(&observed));
+    ASSERT_EQ(observed, expected);
 }

@@ -5,7 +5,7 @@
 struct vptr_manager {
     using mapping = std::map<std::string, void*>;
     mapping i_map;
-    std::map<mapping::key_type, int>   i_count;
+    std::map<mapping::key_type, int> i_count;
 };
 
 // C wrappers
@@ -14,12 +14,15 @@ vptr_manager* vptr_manager_make() {
     return new vptr_manager();
 }
 
-void vptr_manager_delete(vptr_manager* manager, vptr_callback *callback) {
+void vptr_manager_count_inserts(vptr_manager* manager, vptr_callback *callback, void* data) {
     if (callback) {
         for (auto&[k, count] : manager->i_count) {
-            callback(k.c_str(), count);
+            callback(k.c_str(), count, data);
         }
     }
+}
+
+void vptr_manager_delete(vptr_manager* manager) {
     delete manager;
 }
 

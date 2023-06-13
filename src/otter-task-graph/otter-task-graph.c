@@ -34,7 +34,8 @@
 
 #define LABEL_BUFFER_MAX_CHARS 256
 
-static void debug_print_count(const char* str, int count);
+static trace_task_manager_callback debug_print_count;
+static trace_task_manager_callback debug_store_count_in_queue;
 
 /* detect environment variables */
 static otter_opt_t opt = {
@@ -126,8 +127,21 @@ void otterTraceFinalise(otter_source_args source)
     thread_data_t *dummy_thread = new_thread_data(otter_thread_initial);
     thread_destroy(dummy_thread);
 
+#if DEBUG_LEVEL >= 3
+    otter_queue_t *queue = queue_create();
+    trace_task_manager_count_insertions(task_manager, debug_store_count_in_queue, (void*) queue);
+    const char *label = NULL;
+    uint64_t count = 0;
+    while (queue_pop(queue, (data_item_t*) &label)) {
+        queue_pop(queue, (data_item_t*) &count);
+        printf("label \"%s\" had %lu insertions\n", label, count);
+    }
+    queue_destroy(queue, false, NULL);
+#endif
+
+    trace_task_manager_free(task_manager);
     trace_finalise();
-    trace_task_manager_free(task_manager, debug_print_count);
+    
     char trace_folder[PATH_MAX] = {0};
     realpath(opt.tracepath, &trace_folder[0]);
     fprintf(stderr, "%s%s/%s\n",
@@ -313,8 +327,20 @@ void otterPhaseSwitch(const char* name, otter_source_args source) {
 }
 
 static void
-debug_print_count(const char* str, int count)
+debug_print_count(const char* str, int count, void* data)
 {
     LOG_DEBUG("%s %d", str, count);
+    return;
+}
+
+static void
+debug_store_count_in_queue(const char* str, int count, void* data)
+{
+    if (data == NULL) {
+        return;
+    }
+    otter_queue_t *queue = (otter_queue_t*) data;
+    queue_push(queue, (data_item_t) {.ptr = str});
+    queue_push(queue, (data_item_t) {.value = count});
     return;
 }

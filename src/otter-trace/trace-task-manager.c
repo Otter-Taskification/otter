@@ -1,6 +1,6 @@
 #include "public/debug.h"
 
-#include "public/otter-trace/task-manager/one-to-queue.h"
+#include "public/otter-trace/trace-task-manager.h"
 #include "public/types/vptr_manager.hpp"
 #include "public/types/queue.h"
 
@@ -15,21 +15,20 @@
  * 
  */
 
-trace_task_manager_t* trace_task_manager_one_to_queue_alloc(void) {
+trace_task_manager_t* trace_task_manager_alloc(void) {
     LOG_DEBUG("allocating task manager");
     trace_task_manager_t* manager = (trace_task_manager_t*) vptr_manager_make();
     LOG_DEBUG("allocated task manager: %p", manager);
     return manager;
 }
 
-void trace_task_manager_one_to_queue_free(trace_task_manager_t* manager, void(*callback)(const char*, int)) {
+void trace_task_manager_free(trace_task_manager_t* manager) {
     LOG_DEBUG("freeing task manager: %p", manager);
     // TODO: clean up any queues left in the manager
-    vptr_manager_count_inserts((vptr_manager*) manager, callback, NULL);
     vptr_manager_delete((vptr_manager*) manager);
 }
 
-void trace_task_manager_one_to_queue_add_task(trace_task_manager_t* manager, const char* task_key, otter_task_context* task) {
+void trace_task_manager_add_task(trace_task_manager_t* manager, const char* task_key, otter_task_context* task) {
 
     if (task == NULL) return;
 
@@ -53,7 +52,7 @@ void trace_task_manager_one_to_queue_add_task(trace_task_manager_t* manager, con
     vptr_manager_insert_item((vptr_manager*) manager, task_key, (void*) task_queue);
 }
 
-otter_task_context* trace_task_manager_one_to_queue_get_task(trace_task_manager_t* manager, const char* task_key) {
+otter_task_context* trace_task_manager_get_task(trace_task_manager_t* manager, const char* task_key) {
 
 #if 1
     LOG_ERROR("this method not yet supported! TODO: implement queue_peek(otter_queue_t*, data_item_t*)");
@@ -79,7 +78,7 @@ otter_task_context* trace_task_manager_one_to_queue_get_task(trace_task_manager_
 #endif
 }
 
-otter_task_context* trace_task_manager_one_to_queue_pop_task(trace_task_manager_t* manager, const char* task_key) {
+otter_task_context* trace_task_manager_pop_task(trace_task_manager_t* manager, const char* task_key) {
 
     // get the queue for this key. If no queue, warn and return NULL
     otter_queue_t* task_queue = (otter_queue_t*) vptr_manager_get_item((vptr_manager*) manager, task_key);
@@ -104,7 +103,7 @@ otter_task_context* trace_task_manager_one_to_queue_pop_task(trace_task_manager_
     return task;
 }
 
-otter_task_context* trace_task_manager_one_to_queue_borrow_task(trace_task_manager_t* manager, const char* task_key) {
+otter_task_context* trace_task_manager_borrow_task(trace_task_manager_t* manager, const char* task_key) {
 
     // get the queue for this key. If no queue, warn and return NULL
     otter_queue_t* task_queue = (otter_queue_t*) vptr_manager_get_item((vptr_manager*) manager, task_key);
@@ -127,4 +126,8 @@ otter_task_context* trace_task_manager_one_to_queue_borrow_task(trace_task_manag
     );
 
     return task;
+}
+
+void trace_task_manager_count_insertions(trace_task_manager_t* manager, trace_task_manager_callback* callback, void* data) {
+    vptr_manager_count_inserts((vptr_manager*) manager, callback, data);
 }

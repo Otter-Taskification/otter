@@ -82,43 +82,45 @@ message(STATUS "OTTER_DEBUG_TRACE=${OTTER_DEBUG_TRACE}")
 message(STATUS "OTTER_DEBUG_DTYPE=${OTTER_DEBUG_DTYPE}")
 
 # Extract C compiler version as separate components
-execute_process (
-    COMMAND bash -c "${CMAKE_C_COMPILER} -dumpversion | tr -d '\n'  | sed 's/\\./\\;/g'" 
-    OUTPUT_VARIABLE C_COMPILER_VERSION_LIST
-)
-list(GET C_COMPILER_VERSION_LIST 0 C_COMPILER_VERSION_MAJOR)
-list(GET C_COMPILER_VERSION_LIST 1 C_COMPILER_VERSION_MINOR)
-list(GET C_COMPILER_VERSION_LIST 2 C_COMPILER_VERSION_BUGFIX)
+if (WITH_OMPT_PLUGIN)
+    execute_process (
+        COMMAND bash -c "${CMAKE_C_COMPILER} -dumpversion | tr -d '\n'  | sed 's/\\./\\;/g'" 
+        OUTPUT_VARIABLE C_COMPILER_VERSION_LIST
+    )
+    list(GET C_COMPILER_VERSION_LIST 0 C_COMPILER_VERSION_MAJOR)
+    list(GET C_COMPILER_VERSION_LIST 1 C_COMPILER_VERSION_MINOR)
+    list(GET C_COMPILER_VERSION_LIST 2 C_COMPILER_VERSION_BUGFIX)
 
-# Build version string component-wise
-set(C_COMPILER_VERSION ${C_COMPILER_VERSION_MAJOR})
-if(NOT "${C_COMPILER_VERSION_MINOR}" STREQUAL "")
-    set(C_COMPILER_VERSION "${C_COMPILER_VERSION}.${C_COMPILER_VERSION_MINOR}")
-    if(NOT "${C_COMPILER_VERSION_BUGFIX}" STREQUAL "")
-        set(C_COMPILER_VERSION "${C_COMPILER_VERSION}.${C_COMPILER_VERSION_BUGFIX}")
+    # Build version string component-wise
+    set(C_COMPILER_VERSION ${C_COMPILER_VERSION_MAJOR})
+    if(NOT "${C_COMPILER_VERSION_MINOR}" STREQUAL "")
+        set(C_COMPILER_VERSION "${C_COMPILER_VERSION}.${C_COMPILER_VERSION_MINOR}")
+        if(NOT "${C_COMPILER_VERSION_BUGFIX}" STREQUAL "")
+            set(C_COMPILER_VERSION "${C_COMPILER_VERSION}.${C_COMPILER_VERSION_BUGFIX}")
+        endif()
     endif()
-endif()
 
-# Extract CXX compiler version as separate components
-execute_process (
-    COMMAND bash -c "${CMAKE_CXX_COMPILER} -dumpversion | tr -d '\n'  | sed 's/\\./\\;/g'" 
-    OUTPUT_VARIABLE CXX_COMPILER_VERSION_LIST
-)
-list(GET CXX_COMPILER_VERSION_LIST 0 CXX_COMPILER_VERSION_MAJOR)
-list(GET CXX_COMPILER_VERSION_LIST 1 CXX_COMPILER_VERSION_MINOR)
-list(GET CXX_COMPILER_VERSION_LIST 2 CXX_COMPILER_VERSION_BUGFIX)
+    # Extract CXX compiler version as separate components
+    execute_process (
+        COMMAND bash -c "${CMAKE_CXX_COMPILER} -dumpversion | tr -d '\n'  | sed 's/\\./\\;/g'" 
+        OUTPUT_VARIABLE CXX_COMPILER_VERSION_LIST
+    )
+    list(GET CXX_COMPILER_VERSION_LIST 0 CXX_COMPILER_VERSION_MAJOR)
+    list(GET CXX_COMPILER_VERSION_LIST 1 CXX_COMPILER_VERSION_MINOR)
+    list(GET CXX_COMPILER_VERSION_LIST 2 CXX_COMPILER_VERSION_BUGFIX)
 
-# Build version string component-wise
-set(CXX_COMPILER_VERSION ${CXX_COMPILER_VERSION_MAJOR})
-if(NOT "${CXX_COMPILER_VERSION_MINOR}" STREQUAL "")
-    set(CXX_COMPILER_VERSION "${CXX_COMPILER_VERSION}.${CXX_COMPILER_VERSION_MINOR}")
-    if(NOT "${CXX_COMPILER_VERSION_BUGFIX}" STREQUAL "")
-        set(CXX_COMPILER_VERSION "${CXX_COMPILER_VERSION}.${CXX_COMPILER_VERSION_BUGFIX}")
+    # Build version string component-wise
+    set(CXX_COMPILER_VERSION ${CXX_COMPILER_VERSION_MAJOR})
+    if(NOT "${CXX_COMPILER_VERSION_MINOR}" STREQUAL "")
+        set(CXX_COMPILER_VERSION "${CXX_COMPILER_VERSION}.${CXX_COMPILER_VERSION_MINOR}")
+        if(NOT "${CXX_COMPILER_VERSION_BUGFIX}" STREQUAL "")
+            set(CXX_COMPILER_VERSION "${CXX_COMPILER_VERSION}.${CXX_COMPILER_VERSION_BUGFIX}")
+        endif()
     endif()
-endif()
 
-message(STATUS "C compiler selected: ${CMAKE_C_COMPILER} (${CMAKE_C_COMPILER_ID}) ${C_COMPILER_VERSION}")
-message(STATUS "C++ compiler selected: ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID}) ${CXX_COMPILER_VERSION}")
+    message(STATUS "C compiler selected: ${CMAKE_C_COMPILER} (${CMAKE_C_COMPILER_ID}) ${C_COMPILER_VERSION}")
+    message(STATUS "C++ compiler selected: ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID}) ${CXX_COMPILER_VERSION}")
+endif()
 
 # # # OMPT # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Check for omp-tools.h
@@ -140,31 +142,33 @@ endif()
 # Detect requirement to use 5.1 features instead of deprecated 5.1 features
 set(USE_OMPT_51 0)
 set(USE_OMPT_51_PARTIAL 0)
-if(CMAKE_C_COMPILER_ID STREQUAL "Intel")
-    if("${C_COMPILER_VERSION}" VERSION_GREATER "2021.2")
-        message(STATUS "Detected Intel >2021.2")
+if (WITH_OMPT_PLUGIN)
+    if(CMAKE_C_COMPILER_ID STREQUAL "Intel")
+        if("${C_COMPILER_VERSION}" VERSION_GREATER "2021.2")
+            message(STATUS "Detected Intel >2021.2")
+            set(USE_OMPT_51 1)
+        elseif("${C_COMPILER_VERSION}" VERSION_LESS_EQUAL "2021.2")
+            # icc 2021.2 omp-tools.h isn't consistent with 5.0->5.1 deprecated features
+            message(STATUS "Detected Intel <=2021.2")
+            message(STATUS "Must use OMPT 5.0/5.1 combined")
+            set(USE_OMPT_51 1)
+            set(USE_OMPT_51_PARTIAL 1)
+        endif()
+    elseif(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+        if("${C_COMPILER_VERSION}" VERSION_GREATER "11.1")
+        message(STATUS "Detected Clang >11")
+            set(USE_OMPT_51 1)
+        endif()
+    elseif(CMAKE_C_COMPILER_ID STREQUAL "IntelLLVM")
+        if("${C_COMPILER_VERSION}" VERSION_GREATER_EQUAL "13.0.0")
+            message(STATUS "Detected IntelLLVM >= 13.0.0")
         set(USE_OMPT_51 1)
-    elseif("${C_COMPILER_VERSION}" VERSION_LESS_EQUAL "2021.2")
-        # icc 2021.2 omp-tools.h isn't consistent with 5.0->5.1 deprecated features
-        message(STATUS "Detected Intel <=2021.2")
-        message(STATUS "Must use OMPT 5.0/5.1 combined")
-        set(USE_OMPT_51 1)
-        set(USE_OMPT_51_PARTIAL 1)
+        endif()
+    else()
+        message(WARN " Selected C compiler may not be supported:")
+        message(WARN "   CMAKE_C_COMPILER_ID=${CMAKE_C_COMPILER_ID}")
+        message(WARN "   C_COMPILER_VERSION=${C_COMPILER_VERSION}")
     endif()
-elseif(CMAKE_C_COMPILER_ID STREQUAL "Clang")
-    if("${C_COMPILER_VERSION}" VERSION_GREATER "11.1")
-	message(STATUS "Detected Clang >11")
-        set(USE_OMPT_51 1)
-    endif()
-elseif(CMAKE_C_COMPILER_ID STREQUAL "IntelLLVM")
-    if("${C_COMPILER_VERSION}" VERSION_GREATER_EQUAL "13.0.0")
-        message(STATUS "Detected IntelLLVM >= 13.0.0")
-	set(USE_OMPT_51 1)
-    endif()
-else()
-    message(WARN " Selected C compiler may not be supported:")
-    message(WARN "   CMAKE_C_COMPILER_ID=${CMAKE_C_COMPILER_ID}")
-    message(WARN "   C_COMPILER_VERSION=${C_COMPILER_VERSION}")
 endif()
 
 # Check for otf2.h

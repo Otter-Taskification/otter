@@ -8,7 +8,7 @@ struct string_registry {
     using mapped_type = mapping::mapped_type;
     mapping label_map;
     labeller_fn *get_label;
-    const mapped_type default_label;
+    const mapped_type default_label{};
 };
 
 string_registry* string_registry_make(labeller_fn *labeller)

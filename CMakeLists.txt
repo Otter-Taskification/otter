@@ -15,6 +15,7 @@ project(Otter
 ### Define key settings
 option(WITH_EXAMPLES "Generate and build examples for demonstrating Otter" OFF)
 option(WITH_TESTS "Generate and build tests" OFF)
+option(WITH_OMPT_PLUGIN "Build the OMPT plugin" OFF)
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 
 # Set locations within build tree for these outputs
@@ -121,11 +122,20 @@ message(STATUS "C++ compiler selected: ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPIL
 
 # # # OMPT # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Check for omp-tools.h
-CHECK_INCLUDE_FILE(omp-tools.h HAVE_OMP_TOOLS_H)
-if(NOT HAVE_OMP_TOOLS_H)
-    message(WARNING "Can't find omp-tools.h - libotter-ompt.so target will not be generated.")
+set(BUILD_OMPT_PLUGIN 0)
+if (WITH_OMPT_PLUGIN)
+    CHECK_INCLUDE_FILE(omp-tools.h HAVE_OMP_TOOLS_H)
+    if(NOT HAVE_OMP_TOOLS_H)
+        message(WARNING "Can't find omp-tools.h - libotter-ompt.so target will not be generated.")
+    endif()
+    set(BUILD_OMPT_PLUGIN ${HAVE_OMP_TOOLS_H})
 endif()
-set(BUILD_OMPT_PLUGIN ${HAVE_OMP_TOOLS_H})
+
+if(BUILD_OMPT_PLUGIN)
+    message("OMPT plugin was requested")
+else()
+    message("OMPT plugin was NOT requested")
+endif()
 
 # Detect requirement to use 5.1 features instead of deprecated 5.1 features
 set(USE_OMPT_51 0)

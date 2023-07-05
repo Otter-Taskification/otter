@@ -22,4 +22,6 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
 void trace_graph_event_task_end(otter_task_context *task, otter_src_ref_t end_ref);
 void trace_graph_synchronise_tasks(otter_task_context *task, trace_sync_region_attr_t sync_attr);
 
+void trace_task_graph_finalise(void);
+
 #endif // OTTER_TRACE_TASK_GRAPH_H

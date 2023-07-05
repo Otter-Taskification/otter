@@ -130,6 +130,7 @@ exit_error:
 
 bool trace_finalise(void)
 {
+    LOG_DEBUG("=== Finalising trace ===");
     string_registry_delete(state.strings.instance, write_str_ref_cbk, (deleter_data) state.global_def_writer.instance);
     bool result = trace_finalise_archive(state.archive.instance);
     return result;

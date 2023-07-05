@@ -123,10 +123,6 @@ void otterTraceFinalise(otter_source_args source)
 
     otterTaskEnd(root_task, source);
 
-    // Ensure a single location definition is written to the archive
-    thread_data_t *dummy_thread = new_thread_data(otter_thread_initial);
-    thread_destroy(dummy_thread);
-
 #if DEBUG_LEVEL >= 3
     otter_queue_t *queue = queue_create();
     trace_task_manager_count_insertions(task_manager, debug_store_count_in_queue, (void*) queue);
@@ -140,6 +136,7 @@ void otterTraceFinalise(otter_source_args source)
 #endif
 
     trace_task_manager_free(task_manager);
+    trace_task_graph_finalise();
     trace_finalise();
     
     char trace_folder[PATH_MAX] = {0};

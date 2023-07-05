@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+#define USE_LOCAL_EVENT_WRITER
 
 /**
  * TODO:
@@ -10,13 +11,16 @@
 #include <otf2/otf2.h>
 #include <time.h>
 #include <pthread.h>
+#include <threads.h>
 #include <execinfo.h>
 
 #include "public/debug.h"
 #include "public/otter-common.h"
+#include "public/types/queue.h"
 #include "public/otter-environment-variables.h"
 #include "public/otter-trace/trace-task-graph.h"
 #include "public/otter-trace/trace-task-context-interface.h"
+#include "public/otter-trace/trace-thread-data.h"
 
 #include "otter-trace/trace-archive-impl.h"
 #include "otter-trace/trace-types-as-labels.h"
@@ -44,6 +48,36 @@ static struct shared_evt_writer evt_writer = {
     PTHREAD_MUTEX_INITIALIZER
 };
 
+struct thread_data_queue {
+    otter_queue_t *instance;
+    pthread_mutex_t lock;
+};
+
+static struct thread_data_queue thread_queue = {
+    NULL,
+    PTHREAD_MUTEX_INITIALIZER
+};
+static _Thread_local thread_data_t *thread_data = NULL;
+
+static inline OTF2_EvtWriter *get_local_event_writer(void) {
+    LOG_DEBUG("getting thread-local event writer");
+    if (thread_data == NULL) {
+        LOG_DEBUG("allocate thread-local data");
+        // allocate thread data
+        thread_data = new_thread_data(otter_thread_worker);
+        // add to shared queue for later clean-up
+        pthread_mutex_lock(&thread_queue.lock);
+        if (thread_queue.instance == NULL) {
+            thread_queue.instance = queue_create();
+        }
+        queue_push(thread_queue.instance, (data_item_t) {.ptr = thread_data});
+        pthread_mutex_unlock(&thread_queue.lock);
+    }
+    OTF2_EvtWriter *event_writer = NULL;
+    trace_location_get_otf2(thread_data->location, NULL, &event_writer, NULL);
+    return event_writer;
+}
+
 static inline OTF2_EvtWriter *get_shared_event_writer(void) {
     LOG_DEBUG("locking shared event writer");
     pthread_mutex_lock(&evt_writer.lock);
@@ -55,6 +89,14 @@ static inline OTF2_EvtWriter *get_shared_event_writer(void) {
     }
     return evt_writer.instance;
 }
+
+#if defined(USE_LOCAL_EVENT_WRITER)
+#define GET_EVENT_WRITER() get_local_event_writer()
+#define RELEASE_EVENT_WRITER()
+#else
+#define GET_EVENT_WRITER() get_shared_event_writer()
+#define RELEASE_EVENT_WRITER() release_shared_event_writer()
+#endif
 
 static inline void release_shared_event_writer(void) {
     LOG_DEBUG("releasing shared event writer");
@@ -225,7 +267,7 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
 
     // Record event
     err = OTF2_EvtWriter_ThreadTaskSwitch(
-        get_shared_event_writer(),
+        GET_EVENT_WRITER(),
         attr,
         get_timestamp(),
         OTF2_UNDEFINED_COMM,
@@ -233,7 +275,7 @@ void trace_graph_event_task_begin(otter_task_context *task, trace_task_region_at
     CHECK_OTF2_ERROR_CODE(err);
 
     // Cleanup
-    release_shared_event_writer();
+    RELEASE_EVENT_WRITER();
     OTF2_AttributeList_Delete(attr);
 }
 
@@ -326,7 +368,7 @@ void trace_graph_event_task_end(otter_task_context *task, otter_src_ref_t end_re
     }
 
     err = OTF2_EvtWriter_ThreadTaskSwitch(
-        get_shared_event_writer(),
+        GET_EVENT_WRITER(),
         attr,
         get_timestamp(),
         OTF2_UNDEFINED_COMM,
@@ -334,7 +376,7 @@ void trace_graph_event_task_end(otter_task_context *task, otter_src_ref_t end_re
     CHECK_OTF2_ERROR_CODE(err);
 
     // Cleanup
-    release_shared_event_writer();
+    RELEASE_EVENT_WRITER();
     OTF2_AttributeList_Delete(attr);
 }
 
@@ -396,7 +438,7 @@ void trace_graph_synchronise_tasks(otter_task_context *task, trace_sync_region_a
     CHECK_OTF2_ERROR_CODE(err);
 
     err = OTF2_EvtWriter_Enter(
-        get_shared_event_writer(),
+        GET_EVENT_WRITER(),
         attr,
         get_timestamp(),
         OTF2_UNDEFINED_REGION
@@ -404,6 +446,22 @@ void trace_graph_synchronise_tasks(otter_task_context *task, trace_sync_region_a
     CHECK_OTF2_ERROR_CODE(err);
 
     // Cleanup
-    release_shared_event_writer();
+    RELEASE_EVENT_WRITER();
     OTF2_AttributeList_Delete(attr);
+}
+
+void trace_task_graph_finalise(void) {
+    LOG_DEBUG("=== Finalising trace-task-graph ===");
+#if defined(USE_LOCAL_EVENT_WRITER)
+    void *thread_data = NULL;
+    while (queue_pop(thread_queue.instance, (data_item_t*) &thread_data)) {
+        LOG_DEBUG("destroy thread data %p", thread_data);
+        thread_destroy(thread_data);
+    }
+    queue_destroy(thread_queue.instance, false, NULL);
+#else
+    // Ensure a single location definition is written to the archive
+    thread_data_t *dummy_thread = new_thread_data(otter_thread_initial);
+    thread_destroy(dummy_thread);
+#endif
 }

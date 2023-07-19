@@ -1,4 +1,4 @@
-/* 
+/*
     This file stores definitions for attribute names and labels that are
     included into trace.c using macros that are defined as-needed. This makes
     it easy to add/change attributes without needing to repeat & update code
@@ -23,7 +23,7 @@
  */
 
 #if !defined(INCLUDE_LABEL)
-#define INCLUDE_LABEL(...)     // noop
+#define INCLUDE_LABEL(...) // noop
 #endif
 
 #if !defined(INCLUDE_ATTRIBUTE)
@@ -32,87 +32,104 @@
 
 INCLUDE_LABEL(label, string_not_defined)
 
-INCLUDE_LABEL(flag,  Y )
-INCLUDE_LABEL(flag,  N )
-INCLUDE_LABEL(flag,  true  )
-INCLUDE_LABEL(flag,  false )
+INCLUDE_LABEL(flag, Y)
+INCLUDE_LABEL(flag, N)
+INCLUDE_LABEL(flag, true)
+INCLUDE_LABEL(flag, false)
 
 /* Unique ID attributes */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, unique_id, "unique ID of a task, parallel region or thread")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, prior_task_id, "unique ID of a task suspended at a task-scheduling point")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, next_task_id, "unique ID of a task resumed at a task-scheduling point")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, encountering_task_id, "unique ID of the task that encountered this region")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, unique_id,
+                  "unique ID of a task, parallel region or thread")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, prior_task_id,
+                  "unique ID of a task suspended at a task-scheduling point")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, next_task_id,
+                  "unique ID of a task resumed at a task-scheduling point")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, encountering_task_id,
+                  "unique ID of the task that encountered this region")
 
 /* Attributes relating to parallel regions */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT32, requested_parallelism, "requested parallelism of parallel region")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, is_league, "is this parallel region a league of teams?")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT32, requested_parallelism,
+                  "requested parallelism of parallel region")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, is_league,
+                  "is this parallel region a league of teams?")
 
-/* Attributes relating to workshare regions (sections, single, loop, taskloop) */
+/* Attributes relating to workshare regions (sections, single, loop, taskloop)
+ */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, workshare_type, "type of workshare region")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, workshare_count, "number of iterations associated with workshare region")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, workshare_count,
+                  "number of iterations associated with workshare region")
 
 /* Attributes relating to sync regions (barrier, taskgroup, taskwait) */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, sync_type, "type of synchronisation region")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, sync_descendant_tasks, "whether this region synchronises descendant tasks")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, sync_descendant_tasks,
+                  "whether this region synchronises descendant tasks")
 
 /* Attributes relating to task regions */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, parent_task_id, "unique ID of the parent task of this task")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, parent_task_id,
+                  "unique ID of the parent task of this task")
 INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT32, task_flags, "flags set for this task")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_has_dependences, "whether this task has dependences")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_has_dependences,
+                  "whether this task has dependences")
 
 /* Attributes relating to phase regions */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, phase_type, "type of synchronisation region")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, phase_type,
+                  "type of synchronisation region")
 
 /* Attributes defined for all events */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, event_type, "type of event as defined by Otter")
-INCLUDE_LABEL(event_type,  thread_begin   )
-INCLUDE_LABEL(event_type,  thread_end     )
-INCLUDE_LABEL(event_type,  parallel_begin )
-INCLUDE_LABEL(event_type,  parallel_end   )
-INCLUDE_LABEL(event_type,  workshare_begin)
-INCLUDE_LABEL(event_type,  workshare_end  )
-INCLUDE_LABEL(event_type,  sync_begin     )
-INCLUDE_LABEL(event_type,  sync_end       )
-INCLUDE_LABEL(event_type,  task_create    )
-INCLUDE_LABEL(event_type,  task_switch    )
-INCLUDE_LABEL(event_type,  task_enter     )
-INCLUDE_LABEL(event_type,  task_leave     )
-INCLUDE_LABEL(event_type,  master_begin   )
-INCLUDE_LABEL(event_type,  master_end     )
-INCLUDE_LABEL(event_type,  phase_begin    )
-INCLUDE_LABEL(event_type,  phase_end      )
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, event_type,
+                  "type of event as defined by Otter")
+INCLUDE_LABEL(event_type, thread_begin)
+INCLUDE_LABEL(event_type, thread_end)
+INCLUDE_LABEL(event_type, parallel_begin)
+INCLUDE_LABEL(event_type, parallel_end)
+INCLUDE_LABEL(event_type, workshare_begin)
+INCLUDE_LABEL(event_type, workshare_end)
+INCLUDE_LABEL(event_type, sync_begin)
+INCLUDE_LABEL(event_type, sync_end)
+INCLUDE_LABEL(event_type, task_create)
+INCLUDE_LABEL(event_type, task_switch)
+INCLUDE_LABEL(event_type, task_enter)
+INCLUDE_LABEL(event_type, task_leave)
+INCLUDE_LABEL(event_type, master_begin)
+INCLUDE_LABEL(event_type, master_end)
+INCLUDE_LABEL(event_type, phase_begin)
+INCLUDE_LABEL(event_type, phase_end)
 
 /* Result of call to sched_getcpu() */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_INT32, cpu, "cpu on which the encountering thread is running")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_INT32, cpu,
+                  "cpu on which the encountering thread is running")
 
 /* Region begin or end event? */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, endpoint, "is this a region-enter or region-leave event")
-INCLUDE_LABEL(endpoint, enter   )
-INCLUDE_LABEL(endpoint, leave   )
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, endpoint,
+                  "is this a region-enter or region-leave event")
+INCLUDE_LABEL(endpoint, enter)
+INCLUDE_LABEL(endpoint, leave)
 INCLUDE_LABEL(endpoint, discrete)
 
 /* task type */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_type, "task classification")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, parent_task_type, "task classification of the parent task of this task")
-INCLUDE_LABEL(task_type,  initial_task  )
-INCLUDE_LABEL(task_type,  implicit_task )
-INCLUDE_LABEL(task_type,  explicit_task )
-INCLUDE_LABEL(task_type,  target_task   )
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, parent_task_type,
+                  "task classification of the parent task of this task")
+INCLUDE_LABEL(task_type, initial_task)
+INCLUDE_LABEL(task_type, implicit_task)
+INCLUDE_LABEL(task_type, explicit_task)
+INCLUDE_LABEL(task_type, target_task)
 
 /* task flags */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_is_undeferred, "task is undeferred")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_is_untied,     "task is untied")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_is_final,      "task is final")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_is_mergeable,  "task is mergeable")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_is_merged,     "task is merged")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_is_untied, "task is untied")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_is_final, "task is final")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_is_mergeable, "task is mergeable")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT8, task_is_merged, "task is merged")
 
 /* thread type */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, thread_type, "thread type")
-INCLUDE_LABEL(thread_type,  initial)
-INCLUDE_LABEL(thread_type,  worker )
+INCLUDE_LABEL(thread_type, initial)
+INCLUDE_LABEL(thread_type, worker)
 
 /* region type - parallel, workshare, sync, task */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, next_task_region_type, "region type of a task resumed at a task-scheduling point")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, next_task_region_type,
+                  "region type of a task resumed at a task-scheduling point")
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, region_type, "region type")
 /* generic region types */
 INCLUDE_LABEL(region_type, parallel)
@@ -143,43 +160,60 @@ INCLUDE_LABEL(region_type, taskgroup)
 INCLUDE_LABEL(region_type, generic_phase)
 
 /* prior task status at task-schedule event */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, prior_task_status,  "status of the task that arrived at a task scheduling point")
-INCLUDE_LABEL(prior_task_status,  undefined     )
-INCLUDE_LABEL(prior_task_status,  complete      )
-INCLUDE_LABEL(prior_task_status,  yield         )
-INCLUDE_LABEL(prior_task_status,  cancel        )
-INCLUDE_LABEL(prior_task_status,  detach        )
-INCLUDE_LABEL(prior_task_status,  early_fulfil  )
-INCLUDE_LABEL(prior_task_status,  late_fulfil   )
-INCLUDE_LABEL(prior_task_status,  switch        )
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, prior_task_status,
+                  "status of the task that arrived at a task scheduling point")
+INCLUDE_LABEL(prior_task_status, undefined)
+INCLUDE_LABEL(prior_task_status, complete)
+INCLUDE_LABEL(prior_task_status, yield)
+INCLUDE_LABEL(prior_task_status, cancel)
+INCLUDE_LABEL(prior_task_status, detach)
+INCLUDE_LABEL(prior_task_status, early_fulfil)
+INCLUDE_LABEL(prior_task_status, late_fulfil)
+INCLUDE_LABEL(prior_task_status, switch)
 
 /* task source location */
 // TODO: remove these 3 attributes
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT32, source_line_number, "the line number of the construct which caused this region to be created")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, source_file_name, "the source file containing the construct which caused this region to be created")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, source_func_name, "the name of the function containing the construct which caused this region to be created")
+INCLUDE_ATTRIBUTE(
+    OTF2_TYPE_UINT32, source_line_number,
+    "the line number of the construct which caused this region to be created")
+INCLUDE_ATTRIBUTE(
+    OTF2_TYPE_STRING, source_file_name,
+    "the source file containing the construct which caused this region to be created")
+INCLUDE_ATTRIBUTE(
+    OTF2_TYPE_STRING, source_func_name,
+    "the name of the function containing the construct which caused this region to be created")
 
 /* event source locations */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_INT32, source_line, "the line where this event happened")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, source_file, "the file in which this event happened")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, source_func, "the function in which this event happened")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_INT32, source_line,
+                  "the line where this event happened")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, source_file,
+                  "the file in which this event happened")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, source_func,
+                  "the function in which this event happened")
 
 /* task initialisation locations */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_INT32, task_init_line, "the line where the task was initialised")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_init_file, "the file in which the task was initialised")
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_init_func, "the function in which the task was initialised")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_INT32, task_init_line,
+                  "the line where the task was initialised")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_init_file,
+                  "the file in which the task was initialised")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_init_func,
+                  "the function in which the task was initialised")
 
 /* task label */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_label, "the user-supplied label for a task")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, task_label,
+                  "the user-supplied label for a task")
 
 /* phase name */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, phase_name, "the name of an algorithmic phase")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, phase_name,
+                  "the name of an algorithmic phase")
 
 /* return address */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, task_create_ra, "return address of a task-create event")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, task_create_ra,
+                  "return address of a task-create event")
 
 /* generic return address */
-INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, caller_return_address, "return address of the stack frame which triggered an event")
+INCLUDE_ATTRIBUTE(OTF2_TYPE_UINT64, caller_return_address,
+                  "return address of the stack frame which triggered an event")
 
 /* task flavour */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_INT32, task_flavour, "the flavour of a task")

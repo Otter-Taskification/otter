@@ -1,48 +1,46 @@
-#include <stdlib.h>
+#include "api/otter-serial/otter-serial.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "api/otter-serial/otter-serial.h"
 
-void spawn_tasks_recursive(int tasks, int level)
-{
-    if (level <= 0) {
-        return;
-    }
-    int num_spawn = tasks;
-    while(num_spawn--) {
-        otterTaskBegin(OTTER_SRC_ARGS());
-        spawn_tasks_recursive(tasks, level-1);
-        otterTaskEnd();
-    }
+void spawn_tasks_recursive(int tasks, int level) {
+  if (level <= 0) {
+    return;
+  }
+  int num_spawn = tasks;
+  while (num_spawn--) {
+    otterTaskBegin(OTTER_SRC_ARGS());
+    spawn_tasks_recursive(tasks, level - 1);
+    otterTaskEnd();
+  }
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        fprintf(stderr, "usage: %s levels\n", argv[0]);
-        return 1;
-    }
+  if (argc != 2) {
+    fprintf(stderr, "usage: %s levels\n", argv[0]);
+    return 1;
+  }
 
-    int levels = atoi(argv[1]);
-    otterTraceInitialise(OTTER_SRC_ARGS());
-    otterPhaseBegin("=== MAIN ===");
-    otterThreadsBegin(OTTER_SRC_ARGS());
-    {
-        otterPhaseBegin("compute");
+  int levels = atoi(argv[1]);
+  otterTraceInitialise(OTTER_SRC_ARGS());
+  otterPhaseBegin("=== MAIN ===");
+  otterThreadsBegin(OTTER_SRC_ARGS());
+  {
+    otterPhaseBegin("compute");
 
-        spawn_tasks_recursive(2, levels);
-        otterSynchroniseTasks(otter_sync_descendants);
+    spawn_tasks_recursive(2, levels);
+    otterSynchroniseTasks(otter_sync_descendants);
 
-        otterPhaseSwitch("communicate");
+    otterPhaseSwitch("communicate");
 
-        spawn_tasks_recursive(1, levels+1);
-        otterSynchroniseTasks(otter_sync_children);
+    spawn_tasks_recursive(1, levels + 1);
+    otterSynchroniseTasks(otter_sync_children);
 
-        otterPhaseEnd();
-    }
-    otterThreadsEnd();
     otterPhaseEnd();
-    otterTraceFinalise();
+  }
+  otterThreadsEnd();
+  otterPhaseEnd();
+  otterTraceFinalise();
 
-    return 0;
+  return 0;
 }

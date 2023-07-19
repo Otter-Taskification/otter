@@ -4,16 +4,16 @@
  * @brief The public interface to initialise and finalise tracing
  * @version 0.1
  * @date 2023-03-31
- * 
+ *
  * @copyright Copyright (c) 2023
- * 
+ *
  */
 
 #if !defined(OTTER_TRACE_INIT_H)
 #define OTTER_TRACE_INIT_H
 
-#include <stdbool.h>
 #include "public/otter-common.h"
+#include <stdbool.h>
 // #include "public/otter-trace/trace-state.h"
 
 /**

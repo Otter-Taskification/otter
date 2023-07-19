@@ -1,20 +1,19 @@
+#include "api/otter-serial/otter-serial.h"
 #include <stdio.h>
 #include <unistd.h>
-#include "api/otter-serial/otter-serial.h"
 
-int main(void)
-{
-    otterTraceInitialise(OTTER_SRC_ARGS());
-    otterPhaseBegin("MAIN");
-    otterThreadsBegin(OTTER_SRC_ARGS());
-    {
-        otterPhaseBegin("compute");
-        otterPhaseSwitch("communicate");
-        otterPhaseEnd();
-    }
-    otterThreadsEnd();
+int main(void) {
+  otterTraceInitialise(OTTER_SRC_ARGS());
+  otterPhaseBegin("MAIN");
+  otterThreadsBegin(OTTER_SRC_ARGS());
+  {
+    otterPhaseBegin("compute");
+    otterPhaseSwitch("communicate");
     otterPhaseEnd();
-    otterTraceFinalise();
+  }
+  otterThreadsEnd();
+  otterPhaseEnd();
+  otterTraceFinalise();
 
-    return 0;
+  return 0;
 }

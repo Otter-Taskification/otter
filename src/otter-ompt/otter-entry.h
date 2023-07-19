@@ -1,8 +1,8 @@
 #if !defined(OTTER_ENTRY_H)
 #define OTTER_ENTRY_H
 
-#include <omp-tools.h>
 #include "public/otter-common.h"
+#include <omp-tools.h>
 
 /* Define the struct used by otter-entry which is passed to otter for it to
    return pointers to its implemented OMP callbacks. Contains one field for each
@@ -16,7 +16,8 @@ typedef struct tool_callbacks_t {
 
 /* Pass callbacks back to otter-entry to be registered with OMP runtime
 Return static pointer to otter_opt_t struct */
-otter_opt_t *tool_setup(tool_callbacks_t *implemented, ompt_function_lookup_t lookup);
+otter_opt_t *tool_setup(tool_callbacks_t *implemented,
+                        ompt_function_lookup_t lookup);
 
 /* Finalise the tool once OMP finished */
 void tool_finalise(ompt_data_t *tool_data);

@@ -20,14 +20,19 @@ string_registry *string_registry_make(labeller_fn *labeller) {
 
 void string_registry_apply(string_registry *registry,
                            string_registry_callback *callback, void *data) {
+  assert(callback != NULL);
   for (auto &[key, value] : registry->label_map) {
     callback(key.c_str(), value, data);
   }
 }
 
-void string_registry_delete(string_registry *registry) { delete registry; }
+void string_registry_delete(string_registry *registry) {
+  assert(registry != NULL);
+  delete registry;
+}
 
 uint32_t string_registry_insert(string_registry *registry, const char *str) {
+  assert(registry != NULL);
   auto label = registry->label_map[str];
   if (label == registry->default_label) {
     label = registry->get_label();

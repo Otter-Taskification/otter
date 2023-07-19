@@ -18,6 +18,8 @@
 #include <limits.h>
 #include <stdarg.h>
 #include <assert.h>
+#include <inttypes.h>
+#include <threads.h>
 
 #include "public/otter-version.h"
 #include "public/config.h"
@@ -31,8 +33,14 @@
 #include "public/otter-trace/trace-task-manager.h"
 #include "public/otter-trace/source-location.h"
 #include "public/otter-trace/strings.h"
+#include "public/types/queue.h"
 
 #define LABEL_BUFFER_MAX_CHARS 256
+
+struct thread_data_queue {
+    otter_queue_t *instance;
+    pthread_mutex_t lock;
+};
 
 static trace_task_manager_callback debug_print_count;
 static trace_task_manager_callback debug_store_count_in_queue;
@@ -55,6 +63,30 @@ static pthread_mutex_t task_manager_mutex = PTHREAD_MUTEX_INITIALIZER;
 static trace_task_manager_t *task_manager = NULL;
 #define TASK_MANAGER_LOCK() pthread_mutex_lock(&task_manager_mutex)
 #define TASK_MANAGER_UNLOCK() pthread_mutex_unlock(&task_manager_mutex)
+
+// per-thread state
+static thread_local thread_data_t *thread_data = NULL;
+
+// store per-thread state for clean-up at finalisation
+static struct thread_data_queue thread_queue = {
+    .instance = NULL,
+    .lock = PTHREAD_MUTEX_INITIALIZER
+};
+
+static inline thread_data_t *get_thread_data(void) {
+    if (thread_data == NULL) {
+        thread_data = new_thread_data(otter_thread_worker);
+        LOG_DEBUG("allocate thread-local data for thread %" PRIu64 , thread_data->id);
+        // add to shared queue for later clean-up
+        pthread_mutex_lock(&thread_queue.lock);
+        if (thread_queue.instance == NULL) {
+            thread_queue.instance = queue_create();
+        }
+        queue_push(thread_queue.instance, (data_item_t) {.ptr = thread_data});
+        pthread_mutex_unlock(&thread_queue.lock);
+    }
+    return thread_data;
+}
 
 static void otter_register_task_label_va_list(otter_task_context *task, bool add_to_task_manager, const char *format, va_list args)
 {
@@ -136,6 +168,15 @@ void otterTraceFinalise(otter_source_args source)
 #endif
 
     trace_task_manager_free(task_manager);
+
+    // destroy any accumulated thread data
+    void *thread_data = NULL;
+    while (queue_pop(thread_queue.instance, (data_item_t*) &thread_data)) {
+        LOG_DEBUG("destroy thread data %p", thread_data);
+        thread_destroy(thread_data);
+    }
+    queue_destroy(thread_queue.instance, false, NULL);
+
     trace_task_graph_finalise();
     trace_finalise();
     
@@ -196,7 +237,7 @@ otter_task_context *otterTaskStart(otter_task_context *task, otter_source_args s
         .func = start.func,
         .line = start.line
     });
-    trace_graph_event_task_begin(task, task_attr, start_ref);
+    trace_graph_event_task_begin(get_thread_data()->location, task, task_attr, start_ref);
     return task;
 }
 
@@ -208,7 +249,7 @@ void otterTaskEnd(otter_task_context *task, otter_source_args end)
         .func = end.func,
         .line = end.line
     });
-    trace_graph_event_task_end(task, end_ref);
+    trace_graph_event_task_end(get_thread_data()->location, task, end_ref);
     otterTaskContext_delete(task);
 }
 
@@ -271,7 +312,7 @@ void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode)
     sync_attr.type = otter_sync_region_taskwait;
     sync_attr.sync_descendant_tasks = mode == otter_sync_descendants ? true : false;
     sync_attr.encountering_task_id = otterTaskContext_get_task_context_id(task);
-    trace_graph_synchronise_tasks(task, sync_attr);
+    trace_graph_synchronise_tasks(get_thread_data()->location, task, sync_attr);
     return;
 }
 

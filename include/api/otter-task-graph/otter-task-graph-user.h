@@ -89,7 +89,7 @@
 /**
  * @brief Initialise a new task instance using the given handle.
  *
- * If \p parent is a valid task handle, the new task is a child of this parent
+ * If \p parent is a valid task handle, the new task is a child of this parent.
  *
  * If \p parent is #OTTER_NULL_TASK, the new task has no parent task.
  *
@@ -110,6 +110,34 @@
 #define OTTER_INIT_TASK(task, parent, add_to_pool, label, ...)                 \
   task = otterTaskInitialise(parent, -1, add_to_pool, OTTER_SOURCE_LOCATION(), \
                              label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
+
+/**
+ * @brief Declare and initialise a new task handle in the current scope.
+ *
+ * Equivalent to OTTER_DECLARE_HANDLE() followed by OTTER_INIT_TASK().
+ *
+ * If \p parent is a valid task handle, the new task is a child of this parent.
+ *
+ * If \p parent is #OTTER_NULL_TASK, the new task has no parent task.
+ *
+ * If `add_to_pool` is `otter_add_to_pool`, the task will be added to the task
+ * pool with the given label.
+ *
+ * @note Does not record any events.
+ *
+ * @param task: The handle for the new task.
+ * @param parent: The handle of the parent task, or #OTTER_NULL_TASK if there
+ * is no parent task.
+ * @param add_to_pool: Whether to add the task to the task pool with the given
+ * label. Must be either otter_add_to_pool or otter_no_add_to_pool.
+ * @param label: A `printf`-like format string for the task's label
+ * @param ...: Variadic arguments for use with \p label.
+ *
+ */
+#define OTTER_DEFINE_TASK(task, parent, add_to_pool, label, ...)               \
+  OTTER_DECLARE_HANDLE(task);                                                  \
+  OTTER_INIT_TASK(task, parent, add_to_pool,                                   \
+                  label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
  * @brief Add a task handle to the task pool with the given label.

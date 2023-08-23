@@ -93,7 +93,7 @@
  *
  * If \p parent is #OTTER_NULL_TASK, the new task has no parent task.
  *
- * If `add_to_pool` is #otter_add_to_pool, the task will be added to the task
+ * If `add_to_pool` is `otter_add_to_pool`, the task will be added to the task
  * pool with the given label.
  *
  * @note Does not record any events.
@@ -102,7 +102,7 @@
  * @param parent: The handle of the parent task, or #OTTER_NULL_TASK if there
  * is no parent task.
  * @param add_to_pool: Whether to add the task to the task pool with the given
- * label. Must be a value of #otter_add_to_pool_t type.
+ * label. Must be either otter_add_to_pool or otter_no_add_to_pool.
  * @param label: A `printf`-like format string for the task's label
  * @param ...: Variadic arguments for use with \p label.
  *

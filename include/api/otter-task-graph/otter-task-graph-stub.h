@@ -45,6 +45,8 @@
 #define OTTER_INIT_TASK(...)
 #define OTTER_DEFINE_TASK(...)
 #define OTTER_ADD_TO_POOL(...)
+#define OTTER_POP_LABEL(...)
+#define OTTER_BORROW_LABEL(...)
 #define OTTER_REMOVE_FROM_POOL(...)
 #define OTTER_BORROW_FROM_POOL(...)
 #define OTTER_TASK_START(...)

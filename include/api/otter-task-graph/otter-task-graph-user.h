@@ -18,8 +18,11 @@
 #define OTTER_FINALISE()
 #define OTTER_DECLARE_HANDLE(...)
 #define OTTER_INIT_TASK(...)
+#define OTTER_DEFINE_TASK(...)
 #define OTTER_ADD_TO_POOL(...)
+#define OTTER_POP_LABEL(...)
 #define OTTER_REMOVE_FROM_POOL(...)
+#define OTTER_BORROW_LABEL(...)
 #define OTTER_BORROW_FROM_POOL(...)
 #define OTTER_TASK_START(...)
 #define OTTER_TASK_END(...)
@@ -165,7 +168,7 @@
  * @param ...: Variadic arguments for use with \p label.
  *
  */
-#define OTTER_REMOVE_FROM_POOL(task, label, ...)                               \
+#define OTTER_POP_LABEL(task, label, ...)                                      \
   task = otterTaskPopLabel(label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
@@ -185,8 +188,47 @@
  * @param ...: Variadic arguments for use with \p label.
  *
  */
-#define OTTER_BORROW_FROM_POOL(task, label, ...)                               \
+#define OTTER_BORROW_LABEL(task, label, ...)                                   \
   task = otterTaskBorrowLabel(label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
+
+/**
+ * @brief Declare a handle in the current scope, assigning a task removed from
+ * the task pool with the given label. \p task is `OTTER_NULL_TASK` if no tasks
+ * are available.
+ *
+ * @note The caller owns the returned task and may call `OTTER_TASK_START` or
+ * `OTTER_TASK_END` on it.
+ *
+ * @param task: The handle for the retrieved task.
+ * @param label: A `printf`-like format string for the task's label.
+ * @param ...: Variadic arguments for use with \p label.
+ *
+ */
+#define OTTER_REMOVE_FROM_POOL(task, label, ...)                               \
+  OTTER_DECLARE_HANDLE(task);                                                  \
+  OTTER_POP_LABEL(task, label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
+
+/**
+ * @brief Declare a handle in the current scope, assigning a task borrowed from
+ * the task pool with the given label. \p task is `OTTER_NULL_TASK` if no tasks
+ * are available. The borrowed task remains in the pool to be borrowed (or
+ * possibly removed) elsewhere.
+ *
+ * @note The caller does not own the borrowed task and must not call
+ * `OTTER_TASK_START` or `OTTER_TASK_END` on it. The only valid operation on a
+ * borrowed task is to pass it as the parent task to `OTTER_INIT_TASK`.
+ *
+ * @note The user must take care that a borrowed task is not also passed to
+ * `OTTER_TASK_END` while it is being borrowed.
+ *
+ * @param task: The handle for the borrowed task.
+ * @param label: A `printf`-like format string for the task's label.
+ * @param ...: Variadic arguments for use with \p label.
+ *
+ */
+#define OTTER_BORROW_FROM_POOL(task, label, ...)                               \
+  OTTER_DECLARE_HANDLE(task);                                                  \
+  OTTER_BORROW_LABEL(task, label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
  * @brief Record the start of the code represented by the given task handle.

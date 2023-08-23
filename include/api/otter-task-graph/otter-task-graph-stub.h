@@ -43,6 +43,7 @@
 #define OTTER_FINALISE()
 #define OTTER_DECLARE_HANDLE(...)
 #define OTTER_INIT_TASK(...)
+#define OTTER_DEFINE_TASK(...)
 #define OTTER_ADD_TO_POOL(...)
 #define OTTER_REMOVE_FROM_POOL(...)
 #define OTTER_BORROW_FROM_POOL(...)

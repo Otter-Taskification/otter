@@ -101,16 +101,14 @@
  * @param task: The handle for the new task.
  * @param parent: The handle of the parent task, or #OTTER_NULL_TASK if there
  * is no parent task.
- * @param flavour: The user-defined flavour of the new task.
  * @param add_to_pool: Whether to add the task to the task pool with the given
  * label. Must be a value of #otter_add_to_pool_t type.
  * @param label: A `printf`-like format string for the task's label
  * @param ...: Variadic arguments for use with \p label.
  *
  */
-#define OTTER_INIT_TASK(task, parent, flavour, add_to_pool, label, ...)        \
-  task = otterTaskInitialise(parent, flavour, add_to_pool,                     \
-                             OTTER_SOURCE_LOCATION(),                          \
+#define OTTER_INIT_TASK(task, parent, add_to_pool, label, ...)                 \
+  task = otterTaskInitialise(parent, -1, add_to_pool, OTTER_SOURCE_LOCATION(), \
                              label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**

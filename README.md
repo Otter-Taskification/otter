@@ -6,58 +6,23 @@ Developed under the [ExCALIBUR task parallelism cross-cutting research theme](ht
 - Recommend strategies for transforming serial code into effective task-based parallel code;
 - Non-invasively trace & visualise loop/task-based OpenMP 5.x programs.
 
-The [project wiki](https://github.com/Otter-Taskification/otter/wiki) introduces the Otter toolset and explains how to use the features above. Otter can trace and visualise the structure of parallel code, for example transforming the following code:
-
-```c
-int fibonacci(int n) {
-    int i, j;
-    if (n<2) return n;
-    #pragma omp task shared(i) firstprivate(n)
-        i = f(n-1);
-    #pragma omp task shared(j) firstprivate(n)
-        j = f(n-2);
-    #pragma omp taskwait
-    return i+j;
-}
-
-int main(int argc, char *argv[]) {
-    int n = atoi(argv[1]);
-    #pragma omp parallel shared(n)
-    {
-        #pragma omp single
-        printf("f(%d) = %d\n", n, f(n));
-    }
-}
-```
-
-Into a directed graph visualising the code's task creation and synchronisation structure:
-
-<p align="center">
-<img src="docs/listing2.svg" height="750" alt="The task-based structure of the Fibonacci function.">
-</p>
-
-The nodes of this graph represent the different tasking constructs that Otter can show:
-
-<p align="center">
-<img src="docs/node-symbol-table.svg" height="200" alt="The node styles representing the OpenMP constructs represented by Otter.">
-</p>
+The [project wiki](https://github.com/Otter-Taskification/otter/wiki) introduces the Otter toolset and explains how to use the features above.
 
 ## Otter Toolset
 
 The Otter toolset includes:
 
-- [**Otter-Task-Graph**](https://github.com/Otter-Taskification/otter/wiki/Otter-Task-Graph): an API and runtime library for annotating & tracing the task-graph of a (possibly parallel) target application.
-- [**Otter-Serial**](https://github.com/Otter-Taskification/otter/wiki/Otter-Serial): an API and runtime library for annotating & tracing the structure of a serial target application.
+- [**Otter-Task-Graph**]([Otter-Task-Graph](https://github.com/Otter-Taskification/otter/wiki/Otter-Task-Graph)): an API and runtime library for annotating & tracing the task-graph of a (possibly parallel) target application.
+<!-- - [**Otter-Serial**]([Otter-Serial](https://github.com/Otter-Taskification/otter/wiki/Otter-Serial)): an API and runtime library for annotating & tracing the structure of a serial target application. -->
 <!-- -  in order to facilitate data-driven parallelisation of the target. -->
-- [**Otter-OMPT**](https://github.com/Otter-Taskification/otter/wiki/Otter-OMPT): an OMPT tool for non-invasive tracing of the loop/task-based structure of OpenMP 5.x programs.
+- [**Otter-OMPT**]([Otter-OMPT](https://github.com/Otter-Taskification/otter/wiki/Otter-OMPT)): an OMPT tool for non-invasive tracing of the loop/task-based structure of OpenMP 5.x programs.
 <!-- - , allowing HPC developers to observe OpenMP program structure from the perspective of the OpenMP runtime. -->
-- [**PyOtter**](https://github.com/Otter-Taskification/otter/wiki/PyOtter): The visualisation & reporting tool for use with Otter trace data.
+- [**PyOtter**]([PyOtter](https://github.com/Otter-Taskification/otter/wiki/PyOtter)): The visualisation & reporting tool for use with Otter trace data.
 
 ## Getting Started
 
 - [Installation guide](https://github.com/Otter-Taskification/otter/wiki#installation-guide)
 - [Using Otter-Task-Graph](https://github.com/Otter-Taskification/otter/wiki/Otter-Task-Graph/#using-otter-task-graph)
-- [Using Otter-Serial](https://github.com/Otter-Taskification/otter/wiki/Otter-Serial/#using-otter-serial)
 - [Using Otter-OMPT](https://github.com/Otter-Taskification/otter/wiki/Otter-OMPT#getting-started)
 - [Using PyOtter](https://github.com/Otter-Taskification/otter/wiki/PyOtter)
 

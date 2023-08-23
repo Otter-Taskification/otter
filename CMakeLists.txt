@@ -228,6 +228,7 @@ if(BUILD_OMPT_PLUGIN)
         ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-ompt/otter-entry.c
     )
     target_include_directories(otter-events-ompt PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_include_directories(otter-events-ompt PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include) # for config.h
     target_include_directories(otter-events-ompt PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_compile_options(otter-events-ompt BEFORE PRIVATE ${CMAKE_C_FLAGS})
     target_compile_definitions(otter-events-ompt PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_CORE})
@@ -242,6 +243,7 @@ add_library(otter-events-serial OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-serial/otter-serial.F90
 )
 target_include_directories(otter-events-serial PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(otter-events-serial PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include) # for config.h
 target_include_directories(otter-events-serial PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(otter-events-serial BEFORE PRIVATE ${CMAKE_C_FLAGS})
 target_compile_definitions(otter-events-serial PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_CORE})
@@ -261,7 +263,7 @@ add_library(otter-events-task-graph OBJECT
     # ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-task-graph/otter-task-graph.F90
 )
 target_include_directories(otter-events-task-graph PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_include_directories(otter-events-task-graph PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include) # config.h
+target_include_directories(otter-events-task-graph PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include) # for config.h
 target_include_directories(otter-events-task-graph PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(otter-events-task-graph BEFORE PRIVATE ${CMAKE_C_FLAGS})
 target_compile_definitions(otter-events-task-graph PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_CORE})
@@ -285,6 +287,7 @@ add_library(otter-trace OBJECT
     ${CMAKE_CURRENT_SOURCE_DIR}/src/otter-trace/trace-task-manager.c
 )
 target_include_directories(otter-trace PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(otter-trace PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include) # for config.h
 target_include_directories(otter-trace PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(otter-trace PRIVATE DEBUG_LEVEL=${OTTER_DEBUG_TRACE})
 set_property(TARGET otter-trace PROPERTY POSITION_INDEPENDENT_CODE ON)

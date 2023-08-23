@@ -12,6 +12,11 @@
 #if !defined(OTTER_TASK_GRAPH_H)
 #define OTTER_TASK_GRAPH_H
 
+#if !defined(OTTER_USE_PRIVATE_HEADER)
+#warning                                                                       \
+    "It is not recommended to include this file directly. Please use otter/otter-task-graph-user.h, or pass -DOTTER_USE_PRIVATE_HEADER to ignore this warning"
+#endif
+
 /**
  * @brief Forward declaration of the otter_task_context struct.
  *

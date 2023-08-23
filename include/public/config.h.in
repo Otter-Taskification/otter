@@ -1,6 +1,3 @@
-#if !defined(OTTER_CONFIG_H)
-#define OTTER_CONFIG_H
+#pragma once
 
-
-
-#endif // OTTER_CONFIG_H
+#define OTTER_USE_PRIVATE_HEADER

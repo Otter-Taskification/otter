@@ -39,19 +39,18 @@
 #if !defined(OTTER_TASK_GRAPH_STUB_H)
 #define OTTER_TASK_GRAPH_STUB_H
 
-#define OTTER_SRC_ARGS()
-#define otter_task_context void
-#define otter_sync_children
-#define otter_sync_descendants
-#define otterTraceInitialise()
-#define otterTraceFinalise()
-#define otterTraceStart()
-#define otterTraceStop()
-#define otterTaskBegin(...) ((void *)0)
-#define otterTaskEnd(...)
-#define otterSynchroniseTasks(...)
-#define otterPhaseBegin(...)
-#define otterPhaseEnd()
-#define otterPhaseSwitch(...)
+#define OTTER_INITIALISE()
+#define OTTER_FINALISE()
+#define OTTER_DECLARE_HANDLE(...)
+#define OTTER_INIT_TASK(...)
+#define OTTER_ADD_TO_POOL(...)
+#define OTTER_REMOVE_FROM_POOL(...)
+#define OTTER_BORROW_FROM_POOL(...)
+#define OTTER_TASK_START(...)
+#define OTTER_TASK_END(...)
+#define OTTER_TASK_WAIT_FOR(...)
+#define OTTER_PHASE_BEGIN(...)
+#define OTTER_PHASE_END(...)
+#define OTTER_PHASE_SWITCH(...)
 
 #endif // OTTER_TASK_GRAPH_STUB_H

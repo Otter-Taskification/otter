@@ -13,6 +13,8 @@
 #if !defined(OTTER_TRACE_TASK_GRAPH_H)
 #define OTTER_TRACE_TASK_GRAPH_H
 
+#include "public/config.h"
+
 #include "api/otter-task-graph/otter-task-graph.h" // only needed for otter_task_context typedef
 #include "public/otter-common.h"
 #include "public/otter-trace/trace-location.h"

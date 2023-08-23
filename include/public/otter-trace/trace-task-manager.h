@@ -12,6 +12,8 @@
 #if !defined(OTTER_TRACE_TASK_MANAGER_PUBLIC_H)
 #define OTTER_TRACE_TASK_MANAGER_PUBLIC_H
 
+#include "public/config.h"
+
 #include "api/otter-task-graph/otter-task-graph.h" // for otter_task_context typedef
 
 typedef struct trace_task_manager_t trace_task_manager_t;

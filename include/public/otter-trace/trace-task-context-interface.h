@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include "public/config.h"
+
 #include "api/otter-task-graph/otter-task-graph.h" // for otter_task_context typedef
 #include "public/otter-common.h"
 

@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
   for (int step = 0; step < 3; step++) {
     spawn_children_and_wait(true, NULL);
   }
-  OTTER_INIT_TASK(parent, OTTER_NULL_TASK, 2, otter_add_to_pool, "parent task");
+  OTTER_INIT_TASK(parent, OTTER_NULL_TASK, otter_add_to_pool, "parent task");
   OTTER_TASK_START(parent);
   spawn_children_and_wait(false, "parent task");
   // OTTER_TASK_WAIT_FOR(parent, descendants);
@@ -32,7 +32,7 @@ void spawn_children_and_wait(bool with_barrier, const char *parent_label) {
     OTTER_BORROW_FROM_POOL(parent, parent_label);
   }
   for (int k = 0; k < 5; k++) {
-    OTTER_INIT_TASK(task, parent, 1, otter_no_add_to_pool, "standard task");
+    OTTER_INIT_TASK(task, parent, otter_no_add_to_pool, "standard task");
     OTTER_TASK_START(task);
     usleep(100);
     OTTER_TASK_END(task);

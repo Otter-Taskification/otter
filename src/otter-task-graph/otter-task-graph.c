@@ -22,8 +22,9 @@
 #include <threads.h>
 #include <unistd.h>
 
-#include "api/otter-task-graph/otter-task-graph.h"
 #include "public/config.h"
+
+#include "api/otter-task-graph/otter-task-graph.h"
 #include "public/debug.h"
 #include "public/otter-environment-variables.h"
 #include "public/otter-trace/source-location.h"

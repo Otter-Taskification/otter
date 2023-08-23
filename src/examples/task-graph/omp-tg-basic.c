@@ -11,7 +11,7 @@ int main(void) {
 
 #pragma omp parallel
   {
-    OTTER_INIT_TASK(task, OTTER_NULL_TASK, 42, otter_no_add_to_pool, "task");
+    OTTER_INIT_TASK(task, OTTER_NULL_TASK, otter_no_add_to_pool, "task");
     fprintf(stderr, "%d\n", omp_get_thread_num());
     OTTER_TASK_START(task);
     OTTER_TASK_END(task);

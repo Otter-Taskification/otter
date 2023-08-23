@@ -2,21 +2,37 @@
  * @file otter-task-graph-user.h
  * @author Adam Tuft
  * @brief Provides macros for accessing the Otter task-graph API for the purpose
- * of annotating user code. These macros are exported by defining
- * 'OTTER_TASK_GRAPH_ENABLE_USER' immediately before including this file in each
- * source file where annotations appear.
+ * of annotating user code.
  * @version 0.1
  * @date 2023-05-15
  *
- * @copyright Copyright (c) 2023
+ * @copyright Copyright (c) 2023 Adam Tuft. All rights reserved.
  *
  */
 
-#if !defined(OTTER_TASK_GRAPH_API_MACRO_H)
-#define OTTER_TASK_GRAPH_API_MACRO_H
+#pragma once
 
-#if defined(OTTER_TASK_GRAPH_ENABLE_USER)
+#if defined(OTTER_TASK_GRAPH_DISABLE_USER)
+
+#define OTTER_INITIALISE()
+#define OTTER_FINALISE()
+#define OTTER_DECLARE_HANDLE(...)
+#define OTTER_INIT_TASK(...)
+#define OTTER_ADD_TO_POOL(...)
+#define OTTER_REMOVE_FROM_POOL(...)
+#define OTTER_BORROW_FROM_POOL(...)
+#define OTTER_TASK_START(...)
+#define OTTER_TASK_END(...)
+#define OTTER_TASK_WAIT_FOR(...)
+#define OTTER_PHASE_BEGIN(...)
+#define OTTER_PHASE_END(...)
+#define OTTER_PHASE_SWITCH(...)
+
+#else
+
+#define OTTER_USE_PRIVATE_HEADER
 #include "otter-task-graph.h"
+#undef OTTER_USE_PRIVATE_HEADER
 
 // @cond DOXYGEN_IGNORE
 
@@ -77,7 +93,7 @@
  *
  * If \p parent is #OTTER_NULL_TASK, the new task has no parent task.
  *
- * If `add_to_pool` is #otter_add_to_pool, the task will be added to the task
+ * If `add_to_pool` is `otter_add_to_pool`, the task will be added to the task
  * pool with the given label.
  *
  * @note Does not record any events.
@@ -85,16 +101,14 @@
  * @param task: The handle for the new task.
  * @param parent: The handle of the parent task, or #OTTER_NULL_TASK if there
  * is no parent task.
- * @param flavour: The user-defined flavour of the new task.
  * @param add_to_pool: Whether to add the task to the task pool with the given
- * label. Must be a value of #otter_add_to_pool_t type.
+ * label. Must be either otter_add_to_pool or otter_no_add_to_pool.
  * @param label: A `printf`-like format string for the task's label
  * @param ...: Variadic arguments for use with \p label.
  *
  */
-#define OTTER_INIT_TASK(task, parent, flavour, add_to_pool, label, ...)        \
-  task = otterTaskInitialise(parent, flavour, add_to_pool,                     \
-                             OTTER_SOURCE_LOCATION(),                          \
+#define OTTER_INIT_TASK(task, parent, add_to_pool, label, ...)                 \
+  task = otterTaskInitialise(parent, -1, add_to_pool, OTTER_SOURCE_LOCATION(), \
                              label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
@@ -257,22 +271,4 @@
 #define OTTER_PHASE_SWITCH(name)                                               \
   otterPhaseSwitch((name), OTTER_SOURCE_LOCATION())
 
-#else // define macros as no-op
-
-#define OTTER_INITIALISE()
-#define OTTER_FINALISE()
-#define OTTER_DECLARE_HANDLE(...)
-#define OTTER_INIT_TASK(...)
-#define OTTER_ADD_TO_POOL(...)
-#define OTTER_REMOVE_FROM_POOL(...)
-#define OTTER_BORROW_FROM_POOL(...)
-#define OTTER_TASK_START(...)
-#define OTTER_TASK_END(...)
-#define OTTER_TASK_WAIT_FOR(...)
-#define OTTER_PHASE_BEGIN(...)
-#define OTTER_PHASE_END(...)
-#define OTTER_PHASE_SWITCH(...)
-
 #endif
-
-#endif // OTTER_TASK_GRAPH_API_MACRO_H

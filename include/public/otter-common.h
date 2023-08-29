@@ -30,6 +30,7 @@ typedef struct otter_opt_t {
   char *hostname;
   char *tracename;
   char *tracepath;
+  char *filterpath;
   char *archive_name;
   bool append_hostname;
   otter_event_model_t event_model;

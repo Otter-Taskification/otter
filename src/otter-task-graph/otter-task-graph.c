@@ -48,11 +48,14 @@ static trace_task_manager_callback debug_print_count;
 static trace_task_manager_callback debug_store_count_in_queue;
 
 /* detect environment variables */
-static otter_opt_t opt = {.hostname = NULL,
-                          .tracename = NULL,
-                          .tracepath = NULL,
-                          .archive_name = NULL,
-                          .append_hostname = false};
+static otter_opt_t opt = {
+    .hostname = NULL,
+    .tracename = NULL,
+    .tracepath = NULL,
+    .filterpath = NULL,
+    .archive_name = NULL,
+    .append_hostname = false,
+};
 
 // The implicit root task
 static otter_task_context *root_task = NULL;
@@ -118,6 +121,7 @@ void otterTraceInitialise(otter_source_args source_location) {
   opt.hostname = host;
   opt.tracename = getenv(ENV_VAR_TRACE_OUTPUT);
   opt.tracepath = getenv(ENV_VAR_TRACE_PATH);
+  opt.filterpath = getenv(ENV_VAR_FILTER_PATH);
   opt.append_hostname = getenv(ENV_VAR_APPEND_HOST) == NULL ? false : true;
   opt.event_model = otter_event_model_task_graph;
 
@@ -131,6 +135,8 @@ void otterTraceInitialise(otter_source_args source_location) {
   LOG_INFO("%-30s %s", "host", opt.hostname);
   LOG_INFO("%-30s %s", ENV_VAR_TRACE_PATH, opt.tracepath);
   LOG_INFO("%-30s %s", ENV_VAR_TRACE_OUTPUT, opt.tracename);
+  LOG_INFO("%-30s %s", ENV_VAR_FILTER_PATH,
+           opt.filterpath ? opt.filterpath : "<none>");
   LOG_INFO("%-30s %s", ENV_VAR_APPEND_HOST, opt.append_hostname ? "Yes" : "No");
 
   trace_initialise(&opt);

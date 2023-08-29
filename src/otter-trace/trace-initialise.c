@@ -82,6 +82,8 @@ bool trace_initialise(otter_opt_t *opt) {
       int result = trace_filter_load(&filter, filter_file);
       if (result != 0) {
         LOG_ERROR("failed to parse filter file: %s", "???");
+      } else {
+        trace_filter_fwrite(filter, stderr);
       }
       fclose(filter_file);
     }

@@ -35,6 +35,7 @@ typedef union filter_rule_value_t {
 
 typedef struct filter_rule_item_t {
   filter_key_t key;
+  int flags;
   filter_rule_value_t value;
 } filter_rule_item_t;
 
@@ -47,7 +48,7 @@ int trace_filter_load(trace_filter_t **filter, FILE *filter_file) {
   LOG_DEBUG("parsing filter file");
 
   bool mode_set = false;
-  char *line = NULL, *key = NULL, *value = NULL;
+  char *line = NULL, *key = NULL, *value = NULL, *dest = NULL;
   int consumed = 0;
   size_t size = 0;
 
@@ -58,7 +59,7 @@ int trace_filter_load(trace_filter_t **filter, FILE *filter_file) {
     } else if (size == 1) {
 
       // current rule finished
-      LOG_INFO("%s", "<empty line>");
+      // LOG_INFO("%s", "<empty line>");
 
     } else {
 
@@ -67,8 +68,8 @@ int trace_filter_load(trace_filter_t **filter, FILE *filter_file) {
         line[size - 1] = '\0';
       }
 
-      // parse key-value pair and add to current rule
-      LOG_INFO("%s", line);
+      // process the line to detect a key-value pair and add to current rule
+      LOG_INFO("process line: \"%s\"", line);
 
       // get key
       int scan_result = 0;
@@ -78,12 +79,14 @@ int trace_filter_load(trace_filter_t **filter, FILE *filter_file) {
       }
 
       value = &line[consumed];
-      LOG_INFO("(result=%d) consumed=%d, key=\"%s\", value=\"%s\"", scan_result,
-               consumed, key, value);
+      size_t vlen = strlen(value);
+      // LOG_INFO("(result=%d) consumed=%d, key=\"%s\", value=\"%s\"",
+      // scan_result,
+      //          consumed, key, value);
 
       if (strncmp(key, "mode", MAXKEY) == 0) {
 
-        // This line sets the mode, detect mode and continue to next line
+        // This line sets the mode, so detect mode and continue to next line
 
         if (mode_set) {
           LOG_ERROR("mode may only be specified once.");
@@ -104,6 +107,8 @@ int trace_filter_load(trace_filter_t **filter, FILE *filter_file) {
         free(key);
         continue;
       }
+
+      // this line defines a key-value pair, so parse out the value
 
       filter_rule_item_t rule_item;
 
@@ -151,9 +156,9 @@ int trace_filter_load(trace_filter_t **filter, FILE *filter_file) {
 
       case key_label:
 
-        size_t vlen = strlen(value);
         rule_item.value.text = calloc(1 + vlen, sizeof(char));
         memcpy(rule_item.value.text, value, vlen);
+
         LOG_INFO("got label: \"%s\"", rule_item.value.text);
 
         break;
@@ -161,12 +166,68 @@ int trace_filter_load(trace_filter_t **filter, FILE *filter_file) {
       case key_init:
       case key_start:
       case key_end:
-        LOG_INFO("parse location: %s", value);
+
+        // LOG_INFO("parse location: %s", value);
+
+        char sep = ':';
+        char *sep_p = NULL;
+
+        if ((sep_p = strrchr(value, sep)) == NULL) {
+
+          // sep not found, value is <file>
+          dest = calloc(1 + vlen, sizeof(char));
+          memcpy(dest, value, vlen);
+          rule_item.value.src.file = dest;
+
+          // LOG_INFO("got file: %s", rule_item.value.src.file);
+
+        } else {
+
+          char *sub = sep_p + 1;
+
+          // sep is present, value is <file>:<line> or <file>:<func>
+
+          // copy up to sep_p for <file>
+          // size_t sz = sep_p - value;
+          dest = calloc(1 + sep_p - value, sizeof(char));
+          memcpy(dest, value, sep_p - value);
+          rule_item.value.src.file = dest;
+
+          if ((rule_item.value.src.line = (int)strtol(sub, NULL, 10)) != 0) {
+
+            // parsed int, assume <line>
+            rule_item.value.src.func = NULL;
+
+            // LOG_INFO("got file & line: %s %u", rule_item.value.src.file,
+            //          rule_item.value.src.line);
+
+          } else {
+
+            // assume <func>
+            size_t func_name_len = strlen(sep_p + 1); // ...:<func>
+            dest = calloc(1 + func_name_len, sizeof(char));
+            memcpy(dest, sep_p + 1, func_name_len);
+            rule_item.value.src.func = dest;
+
+            // LOG_INFO("got file & func: %s %s", rule_item.value.src.file,
+            //          rule_item.value.src.func);
+          }
+        }
+
+        LOG_INFO("location:");
+        LOG_INFO("    file: %s", rule_item.value.src.file);
+        LOG_INFO("    func: %s", rule_item.value.src.func);
+        LOG_INFO("    line: %d", rule_item.value.src.line);
+
         break;
 
       default:
         LOG_ERROR("unhandled key \"%s\"", key);
       }
+
+      rule_item.value.src.file = NULL;
+      rule_item.value.src.func = NULL;
+      rule_item.value.src.line = 0;
 
       free(key);
     }

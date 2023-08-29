@@ -13,6 +13,7 @@
 #include "otter-trace/trace-state.h"
 #include "otter-trace/trace-static-constants.h"
 #include "otter-trace/trace-unique-refs.h"
+#include "trace-filter.h"
 
 enum { char_buff_sz = 1024 };
 
@@ -67,6 +68,24 @@ bool trace_initialise(otter_opt_t *opt) {
       &state.archive.instance, &state.global_def_writer.instance);
 
   state.strings.instance = string_registry_make(get_unique_str_ref);
+
+  // Attempt to load the filter file
+  trace_filter_t *filter = NULL;
+  if (opt->filterpath != NULL) {
+    LOG_DEBUG("load filter file: %s", opt->filterpath);
+    FILE *filter_file = fopen(opt->filterpath, "r");
+    if (filter_file == NULL) {
+      LOG_ERROR("failed to open filter file \"%s\": %s", opt->filterpath,
+                strerror(errno));
+    } else {
+      // process filter_file
+      int result = trace_filter_load(&filter, filter_file);
+      if (result != 0) {
+        LOG_ERROR("failed to parse filter file: %s", "???");
+      }
+      fclose(filter_file);
+    }
+  }
 
   trace_copy_proc_maps(opt);
 

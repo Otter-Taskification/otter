@@ -29,38 +29,76 @@ typedef enum filter_mode_t {
   mode_exclude
 } filter_mode_t;
 
-typedef enum filter_key_t {
-  key_label,
-  key_init,
-  key_start,
-} filter_key_t;
+#define RULE_INIT_BIT (1 << 0)
+#define RULE_START_BIT (1 << 1)
+#define CHK_RULE_INIT_BIT(r) ((r).flags & RULE_INIT_BIT)
+#define CHK_RULE_START_BIT(r) ((r).flags & RULE_START_BIT)
+#define SET_RULE_INIT_BIT(r) ((r).flags |= RULE_INIT_BIT)
+#define SET_RULE_START_BIT(r) ((r).flags |= RULE_START_BIT)
 
-// The possible values in a rule item
-typedef union filter_rule_value_t {
-  const char *text;
-  const otter_src_location_t src;
-} filter_rule_value_t;
+// A rule can contain any of {label, init, start}
+typedef struct Rule {
+  unsigned char flags;
+  char *label;
+  otter_src_location_t init;
+  otter_src_location_t start;
+} Rule;
 
-// A rule item is a key-value pair
-typedef struct filter_rule_item_t {
-  const filter_key_t key;
-  const int flags;
-  const filter_rule_value_t value;
-} filter_rule_item_t;
+#define RULE_INITIALISER ((Rule){0, NULL, {NULL, NULL, -1}, {NULL, NULL, -1}})
 
-// A rule is an array of rule items
-typedef struct filter_rule_t {
-  // A const pointer to an array of const rule items
-  const filter_rule_item_t *const items;
-  const size_t num_items;
-} filter_rule_t;
+typedef struct Rule_v {
+  const Rule *rules; // rules array
+  const Rule *next;  // pointer to next slot in rules[]
+  size_t cap;        // capacity
+} Rule_v;
+
+#define RULE_V_INITIALISER ((Rule_v){NULL, NULL, 0})
+
+typedef struct trace_filter_t {
+  Rule_v init;  // rules which apply at "init"
+  Rule_v start; // rules which apply at "start"
+  bool include;
+} trace_filter_t;
+
+#define FILTER_INITIALISER                                                     \
+  ((trace_filter_t){RULE_V_INITIALISER, RULE_V_INITIALISER, 0})
+
+void rule_v_init(Rule_v *coll, size_t sz) {
+  coll->rules = malloc(sz * sizeof(coll->rules[0]));
+  coll->next = coll->rules;
+  coll->cap = sz;
+}
+
+void rule_v_append_copy(Rule_v *coll, Rule rule) {
+  // is there space?
+  if (coll->next >= (coll->rules + coll->cap)) {
+    coll->cap = coll->cap + 10;
+    coll->rules = realloc(coll->rules, sizeof(coll->rules[0]) * coll->cap);
+    coll->next = coll->rules + coll->cap;
+  }
+  memcpy(&coll->next, &rule, sizeof(rule));
+  coll->next++;
+}
+
+trace_filter_t *filter_alloc(void) { return malloc(sizeof(trace_filter_t)); }
+
+trace_filter_t *filter_initialise(trace_filter_t *f, size_t ninit,
+                                  size_t nstart, bool include) {
+  if (f == NULL) {
+    f = filter_alloc();
+  }
+  *f = FILTER_INITIALISER;
+  rule_v_init(&f->init, ninit);
+  rule_v_init(&f->start, nstart);
+  f->include = include;
+  return f;
+}
 
 // An array of pointers to rules
 struct trace_filter_t {
-  // a const pointer to an array of const pointers to const rules
-  const filter_rule_t *const *const rules;
-  const size_t num_rules;
-  const bool include;
+  Rule_v init;
+  Rule_v start;
+  bool include;
 };
 
 static inline enum filter_mode_t parse_filter_mode(char *value) {
@@ -69,8 +107,42 @@ static inline enum filter_mode_t parse_filter_mode(char *value) {
   } else if (strcmp(value, "include") == 0) {
     return mode_include;
   } else {
-    LOG_ERROR("invalid mode: %s", value);
     return mode_invalid;
+  }
+}
+
+static inline void parse_source_location(otter_src_location_t *src,
+                                         char *value) {
+
+  size_t vlen = strlen(value);
+
+  char sep = ':';
+  char *sep_p = NULL;
+
+  if ((sep_p = strrchr(value, sep)) == NULL) {
+
+    // sep not found, value is <file>
+    src->file = memcpy(calloc(1 + vlen, sizeof(*src->file)), value, vlen);
+
+  } else {
+
+    char *sub = sep_p + 1;
+
+    // sep is present, value is <file>:<line> or <file>:<func>
+
+    // copy up to sep_p for <file>
+    src->file = memcpy(calloc(1 + sep_p - value, sizeof(*src->file)), value,
+                       sep_p - value);
+
+    src->line = (int)strtol(sub, NULL, 10);
+    if ((src->line) != 0) {
+      src->func = NULL;
+    } else {
+      // assume <func>
+      size_t func_name_len = strlen(sep_p + 1); // ...:<func>
+      src->func = memcpy(calloc(1 + func_name_len, sizeof(*src->func)),
+                         sep_p + 1, func_name_len);
+    }
   }
 }
 
@@ -80,17 +152,16 @@ int trace_filter_load(trace_filter_t **filt, FILE *filter_file) {
     return -1;
   }
 
-  *filt = malloc(sizeof(**filt));
-  trace_filter_t *filter = *filt;
+  trace_filter_t *F = filter_initialise(NULL, 10, 10, false);
+  *filt = F;
+  Rule rule_ = RULE_INITIALISER;
 
   LOG_DEBUG("parsing filter file");
 
   bool mode_set = false;
-  char *line = NULL, *key = NULL, *value = NULL, *dest = NULL;
+  char *line = NULL, *key = NULL, *value = NULL;
   size_t bufsz = 0;
   ssize_t chars_read = 0;
-  otter_queue_t *rule_items = NULL; // store items while parsing a single rule
-  otter_queue_t *rules = queue_create(); // store rules while parsing a file
   int rules_parsed = 0;
 
   while (true) {
@@ -110,44 +181,12 @@ int trace_filter_load(trace_filter_t **filt, FILE *filter_file) {
                (chars_read == -1 /* EOF */)) {
 
       // rule is finished
+      Rule_v *coll = CHK_RULE_START_BIT(rule_) ? &F->start : &F->init;
+      rule_v_append_copy(coll, rule_);
+      rules_parsed++;
+      rule_ = RULE_INITIALISER;
 
-      if (rule_items != NULL) {
-        // memcpy this rule's items from queue into an array of items
-
-        rules_parsed++;
-
-        // get number of items in the rule
-        size_t num_items = queue_length(rule_items);
-        LOG_DEBUG("finished rule %d with %lu items", rules_parsed, num_items);
-
-        // allocate array of N items
-        filter_rule_item_t *rule_items_v = NULL;
-        size_t rule_item_sz = sizeof(*rule_items_v);
-        rule_items_v = malloc(num_items * rule_item_sz);
-
-        // move each item into the array
-        filter_rule_item_t *temp = NULL;
-        for (size_t n = 0; n < num_items; n++, temp = NULL) {
-          queue_pop(rule_items, (data_item_t *)&temp);
-          LOG_ERROR_IF((temp == NULL), "got null pointer");
-          if (temp)
-            memcpy(&rule_items_v[n], temp, rule_item_sz);
-        }
-        LOG_ERROR_IF(!queue_is_empty(rule_items), "rule items left in queue");
-        queue_destroy(rule_items, false, NULL);
-        rule_items = NULL;
-
-        // enqueue this rule
-        filter_rule_t *rule = malloc(sizeof(*rule));
-        filter_rule_item_t **items_p = (void *)&rule->items;
-        *items_p = rule_items_v;
-        size_t *num_items_p = (void *)&rule->num_items;
-        *num_items_p = num_items;
-
-        queue_push(rules, (data_item_t){.ptr = rule});
-      }
-
-      if (chars_read == -1) {
+      if (chars_read == -1) { // EOF
         LOG_DEBUG("parsed %lu rules", queue_length(rules));
         break;
       }
@@ -185,37 +224,50 @@ int trace_filter_load(trace_filter_t **filt, FILE *filter_file) {
           LOG_ERROR("mode may only be specified once.");
           return -1;
         }
+        mode_set = true;
 
         filter_mode_t mode = parse_filter_mode(value);
-        mode_set = true;
-        LOG_DEBUG("mode: %s", mode == mode_include ? "include" : "exclude");
+        if (mode == mode_include) {
+          F->include = true;
+        } else if (mode == mode_exclude) {
+          F->include = false;
+        } else {
+          LOG_ERROR("invalid mode: %s", value);
+          return -1;
+        }
+
+        LOG_DEBUG("mode: %s", F->include ? "include" : "exclude");
         free(key);
         continue;
       }
 
-      // this line defines a key-value pair, so parse out the value and append
-      // to rule
-
-      if (rule_items == NULL) {
-        // no current rule, create a queue for items for this rule
-        LOG_DEBUG("parse rule");
-        rule_items = queue_create();
-      }
-
-      // add an item to the rule
-      filter_rule_item_t *rule_item = malloc(sizeof(*rule_item));
-      queue_push(rule_items, (data_item_t){.ptr = rule_item});
-
-      // get a pointer to the const key which we can write through
-      filter_key_t *key_p = (void *)&rule_item->key;
-
       // set the key for this item
       if (strncmp(key, "label", MAXKEY) == 0) {
-        *key_p = key_label;
+
+        rule_.label =
+            memcpy(calloc(1 + vlen, sizeof(*rule_.label)), value, vlen);
+        LOG_DEBUG("  got label: \"%s\"", rule_.label);
+
       } else if (strncmp(key, "init", MAXKEY) == 0) {
-        *key_p = key_init;
+
+        parse_source_location(&rule_.init, value);
+        SET_RULE_INIT_BIT(rule_);
+
+        LOG_DEBUG("  got init location:");
+        LOG_DEBUG("    file: %s", rule_.init.file);
+        LOG_DEBUG("    func: %s", rule_.init.func);
+        LOG_DEBUG("    line: %d", rule_.init.line);
+
       } else if (strncmp(key, "start", MAXKEY) == 0) {
-        *key_p = key_start;
+
+        parse_source_location(&rule_.start, value);
+        SET_RULE_START_BIT(rule_);
+
+        LOG_DEBUG("  got start location:");
+        LOG_DEBUG("    file: %s", rule_.start.file);
+        LOG_DEBUG("    func: %s", rule_.start.func);
+        LOG_DEBUG("    line: %d", rule_.start.line);
+
       } else {
         LOG_ERROR(
             "invalid key: %s (must be one of \"label\", \"init\", \"start\")",
@@ -223,103 +275,10 @@ int trace_filter_load(trace_filter_t **filt, FILE *filter_file) {
         return -1;
       }
 
-      // parse the value based on the key
-      switch (rule_item->key) {
-
-      case key_label:
-
-        char *p = calloc(1 + vlen, sizeof(*p));
-        char **textp = (void *)&rule_item->value.text;
-        memcpy(p, value, vlen);
-        *textp = p;
-
-        LOG_DEBUG("  got label: \"%s\"", rule_item->value.text);
-
-        break;
-
-      case key_init:
-      case key_start:
-
-        otter_src_location_t *src = (void *)&rule_item->value.src;
-
-        char sep = ':';
-        char *sep_p = NULL;
-
-        if ((sep_p = strrchr(value, sep)) == NULL) {
-
-          // sep not found, value is <file>
-          dest = calloc(1 + vlen, sizeof(char));
-          memcpy(dest, value, vlen);
-          src->file = dest;
-
-        } else {
-
-          char *sub = sep_p + 1;
-
-          // sep is present, value is <file>:<line> or <file>:<func>
-
-          // copy up to sep_p for <file>
-          // size_t sz = sep_p - value;
-          dest = calloc(1 + sep_p - value, sizeof(char));
-          memcpy(dest, value, sep_p - value);
-          src->file = dest;
-
-          if ((src->line = (int)strtol(sub, NULL, 10)) != 0) {
-
-            // parsed int, assume <line>
-            src->func = NULL;
-
-          } else {
-
-            // assume <func>
-            size_t func_name_len = strlen(sep_p + 1); // ...:<func>
-            dest = calloc(1 + func_name_len, sizeof(char));
-            memcpy(dest, sep_p + 1, func_name_len);
-            src->func = dest;
-          }
-        }
-
-        LOG_DEBUG("  got location:");
-        LOG_DEBUG("    file: %s", rule_item->value.src.file);
-        LOG_DEBUG("    func: %s", rule_item->value.src.func);
-        LOG_DEBUG("    line: %d", rule_item->value.src.line);
-
-        break;
-
-      default:
-        LOG_ERROR("unhandled key \"%s\"", key);
-      }
-
-      free(key); // TODO: CHECK THIS
+      free(key);
     }
 
   } // end while loop
-
-  // TODO: why move from queue to array of pointers to rules? just move to array
-  // of rules, then store pointer to array of rules in filter
-
-  // "rules" is a queue of filter_rule_t*
-  size_t num_rules = queue_length(rules);
-
-  // alloc a mutable array of mutable pointers to const rules
-  const filter_rule_t **rules_v = malloc(num_rules * sizeof(*rules_v));
-
-  // move the ptr for each rule to the array
-  for (int n = 0; n < num_rules; n++) {
-    queue_pop(rules, (data_item_t *)&rules_v[n]);
-  }
-  LOG_ERROR_IF(!queue_is_empty(rules), "rules left in queue");
-  queue_destroy(rules, false, NULL);
-
-  // store the number of rules in the array
-  size_t *num_rules_parsed = (void *)&(*filt)->num_rules;
-  *num_rules_parsed = num_rules;
-
-  // store the array of rules
-  // we need *** here to get the address of (*1) the const pointer (*2) to the
-  // array of mutable pointers (*3) to const rules
-  const filter_rule_t ***rules_p = (void *)&(*filt)->rules;
-  *rules_p = rules_v;
 
   free(line);
 

@@ -23,11 +23,16 @@
 #define MAXLINE 256
 #define MAXKEY 16
 
+typedef enum filter_mode_t {
+  mode_invalid,
+  mode_include,
+  mode_exclude
+} filter_mode_t;
+
 typedef enum filter_key_t {
   key_label,
   key_init,
   key_start,
-  key_end,
 } filter_key_t;
 
 // The possible values in a rule item
@@ -58,6 +63,17 @@ struct trace_filter_t {
   const bool include;
 };
 
+static inline enum filter_mode_t parse_filter_mode(char *value) {
+  if (strcmp(value, "exclude") == 0) {
+    return mode_exclude;
+  } else if (strcmp(value, "include") == 0) {
+    return mode_include;
+  } else {
+    LOG_ERROR("invalid mode: %s", value);
+    return mode_invalid;
+  }
+}
+
 int trace_filter_load(trace_filter_t **filt, FILE *filter_file) {
 
   if ((filter_file == NULL) || (filt == NULL)) {
@@ -73,8 +89,8 @@ int trace_filter_load(trace_filter_t **filt, FILE *filter_file) {
   char *line = NULL, *key = NULL, *value = NULL, *dest = NULL;
   size_t bufsz = 0;
   ssize_t chars_read = 0;
-  otter_queue_t *rule_items = NULL;
-  otter_queue_t *rules = queue_create();
+  otter_queue_t *rule_items = NULL; // store items while parsing a single rule
+  otter_queue_t *rules = queue_create(); // store rules while parsing a file
   int rules_parsed = 0;
 
   while (true) {
@@ -90,17 +106,21 @@ int trace_filter_load(trace_filter_t **filt, FILE *filter_file) {
       LOG_ERROR("failed to read line: %s", strerror(errno));
       break;
 
-    } else if ((chars_read == 1) || (chars_read == -1)) {
+    } else if ((chars_read == 1 /* empty line */) ||
+               (chars_read == -1 /* EOF */)) {
 
-      // empty line or EOF, current rule finished
+      // rule is finished
+
       if (rule_items != NULL) {
+        // memcpy this rule's items from queue into an array of items
 
         rules_parsed++;
 
+        // get number of items in the rule
         size_t num_items = queue_length(rule_items);
         LOG_DEBUG("finished rule %d with %lu items", rules_parsed, num_items);
 
-        // move rule items into an array for better memory locality
+        // allocate array of N items
         filter_rule_item_t *rule_items_v = NULL;
         size_t rule_item_sz = sizeof(*rule_items_v);
         rule_items_v = malloc(num_items * rule_item_sz);
@@ -132,13 +152,13 @@ int trace_filter_load(trace_filter_t **filt, FILE *filter_file) {
         break;
       }
 
-    } else if (line[0] == '#') {
-
-      continue; // skip comment lines
-
     } else {
 
-      // process the line to detect a key-value pair and add to current rule
+      // process line to get an item (key-value pair) and add to current rule
+
+      if (line[0] == '#') {
+        continue; // skip comment lines
+      }
 
       // replace newline
       if (line[chars_read - 1] == '\n') {
@@ -166,17 +186,9 @@ int trace_filter_load(trace_filter_t **filt, FILE *filter_file) {
           return -1;
         }
 
-        bool mode_include;
-        if (strcmp(value, "exclude") == 0) {
-          mode_include = false;
-        } else if (strcmp(value, "include") == 0) {
-          mode_include = true;
-        } else {
-          LOG_ERROR("invalid mode: %s", value);
-          return -1;
-        }
+        filter_mode_t mode = parse_filter_mode(value);
         mode_set = true;
-        LOG_DEBUG("mode: %s", mode_include ? "include" : "exclude");
+        LOG_DEBUG("mode: %s", mode == mode_include ? "include" : "exclude");
         free(key);
         continue;
       }
@@ -204,11 +216,9 @@ int trace_filter_load(trace_filter_t **filt, FILE *filter_file) {
         *key_p = key_init;
       } else if (strncmp(key, "start", MAXKEY) == 0) {
         *key_p = key_start;
-      } else if (strncmp(key, "end", MAXKEY) == 0) {
-        *key_p = key_end;
       } else {
         LOG_ERROR(
-            "invalid key: %s (must be one of \"label\", \"init\", \"start\", \"end\")",
+            "invalid key: %s (must be one of \"label\", \"init\", \"start\")",
             key);
         return -1;
       }
@@ -229,7 +239,6 @@ int trace_filter_load(trace_filter_t **filt, FILE *filter_file) {
 
       case key_init:
       case key_start:
-      case key_end:
 
         otter_src_location_t *src = (void *)&rule_item->value.src;
 
@@ -283,7 +292,11 @@ int trace_filter_load(trace_filter_t **filt, FILE *filter_file) {
 
       free(key); // TODO: CHECK THIS
     }
-  }
+
+  } // end while loop
+
+  // TODO: why move from queue to array of pointers to rules? just move to array
+  // of rules, then store pointer to array of rules in filter
 
   // "rules" is a queue of filter_rule_t*
   size_t num_rules = queue_length(rules);
@@ -346,11 +359,6 @@ void trace_filter_fwrite(const trace_filter_t *filter, FILE *stream) {
 
       case key_start:
         fprintf(stream, "  start: file=%s, func=%s, line=%d\n",
-                item.value.src.file, item.value.src.func, item.value.src.line);
-        break;
-
-      case key_end:
-        fprintf(stream, "  end: file=%s, func=%s, line=%d\n",
                 item.value.src.file, item.value.src.func, item.value.src.line);
         break;
 

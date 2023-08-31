@@ -72,7 +72,7 @@ bool trace_initialise(otter_opt_t *opt) {
   // Attempt to load the filter file
   trace_filter_t *filter = NULL;
   if (opt->filterpath != NULL) {
-    LOG_DEBUG("load filter file: %s", opt->filterpath);
+    LOG_INFO("load filter file: %s", opt->filterpath);
     FILE *filter_file = fopen(opt->filterpath, "r");
     if (filter_file == NULL) {
       LOG_ERROR("failed to open filter file \"%s\": %s", opt->filterpath,
@@ -87,6 +87,8 @@ bool trace_initialise(otter_opt_t *opt) {
       }
       fclose(filter_file);
     }
+  } else {
+    LOG_INFO("no filter file supplied");
   }
 
   trace_copy_proc_maps(opt);

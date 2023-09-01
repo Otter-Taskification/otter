@@ -91,24 +91,27 @@ static inline thread_data_t *get_thread_data(void) {
   return thread_data;
 }
 
-static void otter_register_task_label_va_list(otter_task_context *task,
-                                              bool add_to_task_manager,
-                                              const char *format,
-                                              va_list args) {
-  char label_buffer[LABEL_BUFFER_MAX_CHARS] = {0};
-  int chars_required =
-      vsnprintf(&label_buffer[0], LABEL_BUFFER_MAX_CHARS, format, args);
-  if (chars_required >= LABEL_BUFFER_MAX_CHARS) {
-    LOG_WARN("label truncated (%d/%d chars written): %s",
-             LABEL_BUFFER_MAX_CHARS, chars_required, label_buffer);
-  }
+#define PARSE_LABEL_VA(buf, maxlen, fmt)                                       \
+  do {                                                                         \
+    va_list ap;                                                                \
+    va_start(ap, fmt);                                                         \
+    int c = vsnprintf(&buf[0], maxlen, fmt, ap);                               \
+    va_end(ap);                                                                \
+    if (c >= maxlen) {                                                         \
+      LOG_WARN("label truncated (%d/%d chars written): %s", maxlen, c, buf);   \
+    }                                                                          \
+  } while (0)
+
+static void otter_register_task_label(otter_task_context *task,
+                                      bool add_to_task_manager,
+                                      const char *label) {
   if (add_to_task_manager) {
-    LOG_DEBUG("register task with label: %s", label_buffer);
+    LOG_DEBUG("register task with label: %s", label);
     TASK_MANAGER_LOCK();
-    trace_task_manager_add_task(task_manager, &label_buffer[0], task);
+    trace_task_manager_add_task(task_manager, label, task);
     TASK_MANAGER_UNLOCK();
   }
-  otter_string_ref_t task_label_ref = get_string_ref(&label_buffer[0]);
+  otter_string_ref_t task_label_ref = get_string_ref(label);
   otterTaskContext_set_task_label_ref(task, task_label_ref);
 }
 
@@ -206,6 +209,13 @@ otter_task_context *otterTaskInitialise(otter_task_context *parent, int flavour,
                                         otter_source_args init,
                                         const char *format, ...) {
   LOG_DEBUG("%s:%d in %s", init.file, init.line, init.func);
+
+  char label[LABEL_BUFFER_MAX_CHARS] = {0};
+  PARSE_LABEL_VA(label, LABEL_BUFFER_MAX_CHARS, format);
+
+  // Can now check, using label + init, whether this task would match any init
+  // rules in the filter
+
   otter_task_context *task = otterTaskContext_alloc();
   otter_src_ref_t init_ref = get_source_location_ref((otter_src_location_t){
       .file = init.file, .func = init.func, .line = init.line});
@@ -223,11 +233,9 @@ otter_task_context *otterTaskInitialise(otter_task_context *parent, int flavour,
   }
 
   otterTaskContext_init(task, parent, flavour, init_ref);
-  va_list args;
-  va_start(args, format);
-  otter_register_task_label_va_list(
-      task, add_to_pool == otter_add_to_pool ? true : false, format, args);
-  va_end(args);
+
+  otter_register_task_label(
+      task, add_to_pool == otter_add_to_pool ? true : false, label);
   return task;
 }
 
@@ -238,6 +246,10 @@ otter_task_context *otterTaskStart(otter_task_context *task,
               start.line, start.func);
     return NULL;
   }
+
+  // Check here, using task label, init location + start location, whether this
+  // task would match any start rules in the filter
+
   // TODO: not great to pass this struct by value since I only need a few of the
   // fields here
   trace_task_region_attr_t task_attr;
@@ -265,10 +277,9 @@ void otterTaskEnd(otter_task_context *task, otter_source_args end) {
 }
 
 void otterTaskPushLabel(otter_task_context *task, const char *format, ...) {
-  va_list args;
-  va_start(args, format);
-  otter_register_task_label_va_list(task, true, format, args);
-  va_end(args);
+  char label[LABEL_BUFFER_MAX_CHARS] = {0};
+  PARSE_LABEL_VA(label, LABEL_BUFFER_MAX_CHARS, format);
+  otter_register_task_label(task, true, label);
   return;
 }
 

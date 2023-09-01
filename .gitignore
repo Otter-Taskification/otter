@@ -20,6 +20,7 @@
 /notes/
 /doxygen/
 /.vscode/
+/modules/pyotter/
 
 /workspace.code-workspace
 

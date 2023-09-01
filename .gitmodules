@@ -1,4 +1,4 @@
-[submodule "modules/pyotter"]
-	path = modules/pyotter
-	url = git@github.com:Otter-Taskification/pyotter.git
-	branch = dev
+# [submodule "modules/pyotter"]
+# 	path = modules/pyotter
+# 	url = git@github.com:Otter-Taskification/pyotter.git
+# 	branch = dev

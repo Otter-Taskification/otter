@@ -31,10 +31,10 @@ typedef enum filter_mode_t {
 
 #define RULE_INIT_BIT (1 << 0)
 #define RULE_START_BIT (1 << 1)
-#define CHK_RULE_INIT_BIT(r) ((r).flags & RULE_INIT_BIT)
-#define CHK_RULE_START_BIT(r) ((r).flags & RULE_START_BIT)
-#define SET_RULE_INIT_BIT(r) ((r).flags |= RULE_INIT_BIT)
-#define SET_RULE_START_BIT(r) ((r).flags |= RULE_START_BIT)
+#define CHK_RULE_INIT_BIT(k) ((k) & RULE_INIT_BIT)
+#define CHK_RULE_START_BIT(k) ((k) & RULE_START_BIT)
+#define SET_RULE_INIT_BIT(k) ((k) |= RULE_INIT_BIT)
+#define SET_RULE_START_BIT(k) ((k) |= RULE_START_BIT)
 
 // A rule can contain any of {label, init, start}
 typedef struct Rule {
@@ -71,14 +71,25 @@ void rule_v_init(Rule_v *coll, size_t sz) {
 
 void rule_v_append_copy(Rule_v *coll, Rule rule) {
   // is there space?
+  LOG_DEBUG("rules=%p, next=%p, cap=%lu, elem=%lu", coll->rules, coll->next,
+            coll->cap, coll->next - coll->rules);
   if (coll->next >= (coll->rules + coll->cap)) {
+    LOG_DEBUG("realloc!");
+    size_t elem = coll->next - coll->rules;
     coll->cap = coll->cap + 10;
-    coll->rules = realloc(coll->rules, sizeof(coll->rules[0]) * coll->cap);
-    coll->next = coll->rules + coll->cap;
+    coll->rules =
+        realloc((void *)coll->rules, sizeof(coll->rules[0]) * coll->cap);
+    coll->next = coll->rules + elem;
+    LOG_DEBUG("rules=%p, next=%p, cap=%lu", coll->rules, coll->next, coll->cap);
   }
-  memcpy(&coll->next, &rule, sizeof(rule));
+  LOG_DEBUG("copy %lu bytes to %p", sizeof(rule), coll->next);
+  memcpy((void *)coll->next, &rule, sizeof(rule));
   coll->next++;
+  LOG_DEBUG("rules=%p, next=%p, cap=%lu, elem=%lu", coll->rules, coll->next,
+            coll->cap, coll->next - coll->rules);
 }
+
+static void trace_filter_rule_fwrite(const Rule *rule, FILE *stream);
 
 trace_filter_t *filter_alloc(void) { return malloc(sizeof(trace_filter_t)); }
 
@@ -93,13 +104,6 @@ trace_filter_t *filter_initialise(trace_filter_t *f, size_t ninit,
   f->include = include;
   return f;
 }
-
-// An array of pointers to rules
-struct trace_filter_t {
-  Rule_v init;
-  Rule_v start;
-  bool include;
-};
 
 static inline enum filter_mode_t parse_filter_mode(char *value) {
   if (strcmp(value, "exclude") == 0) {
@@ -181,13 +185,15 @@ int trace_filter_load(trace_filter_t **filt, FILE *filter_file) {
                (chars_read == -1 /* EOF */)) {
 
       // rule is finished
-      Rule_v *coll = CHK_RULE_START_BIT(rule_) ? &F->start : &F->init;
-      rule_v_append_copy(coll, rule_);
-      rules_parsed++;
+      if (!(rule_.flags == 0 && rule_.label == NULL)) {
+        Rule_v *coll = CHK_RULE_START_BIT(rule_.flags) ? &F->start : &F->init;
+        rule_v_append_copy(coll, rule_);
+        rules_parsed++;
+      }
       rule_ = RULE_INITIALISER;
 
       if (chars_read == -1) { // EOF
-        LOG_DEBUG("parsed %lu rules", queue_length(rules));
+        LOG_DEBUG("parsed %lu rules", rules_parsed);
         break;
       }
 
@@ -251,7 +257,7 @@ int trace_filter_load(trace_filter_t **filt, FILE *filter_file) {
       } else if (strncmp(key, "init", MAXKEY) == 0) {
 
         parse_source_location(&rule_.init, value);
-        SET_RULE_INIT_BIT(rule_);
+        SET_RULE_INIT_BIT(rule_.flags);
 
         LOG_DEBUG("  got init location:");
         LOG_DEBUG("    file: %s", rule_.init.file);
@@ -261,7 +267,7 @@ int trace_filter_load(trace_filter_t **filt, FILE *filter_file) {
       } else if (strncmp(key, "start", MAXKEY) == 0) {
 
         parse_source_location(&rule_.start, value);
-        SET_RULE_START_BIT(rule_);
+        SET_RULE_START_BIT(rule_.flags);
 
         LOG_DEBUG("  got start location:");
         LOG_DEBUG("    file: %s", rule_.start.file);
@@ -291,43 +297,62 @@ void trace_filter_fwrite(const trace_filter_t *filter, FILE *stream) {
     return;
   }
 
-  size_t num_rules = filter->num_rules;
-  const filter_rule_t *const *rules = filter->rules;
-  const filter_rule_t *rule = NULL;
+  int rule_idx = 1;
 
-  for (size_t i = 0; i < num_rules; i++) {
+  fprintf(stream, "%-8s %-s\n\n", "mode",
+          filter->include ? "include" : "exclude");
 
-    rule = rules[i];
-    size_t num_items = rule->num_items;
-    fprintf(stream, "rule %lu (%lu items):\n", i + 1, num_items);
-
-    for (size_t j = 0; j < num_items; j++) {
-
-      filter_rule_item_t item = rule->items[j];
-
-      switch (item.key) {
-
-      case key_label:
-        fprintf(stream, "  label: \"%s\"\n", item.value.text);
-        break;
-
-      case key_init:
-        fprintf(stream, "  init: file=%s, func=%s, line=%d\n",
-                item.value.src.file, item.value.src.func, item.value.src.line);
-        break;
-
-      case key_start:
-        fprintf(stream, "  start: file=%s, func=%s, line=%d\n",
-                item.value.src.file, item.value.src.func, item.value.src.line);
-        break;
-
-      default:
-        LOG_ERROR("unkown key %d", item.key);
-        break;
-      }
-    }
+  // print init rules
+  Rule_v rules = filter->init;
+  fprintf(stream, "# init rules:\n\n");
+  for (const Rule *rule = rules.rules; rule < rules.next; rule++) {
+    LOG_WARN_IF(CHK_RULE_START_BIT(rule->flags),
+                "start rule bit was set where init rule expected");
+    fprintf(stream, "# rule %d\n", rule_idx);
+    trace_filter_rule_fwrite(rule, stream);
+    fprintf(stream, "# end rule %d\n", rule_idx);
     fprintf(stream, "\n");
+    rule_idx++;
+  }
+
+  // print start rules
+  rules = filter->start;
+  fprintf(stream, "# start rules:\n\n");
+  for (const Rule *rule = rules.rules; rule < rules.next; rule++) {
+    LOG_WARN_IF(!CHK_RULE_START_BIT(rule->flags),
+                "start rule bit not set where start rule expected");
+    fprintf(stream, "# rule %d\n", rule_idx);
+    trace_filter_rule_fwrite(rule, stream);
+    fprintf(stream, "# end rule %d\n", rule_idx);
+    fprintf(stream, "\n");
+    rule_idx++;
   }
 
   return;
+}
+
+static void trace_filter_rule_fwrite(const Rule *rule, FILE *stream) {
+  if (rule->label) {
+    fprintf(stream, "%-8s %-s\n", "label", rule->label);
+  }
+  if (CHK_RULE_INIT_BIT(rule->flags)) {
+    otter_src_location_t src = rule->init;
+    fprintf(stream, "%-8s %s", "init", src.file);
+    if (src.func) {
+      fprintf(stream, ":%s", src.func);
+    } else if (src.line != -1) {
+      fprintf(stream, ":%d", src.line);
+    }
+    fprintf(stream, "\n");
+  }
+  if (CHK_RULE_START_BIT(rule->flags)) {
+    otter_src_location_t src = rule->start;
+    fprintf(stream, "%-8s %s", "start", src.file);
+    if (src.func) {
+      fprintf(stream, ":%s", src.func);
+    } else if (src.line != -1) {
+      fprintf(stream, ":%d", src.line);
+    }
+    fprintf(stream, "\n");
+  }
 }

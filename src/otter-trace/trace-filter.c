@@ -8,68 +8,15 @@
  * @copyright Copyright (c) 2023 Adam Tuft
  *
  */
-#define _GNU_SOURCE // for getline
-#include <errno.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
+#include "trace-filter-impl.h"
 
-#include "public/debug.h"
-#include "public/otter-common.h"
-#include "public/types/queue.h"
-
-#include "trace-filter.h"
-
-#define MAXLINE 256
-#define MAXKEY 16
-
-typedef enum filter_mode_t {
-  mode_invalid,
-  mode_include,
-  mode_exclude
-} filter_mode_t;
-
-#define RULE_INIT_BIT (1 << 0)
-#define RULE_START_BIT (1 << 1)
-#define CHK_RULE_INIT_BIT(k) ((k) & RULE_INIT_BIT)
-#define CHK_RULE_START_BIT(k) ((k) & RULE_START_BIT)
-#define SET_RULE_INIT_BIT(k) ((k) |= RULE_INIT_BIT)
-#define SET_RULE_START_BIT(k) ((k) |= RULE_START_BIT)
-
-// A rule can contain any of {label, init, start}
-typedef struct Rule {
-  unsigned char flags;
-  char *label;
-  otter_src_location_t init;
-  otter_src_location_t start;
-} Rule;
-
-#define RULE_INITIALISER ((Rule){0, NULL, {NULL, NULL, -1}, {NULL, NULL, -1}})
-
-typedef struct Rule_v {
-  const Rule *rules; // rules array
-  const Rule *next;  // pointer to next slot in rules[]
-  size_t cap;        // capacity
-} Rule_v;
-
-#define RULE_V_INITIALISER ((Rule_v){NULL, NULL, 0})
-
-typedef struct trace_filter_t {
-  Rule_v init;  // rules which apply at "init"
-  Rule_v start; // rules which apply at "start"
-  bool include;
-} trace_filter_t;
-
-#define FILTER_INITIALISER                                                     \
-  ((trace_filter_t){RULE_V_INITIALISER, RULE_V_INITIALISER, 0})
-
-void rule_v_init(Rule_v *coll, size_t sz) {
+static void rule_v_init(Rule_v *coll, size_t sz) {
   coll->rules = malloc(sz * sizeof(coll->rules[0]));
   coll->next = coll->rules;
   coll->cap = sz;
 }
 
-void rule_v_append_copy(Rule_v *coll, Rule rule) {
+static void rule_v_append_copy(Rule_v *coll, Rule rule) {
   // is there space?
   LOG_DEBUG("rules=%p, next=%p, cap=%lu, elem=%lu", coll->rules, coll->next,
             coll->cap, coll->next - coll->rules);
@@ -89,12 +36,12 @@ void rule_v_append_copy(Rule_v *coll, Rule rule) {
             coll->cap, coll->next - coll->rules);
 }
 
-static void trace_filter_rule_fwrite(const Rule *rule, FILE *stream);
+static trace_filter_t *filter_alloc(void) {
+  return malloc(sizeof(trace_filter_t));
+}
 
-trace_filter_t *filter_alloc(void) { return malloc(sizeof(trace_filter_t)); }
-
-trace_filter_t *filter_initialise(trace_filter_t *f, size_t ninit,
-                                  size_t nstart, bool include) {
+static trace_filter_t *filter_initialise(trace_filter_t *f, size_t ninit,
+                                         size_t nstart, bool include) {
   if (f == NULL) {
     f = filter_alloc();
   }
@@ -105,7 +52,7 @@ trace_filter_t *filter_initialise(trace_filter_t *f, size_t ninit,
   return f;
 }
 
-static inline enum filter_mode_t parse_filter_mode(char *value) {
+static inline filter_mode_t parse_filter_mode(char *value) {
   if (strcmp(value, "exclude") == 0) {
     return mode_exclude;
   } else if (strcmp(value, "include") == 0) {

@@ -107,6 +107,10 @@ TEST_F(TestStringRegistry, KeyIsLabelled) {
   ASSERT_EQ(label, 1);
 }
 
+TEST_F(TestStringRegistry, NullKeyIsUndefined) {
+  ASSERT_EQ(string_registry_insert(r, NULL), UINT32_MAX);
+}
+
 TEST_F(TestStringRegistry, SameKeySameLabel) {
   const char *key = "foo";
   TestStringRegistry::label_type label1 = string_registry_insert(r, key);

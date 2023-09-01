@@ -33,6 +33,8 @@ void string_registry_delete(string_registry *registry) {
 
 uint32_t string_registry_insert(string_registry *registry, const char *str) {
   assert(registry != NULL);
+  if (str == NULL)
+    return UINT32_MAX;
   auto label = registry->label_map[str];
   if (label == registry->default_label) {
     label = registry->get_label();

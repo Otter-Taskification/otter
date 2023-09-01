@@ -6,7 +6,7 @@
 
 typedef uint64_t unique_id_t;
 typedef uint32_t otter_string_ref_t;
-#define OTTER_STRING_UNDEFINED 0
+#define OTTER_STRING_UNDEFINED UINT32_MAX
 
 typedef struct otter_src_location_t {
   const char *file;

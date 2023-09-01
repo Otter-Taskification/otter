@@ -27,9 +27,9 @@
 #include "api/otter-task-graph/otter-task-graph.h"
 #include "public/debug.h"
 #include "public/otter-environment-variables.h"
-#include "public/otter-trace/source-location.h"
-#include "public/otter-trace/strings.h"
 #include "public/otter-trace/trace-initialise.h"
+#include "public/otter-trace/trace-src-ref.h"
+#include "public/otter-trace/trace-strings.h"
 #include "public/otter-trace/trace-task-context-interface.h"
 #include "public/otter-trace/trace-task-graph.h"
 #include "public/otter-trace/trace-task-manager.h"
@@ -111,7 +111,7 @@ static void otter_register_task_label(otter_task_context *task,
     trace_task_manager_add_task(task_manager, label, task);
     TASK_MANAGER_UNLOCK();
   }
-  otter_string_ref_t task_label_ref = get_string_ref(label);
+  otter_string_ref_t task_label_ref = trace_get_string_ref(label);
   otterTaskContext_set_task_label_ref(task, task_label_ref);
 }
 
@@ -217,8 +217,8 @@ otter_task_context *otterTaskInitialise(otter_task_context *parent, int flavour,
   // rules in the filter
 
   otter_task_context *task = otterTaskContext_alloc();
-  otter_src_ref_t init_ref = get_source_location_ref((otter_src_location_t){
-      .file = init.file, .func = init.func, .line = init.line});
+  otter_src_ref_t init_ref =
+      trace_src_loc_to_ref(init.file, init.func, init.line);
 
   // If no parent given, set the current phase (or root) task as the parent.
   // Only the implicit root task may have a NULL parent.
@@ -261,8 +261,8 @@ otter_task_context *otterTaskStart(otter_task_context *task,
   task_attr.init = otterTaskContext_get_init_location_ref(task);
   LOG_DEBUG("[%lu] begin task (child of %lu)", task_attr.id,
             task_attr.parent_id);
-  otter_src_ref_t start_ref = get_source_location_ref((otter_src_location_t){
-      .file = start.file, .func = start.func, .line = start.line});
+  otter_src_ref_t start_ref =
+      trace_src_loc_to_ref(start.file, start.func, start.line);
   trace_graph_event_task_begin(get_thread_data()->location, task, task_attr,
                                start_ref);
   return task;
@@ -270,8 +270,7 @@ otter_task_context *otterTaskStart(otter_task_context *task,
 
 void otterTaskEnd(otter_task_context *task, otter_source_args end) {
   LOG_DEBUG("[%lu] end task", otterTaskContext_get_task_context_id(task));
-  otter_src_ref_t end_ref = get_source_location_ref((otter_src_location_t){
-      .file = end.file, .func = end.func, .line = end.line});
+  otter_src_ref_t end_ref = trace_src_loc_to_ref(end.file, end.func, end.line);
   trace_graph_event_task_end(get_thread_data()->location, task, end_ref);
   otterTaskContext_delete(task);
 }

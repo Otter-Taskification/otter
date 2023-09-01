@@ -8,6 +8,7 @@
 #include "public/otter-common.h"
 
 #include "trace-filter.h"
+#include "trace-src-ref.h"
 
 #define MAXKEY 16 // max key length
 
@@ -28,11 +29,15 @@ typedef enum filter_mode_t {
 // A rule can contain any of {label, init, start}
 typedef struct Rule {
   unsigned char flags;
-  char *label;
-  otter_src_location_t init;
-  otter_src_location_t start;
+  otter_string_ref_t label;
+  otter_src_ref_t init;
+  otter_src_ref_t start;
 } Rule;
-#define RULE_INITIALISER ((Rule){0, NULL, {NULL, NULL, -1}, {NULL, NULL, -1}})
+#define RULE_INITIALISER                                                       \
+  ((Rule){0,                                                                   \
+          OTTER_STRING_UNDEFINED,                                              \
+          {OTTER_STRING_UNDEFINED, OTTER_STRING_UNDEFINED, -1},                \
+          {OTTER_STRING_UNDEFINED, OTTER_STRING_UNDEFINED, -1}})
 
 // A vector of rules
 typedef struct Rule_v {
@@ -52,13 +57,13 @@ typedef struct trace_filter_t {
   ((trace_filter_t){RULE_V_INITIALISER, RULE_V_INITIALISER, 0})
 
 // rule vectors
+static Rule_v *rule_v_alloc(void);
 static void rule_v_init(Rule_v *, size_t);
 static void rule_v_append_copy(Rule_v *, Rule);
 
 // filters
 static trace_filter_t *filter_alloc(void);
-static trace_filter_t *filter_initialise(trace_filter_t *, size_t, size_t,
-                                         bool);
+static trace_filter_t *filter_init(trace_filter_t *, size_t, size_t, bool);
 
 // parsing parts of rules
 static filter_mode_t parse_filter_mode(char *);

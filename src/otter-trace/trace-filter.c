@@ -10,102 +10,16 @@
  */
 #include "trace-filter-impl.h"
 
-static void rule_v_init(Rule_v *coll, size_t sz) {
-  coll->rules = malloc(sz * sizeof(coll->rules[0]));
-  coll->next = coll->rules;
-  coll->cap = sz;
-}
-
-static void rule_v_append_copy(Rule_v *coll, Rule rule) {
-  // is there space?
-  LOG_DEBUG("rules=%p, next=%p, cap=%lu, elem=%lu", coll->rules, coll->next,
-            coll->cap, coll->next - coll->rules);
-  if (coll->next >= (coll->rules + coll->cap)) {
-    LOG_DEBUG("realloc!");
-    size_t elem = coll->next - coll->rules;
-    coll->cap = coll->cap + 10;
-    coll->rules =
-        realloc((void *)coll->rules, sizeof(coll->rules[0]) * coll->cap);
-    coll->next = coll->rules + elem;
-    LOG_DEBUG("rules=%p, next=%p, cap=%lu", coll->rules, coll->next, coll->cap);
-  }
-  LOG_DEBUG("copy %lu bytes to %p", sizeof(rule), coll->next);
-  memcpy((void *)coll->next, &rule, sizeof(rule));
-  coll->next++;
-  LOG_DEBUG("rules=%p, next=%p, cap=%lu, elem=%lu", coll->rules, coll->next,
-            coll->cap, coll->next - coll->rules);
-}
-
-static trace_filter_t *filter_alloc(void) {
-  return malloc(sizeof(trace_filter_t));
-}
-
-static trace_filter_t *filter_initialise(trace_filter_t *f, size_t ninit,
-                                         size_t nstart, bool include) {
-  if (f == NULL) {
-    f = filter_alloc();
-  }
-  *f = FILTER_INITIALISER;
-  rule_v_init(&f->init, ninit);
-  rule_v_init(&f->start, nstart);
-  f->include = include;
-  return f;
-}
-
-static inline filter_mode_t parse_filter_mode(char *value) {
-  if (strcmp(value, "exclude") == 0) {
-    return mode_exclude;
-  } else if (strcmp(value, "include") == 0) {
-    return mode_include;
-  } else {
-    return mode_invalid;
-  }
-}
-
-static inline void parse_source_location(otter_src_location_t *src,
-                                         char *value) {
-
-  size_t vlen = strlen(value);
-
-  char sep = ':';
-  char *sep_p = NULL;
-
-  if ((sep_p = strrchr(value, sep)) == NULL) {
-
-    // sep not found, value is <file>
-    src->file = memcpy(calloc(1 + vlen, sizeof(*src->file)), value, vlen);
-
-  } else {
-
-    char *sub = sep_p + 1;
-
-    // sep is present, value is <file>:<line> or <file>:<func>
-
-    // copy up to sep_p for <file>
-    src->file = memcpy(calloc(1 + sep_p - value, sizeof(*src->file)), value,
-                       sep_p - value);
-
-    src->line = (int)strtol(sub, NULL, 10);
-    if ((src->line) != 0) {
-      src->func = NULL;
-    } else {
-      // assume <func>
-      size_t func_name_len = strlen(sep_p + 1); // ...:<func>
-      src->func = memcpy(calloc(1 + func_name_len, sizeof(*src->func)),
-                         sep_p + 1, func_name_len);
-    }
-  }
-}
-
-int trace_filter_load(trace_filter_t **filt, FILE *filter_file) {
+int trace_filter_load(trace_filter_t **filt, string_registry *strings,
+                      FILE *filter_file) {
 
   if ((filter_file == NULL) || (filt == NULL)) {
     return -1;
   }
 
-  trace_filter_t *F = filter_initialise(NULL, 10, 10, false);
+  trace_filter_t *F = filter_init(NULL, 10, 10, false);
   *filt = F;
-  Rule rule_ = RULE_INITIALISER;
+  Rule rule = RULE_INITIALISER;
 
   LOG_DEBUG("parsing filter file");
 
@@ -132,12 +46,12 @@ int trace_filter_load(trace_filter_t **filt, FILE *filter_file) {
                (chars_read == -1 /* EOF */)) {
 
       // rule is finished
-      if (!(rule_.flags == 0 && rule_.label == NULL)) {
-        Rule_v *coll = CHK_RULE_START_BIT(rule_.flags) ? &F->start : &F->init;
-        rule_v_append_copy(coll, rule_);
+      if (!(rule.flags == 0 && rule.label == OTTER_STRING_UNDEFINED)) {
+        Rule_v *coll = CHK_RULE_START_BIT(rule.flags) ? &F->start : &F->init;
+        rule_v_append_copy(coll, rule);
         rules_parsed++;
       }
-      rule_ = RULE_INITIALISER;
+      rule = RULE_INITIALISER;
 
       if (chars_read == -1) { // EOF
         LOG_DEBUG("parsed %lu rules", rules_parsed);
@@ -197,29 +111,34 @@ int trace_filter_load(trace_filter_t **filt, FILE *filter_file) {
       // set the key for this item
       if (strncmp(key, "label", MAXKEY) == 0) {
 
-        rule_.label =
-            memcpy(calloc(1 + vlen, sizeof(*rule_.label)), value, vlen);
-        LOG_DEBUG("  got label: \"%s\"", rule_.label);
+        rule.label = string_registry_insert(strings, value);
+        LOG_DEBUG("  got label: \"%s\" (sref=%lu)", value, rule.label);
 
       } else if (strncmp(key, "init", MAXKEY) == 0) {
 
-        parse_source_location(&rule_.init, value);
-        SET_RULE_INIT_BIT(rule_.flags);
+        otter_src_location_t init;
+        parse_source_location(&init, value);
+        rule.init =
+            get_source_location_ref(strings, init.file, init.func, init.line);
+        SET_RULE_INIT_BIT(rule.flags);
 
         LOG_DEBUG("  got init location:");
-        LOG_DEBUG("    file: %s", rule_.init.file);
-        LOG_DEBUG("    func: %s", rule_.init.func);
-        LOG_DEBUG("    line: %d", rule_.init.line);
+        LOG_DEBUG("    file: %s (sref=%lu)", init.file, rule.init.file);
+        LOG_DEBUG("    func: %s (sref=%lu)", init.func, rule.init.func);
+        LOG_DEBUG("    line: %d", rule.init.line);
 
       } else if (strncmp(key, "start", MAXKEY) == 0) {
 
-        parse_source_location(&rule_.start, value);
-        SET_RULE_START_BIT(rule_.flags);
+        otter_src_location_t start;
+        parse_source_location(&start, value);
+        rule.start = get_source_location_ref(strings, start.file, start.func,
+                                             start.line);
+        SET_RULE_START_BIT(rule.flags);
 
         LOG_DEBUG("  got start location:");
-        LOG_DEBUG("    file: %s", rule_.start.file);
-        LOG_DEBUG("    func: %s", rule_.start.func);
-        LOG_DEBUG("    line: %d", rule_.start.line);
+        LOG_DEBUG("    file: %s (sref=%lu)", start.file, rule.start.file);
+        LOG_DEBUG("    func: %s (sref=%lu)", start.func, rule.start.func);
+        LOG_DEBUG("    line: %d", rule.start.line);
 
       } else {
         LOG_ERROR(
@@ -238,68 +157,97 @@ int trace_filter_load(trace_filter_t **filt, FILE *filter_file) {
   return 0;
 }
 
-void trace_filter_fwrite(const trace_filter_t *filter, FILE *stream) {
+// Rule_v
 
-  if (filter == NULL) {
-    return;
-  }
+static Rule_v *rule_v_alloc(void) { return malloc(sizeof(Rule_v)); }
 
-  int rule_idx = 1;
-
-  fprintf(stream, "%-8s %-s\n\n", "mode",
-          filter->include ? "include" : "exclude");
-
-  // print init rules
-  Rule_v rules = filter->init;
-  fprintf(stream, "# init rules:\n\n");
-  for (const Rule *rule = rules.rules; rule < rules.next; rule++) {
-    LOG_WARN_IF(CHK_RULE_START_BIT(rule->flags),
-                "start rule bit was set where init rule expected");
-    fprintf(stream, "# rule %d\n", rule_idx);
-    trace_filter_rule_fwrite(rule, stream);
-    fprintf(stream, "# end rule %d\n", rule_idx);
-    fprintf(stream, "\n");
-    rule_idx++;
-  }
-
-  // print start rules
-  rules = filter->start;
-  fprintf(stream, "# start rules:\n\n");
-  for (const Rule *rule = rules.rules; rule < rules.next; rule++) {
-    LOG_WARN_IF(!CHK_RULE_START_BIT(rule->flags),
-                "start rule bit not set where start rule expected");
-    fprintf(stream, "# rule %d\n", rule_idx);
-    trace_filter_rule_fwrite(rule, stream);
-    fprintf(stream, "# end rule %d\n", rule_idx);
-    fprintf(stream, "\n");
-    rule_idx++;
-  }
-
-  return;
+static void rule_v_init(Rule_v *coll, size_t sz) {
+  coll->rules = malloc(sz * sizeof(coll->rules[0]));
+  coll->next = coll->rules;
+  coll->cap = sz;
 }
 
-static void trace_filter_rule_fwrite(const Rule *rule, FILE *stream) {
-  if (rule->label) {
-    fprintf(stream, "%-8s %-s\n", "label", rule->label);
+static void rule_v_append_copy(Rule_v *coll, Rule rule) {
+  // is there space?
+  LOG_DEBUG("rules=%p, next=%p, cap=%lu, elem=%lu", coll->rules, coll->next,
+            coll->cap, coll->next - coll->rules);
+  if (coll->next >= (coll->rules + coll->cap)) {
+    LOG_DEBUG("realloc!");
+    size_t elem = coll->next - coll->rules;
+    coll->cap = coll->cap + 10;
+    coll->rules =
+        realloc((void *)coll->rules, sizeof(coll->rules[0]) * coll->cap);
+    coll->next = coll->rules + elem;
+    LOG_DEBUG("rules=%p, next=%p, cap=%lu", coll->rules, coll->next, coll->cap);
   }
-  if (CHK_RULE_INIT_BIT(rule->flags)) {
-    otter_src_location_t src = rule->init;
-    fprintf(stream, "%-8s %s", "init", src.file);
-    if (src.func) {
-      fprintf(stream, ":%s", src.func);
-    } else if (src.line != -1) {
-      fprintf(stream, ":%d", src.line);
-    }
-    fprintf(stream, "\n");
+  LOG_DEBUG("copy %lu bytes to %p", sizeof(rule), coll->next);
+  memcpy((void *)coll->next, &rule, sizeof(rule));
+  coll->next++;
+  LOG_DEBUG("rules=%p, next=%p, cap=%lu, elem=%lu", coll->rules, coll->next,
+            coll->cap, coll->next - coll->rules);
+}
+
+// trace_filter_t
+
+static trace_filter_t *filter_alloc(void) {
+  return malloc(sizeof(trace_filter_t));
+}
+
+static trace_filter_t *filter_init(trace_filter_t *f, size_t ninit,
+                                   size_t nstart, bool include) {
+  if (f == NULL) {
+    f = filter_alloc();
   }
-  if (CHK_RULE_START_BIT(rule->flags)) {
-    otter_src_location_t src = rule->start;
-    fprintf(stream, "%-8s %s", "start", src.file);
-    if (src.func) {
-      fprintf(stream, ":%s", src.func);
-    } else if (src.line != -1) {
-      fprintf(stream, ":%d", src.line);
+  *f = FILTER_INITIALISER;
+  rule_v_init(&f->init, ninit);
+  rule_v_init(&f->start, nstart);
+  f->include = include;
+  return f;
+}
+
+// parse things
+
+static inline filter_mode_t parse_filter_mode(char *value) {
+  if (strcmp(value, "exclude") == 0) {
+    return mode_exclude;
+  } else if (strcmp(value, "include") == 0) {
+    return mode_include;
+  } else {
+    return mode_invalid;
+  }
+}
+
+static inline void parse_source_location(otter_src_location_t *src,
+                                         char *value) {
+
+  size_t vlen = strlen(value);
+
+  char sep = ':';
+  char *sep_p = NULL;
+
+  if ((sep_p = strrchr(value, sep)) == NULL) {
+
+    // sep not found, value is <file>
+    src->file = memcpy(calloc(1 + vlen, sizeof(*src->file)), value, vlen);
+
+  } else {
+
+    char *sub = sep_p + 1;
+
+    // sep is present, value is <file>:<line> or <file>:<func>
+
+    // copy up to sep_p for <file>
+    src->file = memcpy(calloc(1 + sep_p - value, sizeof(*src->file)), value,
+                       sep_p - value);
+
+    src->line = (int)strtol(sub, NULL, 10);
+    if ((src->line) != 0) {
+      src->func = NULL;
+    } else {
+      // assume <func>
+      size_t func_name_len = strlen(sep_p + 1); // ...:<func>
+      src->func = memcpy(calloc(1 + func_name_len, sizeof(*src->func)),
+                         sep_p + 1, func_name_len);
     }
-    fprintf(stream, "\n");
   }
 }

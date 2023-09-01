@@ -11,4 +11,8 @@
 
 #include "public/otter-common.h"
 
-otter_src_ref_t get_source_location_ref(otter_src_location_t location);
+#include "public/types/string_value_registry.hpp"
+
+otter_src_ref_t get_source_location_ref(string_registry *strings,
+                                        const char *file, const char *func,
+                                        int line);

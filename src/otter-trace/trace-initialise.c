@@ -79,11 +79,10 @@ bool trace_initialise(otter_opt_t *opt) {
                 strerror(errno));
     } else {
       // process filter_file
-      int result = trace_filter_load(&filter, filter_file);
+      int result =
+          trace_filter_load(&filter, state.strings.instance, filter_file);
       if (result != 0) {
         LOG_ERROR("failed to parse filter file: %s", "???");
-      } else {
-        trace_filter_fwrite(filter, stderr);
       }
       fclose(filter_file);
     }

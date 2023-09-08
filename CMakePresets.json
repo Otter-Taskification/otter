@@ -1,0 +1,60 @@
+{
+    "version": 2,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 20,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "default",
+            "displayName": "Default config",
+            "description": "Default build using Makefiles",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build/default",
+            "environment": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "debug",
+            "displayName": "Debug config",
+            "description": "Debug build using Makefiles",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build/debug",
+            "environment": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "verbose",
+            "displayName": "Verbose config",
+            "description": "Verbose build using Makefiles",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build/verbose",
+            "environment": {
+                "CMAKE_BUILD_TYPE": "Verbose"
+            }
+        },
+        {
+            "inherits": "default",
+            "name": "shared",
+            "displayName": "Default config with shared libs",
+            "description": "Default config building shared libs",
+            "binaryDir": "${sourceDir}/build/shared",
+            "cacheVariables": {
+                "BUILD_SHARED_LIBS": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "default",
+            "configurePreset": "default"
+        },
+        {
+            "name": "shared",
+            "configurePreset": "shared"
+        }
+    ]
+}

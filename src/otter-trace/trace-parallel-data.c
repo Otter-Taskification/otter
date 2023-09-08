@@ -1,5 +1,5 @@
 #include "public/otter-trace/trace-parallel-data.h"
-#include "otter-trace/trace-get-unique-id.h"
+#include "trace-get-unique-id.h"
 #include "public/otter-trace/trace-region-def.h"
 #include <stdlib.h>
 

@@ -19,14 +19,14 @@
 #include "public/types/queue.h"
 #include "public/types/stack.h"
 
-#include "otter-trace/trace-archive-impl.h"
-#include "otter-trace/trace-attribute-lookup.h"
-#include "otter-trace/trace-attributes.h"
-#include "otter-trace/trace-check-error-code.h"
-#include "otter-trace/trace-static-constants.h"
-#include "otter-trace/trace-timestamp.h"
-#include "otter-trace/trace-types-as-labels.h"
-#include "otter-trace/trace-unique-refs.h"
+#include "trace-archive-impl.h"
+#include "trace-attribute-lookup.h"
+#include "trace-attributes.h"
+#include "trace-check-error-code.h"
+#include "trace-static-constants.h"
+#include "trace-timestamp.h"
+#include "trace-types-as-labels.h"
+#include "trace-unique-refs.h"
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /*   WRITE EVENTS                                                            */

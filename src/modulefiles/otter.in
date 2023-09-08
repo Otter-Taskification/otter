@@ -1,0 +1,35 @@
+#%Module1.0######################################################################
+##
+## otter modulefile
+##
+
+proc getRootPrefix { } {
+    # This variable set by cmake at installation time
+    variable _root_prefix @MODULE_ROOT_PREFIX@
+    variable _this_file [file normalize [info script]]
+    if {[catch {file readlink ${_this_file}} failure] == 0} {
+        variable _this_file [file readlink ${_this_file}]
+    }
+    return [file normalize [file dirname ${_this_file}]/${_root_prefix} ]
+}
+
+set Otter_ROOT [getRootPrefix]
+
+proc ModulesHelp { } {
+    variable _root [getRootPrefix]
+    puts stderr "  Load otter from the directory ${_root}"
+    puts stderr "  Sets the environment variable Otter_ROOT"
+}
+
+module-whatis   "Load otter installation: ${Otter_ROOT}"
+
+# Add software to environment
+prepend-path PATH ${Otter_ROOT}/bin
+prepend-path CPATH ${Otter_ROOT}/include
+prepend-path OTTER_FORTRAN_INCLUDES ${Otter_ROOT}/include/otter
+prepend-path LIBRARY_PATH ${Otter_ROOT}/lib
+prepend-path LD_LIBRARY_PATH ${Otter_ROOT}/lib
+
+setenv Otter_ROOT ${Otter_ROOT}
+setenv OTTER_OMPT_LIBRARY ${Otter_ROOT}/lib/libotter-ompt.so
+setenv OTTER_EXAMPLES_DIR ${Otter_ROOT}/bin

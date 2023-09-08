@@ -5,9 +5,9 @@
 #include <otf2/OTF2_GeneralDefinitions.h>
 #include <otf2/OTF2_GlobalDefWriter.h>
 
-#include "otter-trace/trace-region-types.h"
 #include "public/otter-common.h"
 #include "public/otter-trace/trace-region-attr.h"
+#include "public/otter-trace/trace-region-types.h"
 #include "public/otter-trace/trace-state.h"
 #include "public/otter-trace/trace-types.h"
 #include "public/types/queue.h"

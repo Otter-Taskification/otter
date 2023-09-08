@@ -1,5 +1,5 @@
 #include "public/otter-trace/source-location.h"
-#include "otter-trace/trace-state.h"
+#include "trace-state.h"
 
 otter_src_ref_t get_source_location_ref(otter_src_location_t location) {
   pthread_mutex_lock(&state.strings.lock);

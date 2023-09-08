@@ -1,5 +1,5 @@
 #include "public/otter-trace/strings.h"
-#include "otter-trace/trace-state.h"
+#include "trace-state.h"
 
 otter_string_ref_t get_string_ref(const char *string) {
   otter_string_ref_t string_ref = OTTER_STRING_UNDEFINED;

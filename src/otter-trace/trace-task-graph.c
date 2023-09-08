@@ -23,14 +23,14 @@
 #include "public/otter-trace/trace-thread-data.h"
 #include "public/types/queue.h"
 
-#include "otter-trace/trace-archive-impl.h"
-#include "otter-trace/trace-attribute-lookup.h"
-#include "otter-trace/trace-attributes.h"
-#include "otter-trace/trace-check-error-code.h"
-#include "otter-trace/trace-state.h"
-#include "otter-trace/trace-timestamp.h"
-#include "otter-trace/trace-types-as-labels.h"
-#include "otter-trace/trace-unique-refs.h"
+#include "trace-archive-impl.h"
+#include "trace-attribute-lookup.h"
+#include "trace-attributes.h"
+#include "trace-check-error-code.h"
+#include "trace-state.h"
+#include "trace-timestamp.h"
+#include "trace-types-as-labels.h"
+#include "trace-unique-refs.h"
 
 #define BACKTRACE_DEPTH 10
 

@@ -4,9 +4,9 @@
 #if !defined(__USE_POSIX)
 #define __USE_POSIX // for HOST_NAME_MAX
 #endif
-#include "otter-ompt/callback.h"
-#include "otter-ompt/otter-entry.h"
-#include "otter-ompt/otter.h"
+#include "callback.h"
+#include "otter-entry.h"
+#include "otter.h"
 #include "public/debug.h"
 #include "public/otter-common.h"
 #include "public/otter-environment-variables.h"

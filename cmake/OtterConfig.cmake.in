@@ -1,0 +1,27 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+include(FindPackageHandleStandardArgs)
+
+message(VERBOSE "${CMAKE_CURRENT_LIST_FILE}: Otter searching for OTF2 dependency")
+
+# if the calling package doesnt supply OTF2_INSTALL_DIR, use one that was
+# given when Otter was installed
+if(NOT DEFINED OTF2_INSTALL_DIR)
+    set(OTF2_INSTALL_DIR @PACKAGE_OTF2_ROOT_GUESS@)
+endif()
+
+# Use our own FindOTF2 so that users dont have to concern themselves.
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
+find_dependency(OTF2)
+list(POP_BACK CMAKE_MODULE_PATH)
+
+include(${CMAKE_CURRENT_LIST_DIR}/OtterTrace.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/OtterDType.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/OtterTaskGraph.cmake)
+
+# add an alias for the task-graph library
+add_library(Otter::Otter ALIAS otter-task-graph)
+
+# print a nice message if Otter was found
+find_package_handle_standard_args(Otter REQUIRED_VARS PACKAGE_PREFIX_DIR)

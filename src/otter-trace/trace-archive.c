@@ -19,12 +19,12 @@
 #include "public/otter-trace/trace-ompt.h"
 #include "public/otter-version.h"
 
-#include "otter-trace/trace-archive-impl.h"
-#include "otter-trace/trace-attributes.h"
-#include "otter-trace/trace-check-error-code.h"
-#include "otter-trace/trace-static-constants.h"
-#include "otter-trace/trace-timestamp.h"
-#include "otter-trace/trace-unique-refs.h"
+#include "trace-archive-impl.h"
+#include "trace-attributes.h"
+#include "trace-check-error-code.h"
+#include "trace-static-constants.h"
+#include "trace-timestamp.h"
+#include "trace-unique-refs.h"
 
 /* Lookup tables mapping enum value to string ref */
 OTF2_StringRef attr_name_ref[n_attr_defined][2] = {0};
@@ -179,7 +179,7 @@ bool trace_initialise_archive(const char *archive_path,
 #define INCLUDE_LABEL(Name, Label)                                             \
   OTF2_GlobalDefWriter_WriteString(                                            \
       _defs, attr_label_ref[attr_##Name##_##Label], #Label);
-#include "otter-trace/trace-attribute-defs.h"
+#include "trace-attribute-defs.h"
 
 /* define attributes which can be referred to later by the enum
    attr_name_enum_t */
@@ -187,7 +187,7 @@ bool trace_initialise_archive(const char *archive_path,
   OTF2_GlobalDefWriter_WriteAttribute(_defs, attr_##Name,                      \
                                       attr_name_ref[attr_##Name][0],           \
                                       attr_name_ref[attr_##Name][1], Type);
-#include "otter-trace/trace-attribute-defs.h"
+#include "trace-attribute-defs.h"
 
   return true;
 }

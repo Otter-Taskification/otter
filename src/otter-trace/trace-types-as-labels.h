@@ -1,8 +1,9 @@
 #if !defined(OTTER_TRACE_LOOKUP_MACROS_H)
 #define OTTER_TRACE_LOOKUP_MACROS_H
 
-#include "otter-trace/trace-attributes.h"
-#include "otter-trace/trace-region-types.h"
+#include "public/otter-trace/trace-region-types.h"
+
+#include "trace-attributes.h"
 
 static inline attr_label_enum_t work_type_as_label(otter_work_t work_type) {
   switch (work_type) {

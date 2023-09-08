@@ -1,7 +1,7 @@
 #if !defined(OTTER_TRACE_ATTRIBUTE_LOOKUP_H)
 #define OTTER_TRACE_ATTRIBUTE_LOOKUP_H
 
-#include "otter-trace/trace-attributes.h"
+#include "trace-attributes.h"
 #include <otf2/OTF2_GeneralDefinitions.h>
 
 /* Lookup tables mapping enum value to string ref */

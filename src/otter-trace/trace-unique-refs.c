@@ -1,4 +1,4 @@
-#include "otter-trace/trace-unique-refs.h"
+#include "trace-unique-refs.h"
 #include <stdint.h>
 
 /* Different kinds of unique IDs */

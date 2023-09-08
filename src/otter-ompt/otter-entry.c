@@ -1,5 +1,5 @@
-#include "otter-ompt/otter-entry.h"
-#include "otter-ompt/callback.h"
+#include "otter-entry.h"
+#include "callback.h"
 #include "public/debug.h"
 #include "public/otter-environment-variables.h"
 #include "public/otter-version.h"

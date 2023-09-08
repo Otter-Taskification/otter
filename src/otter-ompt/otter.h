@@ -13,7 +13,7 @@
 
 #include <omp-tools.h>
 
-#include "otter-ompt/otter-entry.h"
+#include "otter-entry.h"
 #include "public/otter-common.h"
 
 /* A naming convention was chosen for the callbacks so that each callback is
@@ -36,6 +36,6 @@
 #define implements_callback_work
 #define implements_callback_sync_region
 #define implements_callback_master
-#include "otter-ompt/ompt-callback-prototypes.h"
+#include "ompt-callback-prototypes.h"
 
 #endif // OTTER_H

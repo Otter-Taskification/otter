@@ -9,7 +9,9 @@
 *.dot
 *.graphml
 
-!CMakeLists.txt
+!CMakeLists*.txt
+
+CMakeUserPresets.json
 
 /omp-*
 

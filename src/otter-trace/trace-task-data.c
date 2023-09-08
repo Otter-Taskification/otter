@@ -1,5 +1,5 @@
 #include "public/otter-trace/trace-task-data.h"
-#include "otter-trace/trace-get-unique-id.h"
+#include "trace-get-unique-id.h"
 #include <stdlib.h>
 typedef struct task_data_t {
   unique_id_t id;

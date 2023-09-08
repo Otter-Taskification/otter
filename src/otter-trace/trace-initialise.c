@@ -1,7 +1,7 @@
 #define _GNU_SOURCE
 #include "public/otter-trace/trace-initialise.h"
-#include "otter-trace/trace-archive-impl.h"
-#include "otter-trace/trace-archive.h"
+#include "trace-archive-impl.h"
+#include "trace-archive.h"
 #include "public/debug.h"
 #include <errno.h>
 #include <stdio.h>
@@ -10,9 +10,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #define OTTER_TRACE_STATE_GLOBAL_DECL
-#include "otter-trace/trace-state.h"
-#include "otter-trace/trace-static-constants.h"
-#include "otter-trace/trace-unique-refs.h"
+#include "trace-state.h"
+#include "trace-static-constants.h"
+#include "trace-unique-refs.h"
 
 enum { char_buff_sz = 1024 };
 

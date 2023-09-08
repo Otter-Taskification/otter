@@ -1,6 +1,6 @@
 #include "public/otter-trace/trace-thread-data.h"
-#include "otter-trace/trace-get-unique-id.h"
-#include "otter-trace/trace-static-constants.h"
+#include "trace-get-unique-id.h"
+#include "trace-static-constants.h"
 #include <stdlib.h>
 
 thread_data_t *new_thread_data(otter_thread_t type) {

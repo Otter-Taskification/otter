@@ -10,6 +10,7 @@
 *.graphml
 
 !CMakeLists*.txt
+!requirements.txt
 
 CMakeUserPresets.json
 
@@ -25,6 +26,7 @@ CMakeUserPresets.json
 
 /workspace.code-workspace
 
+/docs/html
 !/docs/*.svg
 
 /include/public/otter-version.h

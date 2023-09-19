@@ -7,6 +7,8 @@ author = "Adam Tuft"
 release = "0.1"
 version = "0.1.0"
 
+root_doc = "source/index"
+
 extensions = [
     "sphinx.ext.duration",
     "sphinx.ext.doctest",

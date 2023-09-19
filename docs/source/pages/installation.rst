@@ -138,12 +138,19 @@ Using Otter in a CMake project
 """"""""""""""""""""""""""""""
 
 When Otter is installed, a CMake ``find_package()`` script is also installed that
-imports the ``Otter::Otter`` target for linking to via ``target_link_libraries()``.
-This target also manages discovery of and linking to the OTF2 dependency on behalf
-of the calling project, so there is no need to also call ``find_package(OTF2)`` or
-``target_link_libraries(... INTERFACE OTF2)``.
+imports the ``Otter::Otter`` target. To link to Otter in a CMake project, you
+simply need to do the following:
 
-To make Otter visible to CMake, you can do any **one** of the following:
+::
+
+    find_package(Otter CONFIG)
+    target_link_libraries(targetApp INTERFACE Otter::Otter)
+
+The ``Otter::Otter`` target manages discovery of and linking to the OTF2 dependency
+on behalf of the calling project, so there is no need to also call
+``find_package(OTF2)`` or ``target_link_libraries(... INTERFACE OTF2)``.
+
+To make the Otter target visible to CMake, you can do any **one** of the following:
 
 -  (**recommended**) Use the modulefile (see above) to set up your environment to use Otter.
 -  Define the environment variable ``Otter_ROOT=<install-prefix>`` to point to

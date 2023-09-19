@@ -18,10 +18,15 @@ the vision behind the Otter API.
 The Otter task graph API
 ------------------------
 
-The user-facing API, which consists of a set of function-like macros, is
-provided by the ``otter/otter-task-graph-user.h`` header. See the
-documentation in that header for the canonical usage instructions. These
-instructions are summarised below.
+The user-facing API, which consists of a set of function-like macros, is provided
+by ``otter/otter-task-graph-user.h``. See the documentation in that header for
+the canonical usage instructions. These instructions are summarised below.
+
+A stub version of this header which un-defines the Otter macros is installed
+alongside Otter-Task-Graph and is also available `here <https://github.com/Otter-Taskification/otter/blob/dev/include/api/otter-task-graph/otter-task-graph-stub.h>`__
+for use by users of software which itself includes or uses Otter but
+does not require it's own users to install Otter. This file is placed
+into the public domain (see the license in that file).
 
 Before the API can be used it must be initialised with
 ``OTTER_INITIALISE()`` and when tracing is complete it must be finalised
@@ -44,7 +49,7 @@ to distinct tasks across separate scopes.
 
 .. important ::
 
-    Tasks in the same task pool (i.e. with the same label) cannot
+    Tasks in the same task pool (i.e. with the same label) cannot
     be distinguished and must be considered logically interchangeable.
 
 Declaring and defining tasks
@@ -136,14 +141,6 @@ These macros record trace events.
 | ``OTTER_PHASE_SWITCH(name)``   | End the present global algorithmic phase and       |
 |                                | immediately switch to another.                     |
 +--------------------------------+----------------------------------------------------+
-
-A stub version of ``otter/otter-task-graph-user.h``, which provides a
-stub version of the API, is installed alongside Otter-Task-Graph and is
-also available
-`here <https://github.com/Otter-Taskification/otter/blob/dev/include/api/otter-task-graph/otter-task-graph-stub.h>`__
-for use by users of software which itself includes or uses Otter but
-does not require it's own users to install Otter. This file is placed
-into the public domain (see the license in that file).
 
 Annotating with Otter
 ---------------------

@@ -55,7 +55,7 @@ OpenMP application, all without modifying the application's source.
 Getting Started
 ---------------
 
-See the :doc:`installation </source/pages/installation>` page for building &
+See the :doc:`installation </pages/installation>` page for building &
 installing Otter.
 
 Tracing a target OpenMP application ``omp-demo`` is as simple as:

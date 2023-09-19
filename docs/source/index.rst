@@ -64,6 +64,11 @@ Acknowledgements
 Otter's development started as the subject of a final project and
 dissertation for the `Scientific Computing and Data Analysis
 MSc <https://miscada.phyip3.dur.ac.uk/>`__ (MISCADA) at Durham
-University, UK. The current research is supported by EPSRC’s Excalibur
+University, UK. The current research is supported by EPSRC's Excalibur
 programme through its cross-cutting project EX20-9 *Exposing
 Parallelism: Task Parallelism* (Grant ESA 10 CDEL).
+
+.. image:: images/ExCALIBUR_colour.png
+    :align: center
+    :width: 250px
+    :target: https://excalibur.ac.uk/projects/exposing-parallelism-task-parallelism/

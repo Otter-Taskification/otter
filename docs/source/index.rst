@@ -68,26 +68,8 @@ University, UK. The current research is supported by EPSRC's Excalibur
 programme through its cross-cutting project EX20-9 *Exposing
 Parallelism: Task Parallelism* (Grant ESA 10 CDEL).
 
-.. image:: images/ExCALIBUR_colour.png
-    :align: center
-    :width: 250px
-    :target: https://excalibur.ac.uk/projects/exposing-parallelism-task-parallelism/
-    :alt: images/ExCALIBUR_colour.png
-
 .. image:: /images/ExCALIBUR_colour.png
     :align: center
     :width: 250px
     :target: https://excalibur.ac.uk/projects/exposing-parallelism-task-parallelism/
     :alt: /images/ExCALIBUR_colour.png
-
-.. image:: source/images/ExCALIBUR_colour.png
-    :align: center
-    :width: 250px
-    :target: https://excalibur.ac.uk/projects/exposing-parallelism-task-parallelism/
-    :alt: source/images/ExCALIBUR_colour.png
-
-.. image:: /source/images/ExCALIBUR_colour.png
-    :align: center
-    :width: 250px
-    :target: https://excalibur.ac.uk/projects/exposing-parallelism-task-parallelism/
-    :alt: /source/images/ExCALIBUR_colour.png

@@ -1,21 +1,5 @@
-*.csv
-*.txt
-*.log
-*.pdf
-*.gv
-*.ps
-*.png
-*.svg
-*.dot
-*.graphml
-
-!CMakeLists*.txt
-!requirements.txt
-
-CMakeUserPresets.json
-
+/*.sh
 /omp-*
-
 /build*/
 /trace/
 /scratch/
@@ -23,13 +7,7 @@ CMakeUserPresets.json
 /notes/
 /doxygen/
 /.vscode/
-
 /workspace.code-workspace
-
 /docs/html
-!/docs/*.svg
 
-/include/public/otter-version.h
-/include/otter/otter-version.h
-
-/*.sh
+CMakeUserPresets.json

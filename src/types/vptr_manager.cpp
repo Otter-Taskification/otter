@@ -1,11 +1,11 @@
 #include "public/types/vptr_manager.hpp"
-#include <map>
 #include <string>
+#include <unordered_map>
 
 struct vptr_manager {
-  using mapping = std::map<std::string, void *>;
+  using mapping = std::unordered_map<std::string, void *>;
   mapping i_map;
-  std::map<mapping::key_type, int> i_count;
+  std::unordered_map<mapping::key_type, int> i_count;
 };
 
 // C wrappers

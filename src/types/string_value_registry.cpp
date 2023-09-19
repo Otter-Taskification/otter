@@ -1,10 +1,10 @@
 #include "public/types/string_value_registry.hpp"
 #include <cassert>
-#include <map>
 #include <string>
+#include <unordered_map>
 
 struct string_registry {
-  using mapping = std::map<std::string, uint32_t>;
+  using mapping = std::unordered_map<std::string, uint32_t>;
   using mapped_type = mapping::mapped_type;
   mapping label_map;
   labeller_fn *get_label;

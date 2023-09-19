@@ -19,11 +19,11 @@
 #define OTTER_DECLARE_HANDLE(...)
 #define OTTER_INIT_TASK(...)
 #define OTTER_DEFINE_TASK(...)
-#define OTTER_ADD_TO_POOL(...)
-#define OTTER_POP_LABEL(...)
-#define OTTER_REMOVE_FROM_POOL(...)
-#define OTTER_BORROW_LABEL(...)
-#define OTTER_BORROW_FROM_POOL(...)
+#define OTTER_POOL_ADD(...)
+#define OTTER_POOL_POP(...)
+#define OTTER_POOL_DECL_POP(...)
+#define OTTER_POOL_BORROW(...)
+#define OTTER_POOL_DECL_BORROW(...)
 #define OTTER_TASK_START(...)
 #define OTTER_TASK_END(...)
 #define OTTER_TASK_WAIT_FOR(...)
@@ -153,7 +153,7 @@
  * @param ...: Variadic arguments for use with \p label.
  *
  */
-#define OTTER_ADD_TO_POOL(task, label, ...)                                    \
+#define OTTER_POOL_ADD(task, label, ...)                                       \
   otterTaskPushLabel(task, label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
@@ -168,7 +168,7 @@
  * @param ...: Variadic arguments for use with \p label.
  *
  */
-#define OTTER_POP_LABEL(task, label, ...)                                      \
+#define OTTER_POOL_POP(task, label, ...)                                       \
   task = otterTaskPopLabel(label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
@@ -188,7 +188,7 @@
  * @param ...: Variadic arguments for use with \p label.
  *
  */
-#define OTTER_BORROW_LABEL(task, label, ...)                                   \
+#define OTTER_POOL_BORROW(task, label, ...)                                    \
   task = otterTaskBorrowLabel(label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
@@ -204,9 +204,9 @@
  * @param ...: Variadic arguments for use with \p label.
  *
  */
-#define OTTER_REMOVE_FROM_POOL(task, label, ...)                               \
+#define OTTER_POOL_DECL_POP(task, label, ...)                                  \
   OTTER_DECLARE_HANDLE(task);                                                  \
-  OTTER_POP_LABEL(task, label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
+  OTTER_POOL_POP(task, label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
  * @brief Declare a handle in the current scope, assigning a task borrowed from
@@ -226,9 +226,9 @@
  * @param ...: Variadic arguments for use with \p label.
  *
  */
-#define OTTER_BORROW_FROM_POOL(task, label, ...)                               \
+#define OTTER_POOL_DECL_BORROW(task, label, ...)                               \
   OTTER_DECLARE_HANDLE(task);                                                  \
-  OTTER_BORROW_LABEL(task, label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
+  OTTER_POOL_BORROW(task, label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
  * @brief Record the start of the code represented by the given task handle.

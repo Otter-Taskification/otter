@@ -74,31 +74,31 @@ Storing and retrieving tasks
 
 These macros do not record any trace events.
 
-+---------------------------------------------------------------------------------+-----------------------------------------------------+
-| Macro                                                                           | Usage                                               |
-+=================================================================================+=====================================================+
-| ``OTTER_ADD_TO_POOL(task, label, ...)``                                         | Add a task handle to the task pool associated with  |
-|                                                                                 | the given label.                                    |
-|                                                                                 |                                                     |
-+---------------------------------------------------------------------------------+-----------------------------------------------------+
-| ``OTTER_POP_LABEL(task, label, ...)``                                           | Assign a task removed from the task pool with the   |
-|                                                                                 | given label (or ``OTTER_NULL_TASK`` if none         |
-|                                                                                 | available).                                         |
-+---------------------------------------------------------------------------------+-----------------------------------------------------+
-|                                                                                 | Declare a handle and assign a task removed from the |
-| ``OTTER_REMOVE_FROM_POOL(task, label, ...)``                                    | task pool with the given label (or                  |
-|                                                                                 | ``OTTER_NULL_TASK`` if none available).             |
-|                                                                                 |                                                     |
-+---------------------------------------------------------------------------------+-----------------------------------------------------+
-| ``OTTER_BORROW_LABEL(task, label, ...)``                                        | Assign a task borrowed from the task pool           |
-|                                                                                 | associated with the given label (or                 |
-|                                                                                 | ``OTTER_NULL_TASK`` if none available).             |
-+---------------------------------------------------------------------------------+-----------------------------------------------------+
-|                                                                                 | Declare a handle and borrow a task from the task    |
-| ``OTTER_BORROW_FROM_POOL(task, label, ...)``                                    | pool associated with the given label (or            |
-|                                                                                 | ``OTTER_NULL_TASK`` if none available).             |
-|                                                                                 |                                                     |
-+---------------------------------------------------------------------------------+-----------------------------------------------------+
++-----------------------------------------------+-----------------------------------------------------+
+| Macro                                         | Usage                                               |
++===============================================+=====================================================+
+| ``OTTER_POOL_ADD(task, label, ...)``          | Add a task handle to the task pool associated with  |
+|                                               | the given label.                                    |
+|                                               |                                                     |
++-----------------------------------------------+-----------------------------------------------------+
+| ``OTTER_POOL_POP(task, label, ...)``          | Assign a task removed from the task pool with the   |
+|                                               | given label (or ``OTTER_NULL_TASK`` if none         |
+|                                               | available).                                         |
++-----------------------------------------------+-----------------------------------------------------+
+|                                               | Declare a handle and assign a task removed from the |
+| ``OTTER_POOL_DECL_POP(task, label, ...)``     | task pool with the given label (or                  |
+|                                               | ``OTTER_NULL_TASK`` if none available).             |
+|                                               |                                                     |
++-----------------------------------------------+-----------------------------------------------------+
+| ``OTTER_POOL_BORROW(task, label, ...)``       | Assign a task borrowed from the task pool           |
+|                                               | associated with the given label (or                 |
+|                                               | ``OTTER_NULL_TASK`` if none available).             |
++-----------------------------------------------+-----------------------------------------------------+
+|                                               | Declare a handle and borrow a task from the task    |
+| ``OTTER_POOL_DECL_BORROW(task, label, ...)``  | pool associated with the given label (or            |
+|                                               | ``OTTER_NULL_TASK`` if none available).             |
+|                                               |                                                     |
++-----------------------------------------------+-----------------------------------------------------+
 
 Annotating task start, end and synchronisation constraints
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -234,7 +234,7 @@ with calls to ``OTTER_TASK_[START|END]()`` e.g.
 In this example, each recursive call to ``fib()`` can be considered as a
 task. In order to record parent-child links between these calls, it is
 necessary to refer to the handle of an enclosing task. This is done with
-the ``OTTER_REMOVE_FROM_POOL()`` macro. Because there is an output
+the ``OTTER_POOL_DECL_POP()`` macro. Because there is an output
 dependency on ``i`` and ``j``, each task representing a call to
 ``fib()`` must record a barrier for the result of the tasks it spawns.
 This constraint is specified with
@@ -247,7 +247,7 @@ This constraint is specified with
        int i, j;
 
        // refer to the parent task
-       OTTER_REMOVE_FROM_POOL(parent, "fib(%d)", n);
+       OTTER_POOL_DECL_POP(parent, "fib(%d)", n);
 
        // indicate a task
        OTTER_DEFINE_TASK(child1, parent, otter_add_to_pool, "fib(%d)", n - 1);

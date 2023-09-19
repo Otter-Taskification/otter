@@ -5,12 +5,12 @@
 
 proc getRootPrefix { } {
     # This variable set by cmake at installation time
-    variable _root_prefix @MODULE_ROOT_PREFIX@
-    variable _this_file [file normalize [info script]]
-    if {[catch {file readlink ${_this_file}} failure] == 0} {
-        variable _this_file [file readlink ${_this_file}]
+    variable root_prefix @MODULE_ROOT_PREFIX@
+    variable modfile [file normalize $::ModulesCurrentModulefile]
+    if {[catch {file readlink ${modfile}} failure] == 0} {
+        variable modfile [file readlink ${modfile}]
     }
-    return [file normalize [file dirname ${_this_file}]/${_root_prefix} ]
+    return [file normalize [file dirname ${modfile}]/${root_prefix} ]
 }
 
 set Otter_ROOT [getRootPrefix]

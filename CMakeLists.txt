@@ -58,6 +58,11 @@ if(WITH_TESTS)
     add_subdirectory(test)
 endif()
 
+if(WITH_EXAMPLES)
+    message(STATUS "Enable examples")
+    add_subdirectory(examples)
+endif()
+
 include(cmake/GenerateOtterPackageConfig.cmake)
 
 # install the FindOTF2.cmake script for use by consumers of Otter

@@ -352,6 +352,11 @@ void otterPhaseEnd(otter_source_args source) {
   unique_id_t phase_id = otterTaskContext_get_task_context_id(phase_task);
   LOG_DEBUG("<phase %lu> (%s:%d)", phase_id, source.func, source.line);
   otterTaskEnd(phase_task, source);
+
+  // All phases are implicitly synchronised to indicate that they must happen
+  // sequentially
+  otterSynchroniseTasks(root_task, otter_sync_children);
+
   phase_task = NULL;
 #else
   LOG_WARN("phases are disabled - ignoring.");

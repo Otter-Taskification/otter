@@ -14,7 +14,7 @@ target_include_directories(otter-task-graph
 
 target_link_libraries(otter-task-graph
     PRIVATE otter-trace otter-dtype
-    INTERFACE OTF2::otf2 # add to the link interface for consumers of otter-task-graph
+    INTERFACE OTF2::otf2 pthread # add to the link interface for consumers of otter-task-graph
 )
 
 target_compile_definitions(otter-task-graph PRIVATE DEBUG_LEVEL=$<IF:$<CONFIG:Debug>,3,0>)

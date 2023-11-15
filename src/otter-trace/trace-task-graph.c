@@ -12,7 +12,6 @@
 #include <execinfo.h>
 #include <otf2/otf2.h>
 #include <pthread.h>
-#include <threads.h>
 #include <time.h>
 
 #include "public/debug.h"

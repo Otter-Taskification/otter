@@ -37,10 +37,11 @@ otter_task_context *otterTaskContext_alloc(void) {
   return malloc(sizeof(otter_task_context));
 }
 
+static unique_id_t unique_id = 0;
+
 void otterTaskContext_init(otter_task_context *task, otter_task_context *parent,
                            int flavour, otter_src_ref_t init_location) {
   assert(task != NULL);
-  static unique_id_t unique_id = 0;
   task->task_context_id = __sync_fetch_and_add(&unique_id, 1L);
   task->flavour = flavour;
   task->init_location = init_location;

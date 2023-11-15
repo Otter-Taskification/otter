@@ -19,10 +19,10 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <threads.h>
 #include <unistd.h>
 
 #include "public/config.h"
+#include "public/threads.h"
 
 #include "api/otter-task-graph/otter-task-graph.h"
 #include "public/debug.h"

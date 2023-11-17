@@ -15,7 +15,7 @@
 
 #include "public/config.h"
 
-#include "api/otter-task-graph/otter-task-graph.h" // for otter_task_context typedef
+#include "api/otter-task-graph/otter-task-graph.h" // for otter_task_context typedef and otter_endpoint_t
 #include "public/otter-common.h"
 
 /**

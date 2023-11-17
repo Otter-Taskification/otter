@@ -42,6 +42,17 @@ typedef enum otter_task_sync_t {
 } otter_task_sync_t;
 
 /**
+ * @brief Indicates the endpoint of an event i.e. whether it represents entry to
+ * or exit from some region of code, or a discrete event.
+ *
+ */
+typedef enum {
+  otter_endpoint_enter = 0,
+  otter_endpoint_leave = 1,
+  otter_endpoint_discrete = 2
+} otter_endpoint_t;
+
+/**
  * @brief Used to indicate whether a task should be added to a given task pool.
  *
  * @see otterTaskInitialise
@@ -262,7 +273,8 @@ otter_task_context *otterTaskBorrowLabel(const char *format, ...);
  * encountering task (`otter_sync_descendants`).
  *
  */
-void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode);
+void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode,
+                           otter_endpoint_t endpoint);
 
 /******
  * Managing Phases

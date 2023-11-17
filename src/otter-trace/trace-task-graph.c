@@ -229,7 +229,8 @@ void trace_graph_event_task_end(trace_location_def_t *location,
 
 void trace_graph_synchronise_tasks(trace_location_def_t *location,
                                    otter_task_context *task,
-                                   trace_sync_region_attr_t sync_attr) {
+                                   trace_sync_region_attr_t sync_attr,
+                                   otter_endpoint_t endpoint) {
   LOG_DEBUG("record task-graph event: synchronise");
 
   OTF2_ErrorCode err = OTF2_SUCCESS;
@@ -259,16 +260,34 @@ void trace_graph_synchronise_tasks(trace_location_def_t *location,
       attr, attr_event_type, attr_label_ref[attr_event_type_sync_begin]);
   CHECK_OTF2_ERROR_CODE(err);
 
-  err = OTF2_AttributeList_AddStringRef(attr, attr_endpoint,
-                                        attr_label_ref[attr_endpoint_discrete]);
+  OTF2_StringRef endpoint_str;
+  switch (endpoint) {
+  case otter_endpoint_enter:
+    endpoint_str = attr_label_ref[attr_endpoint_enter];
+    break;
+  case otter_endpoint_leave:
+    endpoint_str = attr_label_ref[attr_endpoint_leave];
+    break;
+  case otter_endpoint_discrete:
+    endpoint_str = attr_label_ref[attr_endpoint_discrete];
+    break;
+  }
+  err = OTF2_AttributeList_AddStringRef(attr, attr_endpoint, endpoint_str);
   CHECK_OTF2_ERROR_CODE(err);
 
   err = OTF2_AttributeList_AddUint8(attr, attr_sync_descendant_tasks,
                                     sync_attr.sync_descendant_tasks ? 1 : 0);
   CHECK_OTF2_ERROR_CODE(err);
 
-  err = OTF2_EvtWriter_Enter(event_writer, attr, get_timestamp(),
-                             OTF2_UNDEFINED_REGION);
+  switch (endpoint) {
+  case otter_endpoint_enter:
+  case otter_endpoint_discrete:
+    err = OTF2_EvtWriter_Enter(event_writer, attr, get_timestamp(), OTF2_UNDEFINED_REGION);
+    break;
+  case otter_endpoint_leave:
+    err = OTF2_EvtWriter_Leave(event_writer, attr, get_timestamp(), OTF2_UNDEFINED_REGION);
+    break;
+  }
   CHECK_OTF2_ERROR_CODE(err);
 
   OTF2_AttributeList_Delete(attr);

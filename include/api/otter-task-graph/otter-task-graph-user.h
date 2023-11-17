@@ -27,6 +27,8 @@
 #define OTTER_TASK_START(...)
 #define OTTER_TASK_END(...)
 #define OTTER_TASK_WAIT_FOR(...)
+#define OTTER_TASK_WAIT_START(...)
+#define OTTER_TASK_WAIT_END(...)
 #define OTTER_PHASE_BEGIN(...)
 #define OTTER_PHASE_END(...)
 #define OTTER_PHASE_SWITCH(...)
@@ -245,6 +247,23 @@
  *
  * @note No synchronisation constraints are recorded by default. To indicate
  * that a task should be synchronised, see `OTTER_SYNCHRONISE()`.
+ * 
+ * ## Usage
+ * 
+ * ### OpenMP
+ * 
+ * When annotating OpenMP tasks, `OTTER_TASK_START` and `OTTER_TASK_END` must
+ * appear **inside** the body of the task, like so:
+ * 
+ *     #pragma omp task
+ *     {
+ *      OTTER_TASK_START(...);
+ *      // ...
+ *      OTTER_TASK_END(...);
+ *     }
+ * 
+ * This allows the start and end time of the task to be recorded when the task
+ * is actually executed.
  *
  * @param task The task representing the annotated region of code.
  *
@@ -279,7 +298,42 @@
  *
  */
 #define OTTER_TASK_WAIT_FOR(task, mode)                                        \
-  otterSynchroniseTasks(task, otter_sync_##mode)
+  otterSynchroniseTasks(task, otter_sync_##mode, otter_endpoint_discrete)
+
+/**
+ * @brief Record the start of a region where the task waits for children or
+ * descendants to complete. Inside this region the task is considered by Otter
+ * to be suspended, so time spent in this region is not attributed to the
+ * duration of this task.
+ *
+ * @note Counterpart to #OTTER_TASK_WAIT_END
+ * 
+ * ## Usage
+ * 
+ * ### OpenMP
+ * 
+ * This annotation may be used to decorate a `taskwait` barrier like so:
+ * 
+ * OTTER_TASK_WAIT_START(task, children)
+ * #pragma omp taskwait
+ * OTTER_TASK_WAIT_END(task, children)
+ * 
+ * This will then record the time at which the task enters/leaves the task
+ * scheduling point at the barrier.
+ *
+ */
+#define OTTER_TASK_WAIT_START(task, mode)                                      \
+  otterSynchroniseTasks(task, otter_sync_##mode, otter_endpoint_enter)
+
+/**
+ * @brief Record the end of a region where the task waits for children or
+ * descendants to complete.
+ *
+ * @note Counterpart to #OTTER_TASK_WAIT_START
+ *
+ */
+#define OTTER_TASK_WAIT_END(task, mode)                                        \
+  otterSynchroniseTasks(task, otter_sync_##mode, otter_endpoint_leave)
 
 /**
  * @brief Start a new algorithmic phase.

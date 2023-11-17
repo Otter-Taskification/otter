@@ -30,7 +30,8 @@ void trace_graph_event_task_end(trace_location_def_t *location,
                                 otter_src_ref_t end_ref);
 void trace_graph_synchronise_tasks(trace_location_def_t *location,
                                    otter_task_context *task,
-                                   trace_sync_region_attr_t sync_attr);
+                                   trace_sync_region_attr_t sync_attr,
+                                   otter_endpoint_t endpoint);
 
 void trace_task_graph_finalise(void);
 

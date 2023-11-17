@@ -52,6 +52,8 @@
 #define OTTER_TASK_START(...)
 #define OTTER_TASK_END(...)
 #define OTTER_TASK_WAIT_FOR(...)
+#define OTTER_TASK_WAIT_START(...)
+#define OTTER_TASK_WAIT_END(...)
 #define OTTER_PHASE_BEGIN(...)
 #define OTTER_PHASE_END(...)
 #define OTTER_PHASE_SWITCH(...)

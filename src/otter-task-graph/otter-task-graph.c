@@ -304,7 +304,8 @@ otter_task_context *otterTaskBorrowLabel(const char *format, ...) {
   return task;
 }
 
-void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode) {
+void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode,
+                           otter_endpoint_t endpoint) {
   LOG_DEBUG("synchronise tasks: %d", mode);
 
   if (task == NULL) {
@@ -320,7 +321,7 @@ void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode) {
   sync_attr.sync_descendant_tasks =
       mode == otter_sync_descendants ? true : false;
   sync_attr.encountering_task_id = otterTaskContext_get_task_context_id(task);
-  trace_graph_synchronise_tasks(get_thread_data()->location, task, sync_attr);
+  trace_graph_synchronise_tasks(get_thread_data()->location, task, sync_attr, endpoint);
   return;
 }
 
@@ -355,7 +356,7 @@ void otterPhaseEnd(otter_source_args source) {
 
   // All phases are implicitly synchronised to indicate that they must happen
   // sequentially
-  otterSynchroniseTasks(root_task, otter_sync_children);
+  otterSynchroniseTasks(root_task, otter_sync_children, otter_endpoint_discrete);
 
   phase_task = NULL;
 #else

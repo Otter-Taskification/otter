@@ -27,6 +27,22 @@
             }
         },
         {
+            "name": "clang-asan",
+            "displayName": "Debug config with Clang address sanitiser",
+            "description": "Debug build with Clang address sanitiser, using Makefiles",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build/clang-asan",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_C_FLAGS": "-fsanitize=address",
+                "CMAKE_CXX_FLAGS": "-fsanitize=address"
+            },
+            "environment": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
             "name": "verbose",
             "displayName": "Verbose config",
             "description": "Verbose build using Makefiles",

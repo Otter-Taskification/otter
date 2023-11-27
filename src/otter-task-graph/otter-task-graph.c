@@ -225,6 +225,30 @@ otter_task_context *otterTaskInitialise(otter_task_context *parent, int flavour,
   return task;
 }
 
+void otterTaskCreate(otter_task_context *task, otter_source_args create) {
+  if (task == NULL) {
+    LOG_ERROR("IGNORED (tried to create null task at %s:%d in %s)", create.file,
+              create.line, create.func);
+    return;
+  }
+  otter_src_ref_t create_ref = get_source_location_ref((otter_src_location_t){
+      .file = create.file, .func = create.func, .line = create.line});
+  // TODO: not great to pass this struct by value since I only need a few of the
+  // fields here
+  trace_task_region_attr_t task_attr;
+  task_attr.type = otter_task_explicit;
+  task_attr.id = otterTaskContext_get_task_context_id(task);
+  task_attr.parent_id = otterTaskContext_get_parent_task_context_id(task);
+  task_attr.flavour = otterTaskContext_get_task_flavour(task);
+  task_attr.label_ref = otterTaskContext_get_task_label_ref(task);
+  task_attr.init = otterTaskContext_get_init_location_ref(task);
+  LOG_DEBUG("[%lu] create task (child of %lu)", task_attr.id,
+            task_attr.parent_id);
+  trace_graph_event_task_create(get_thread_data()->location, task, task_attr,
+                                create_ref);
+  return;
+}
+
 otter_task_context *otterTaskStart(otter_task_context *task,
                                    otter_source_args start) {
   if (task == NULL) {
@@ -321,7 +345,8 @@ void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode,
   sync_attr.sync_descendant_tasks =
       mode == otter_sync_descendants ? true : false;
   sync_attr.encountering_task_id = otterTaskContext_get_task_context_id(task);
-  trace_graph_synchronise_tasks(get_thread_data()->location, task, sync_attr, endpoint);
+  trace_graph_synchronise_tasks(get_thread_data()->location, task, sync_attr,
+                                endpoint);
   return;
 }
 
@@ -356,7 +381,8 @@ void otterPhaseEnd(otter_source_args source) {
 
   // All phases are implicitly synchronised to indicate that they must happen
   // sequentially
-  otterSynchroniseTasks(root_task, otter_sync_children, otter_endpoint_discrete);
+  otterSynchroniseTasks(root_task, otter_sync_children,
+                        otter_endpoint_discrete);
 
   phase_task = NULL;
 #else

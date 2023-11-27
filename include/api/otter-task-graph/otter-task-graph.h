@@ -159,8 +159,26 @@ otter_task_context *otterTaskInitialise(otter_task_context *parent_task,
                                         const char *format, ...);
 
 /******
- * Annotating Task Start & End
+ * Annotating Task Create, Start & End
  ******/
+
+/**
+ * @brief Record a discrete task-create event. This records that the given task
+ * handle would be available for a runtime to schedule.
+ *
+ * ## Usage
+ *
+ * - This event requires an initialised task handle, so it must follow a call to
+ *   `otterTaskInitialise()`.
+ * - Must precede the task's `otterTaskStart()` event.
+ *
+ * @param task The handle to the created task.
+ * @param create_location The source location of the event.
+ *
+ * @see `otterTaskInitialise()`
+ */
+void otterTaskCreate(otter_task_context *task,
+                     otter_source_args create_location);
 
 /**
  * @brief Record the start of a region which represents previously initialised

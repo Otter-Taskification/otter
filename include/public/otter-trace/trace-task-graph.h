@@ -21,6 +21,10 @@
 #include "public/otter-trace/trace-region-attr.h"
 #include "public/otter-trace/trace-types.h"
 
+void trace_graph_event_task_create(trace_location_def_t *location,
+                                   otter_task_context *task,
+                                   trace_task_region_attr_t task_attr,
+                                   otter_src_ref_t create_ref);
 void trace_graph_event_task_begin(trace_location_def_t *location,
                                   otter_task_context *task,
                                   trace_task_region_attr_t task_attr,

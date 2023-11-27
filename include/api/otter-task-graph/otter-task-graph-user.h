@@ -24,6 +24,7 @@
 #define OTTER_POOL_DECL_POP(...)
 #define OTTER_POOL_BORROW(...)
 #define OTTER_POOL_DECL_BORROW(...)
+#define OTTER_TASK_CREATE(...)
 #define OTTER_TASK_START(...)
 #define OTTER_TASK_END(...)
 #define OTTER_TASK_WAIT_FOR(...)
@@ -233,6 +234,23 @@
   OTTER_POOL_BORROW(task, label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
+ * @brief Record a discrete task-create event. This records that the given task
+ * handle would be available for a runtime to schedule.
+ *
+ * ## Usage
+ *
+ * - This event requires an initialised task handle, so it must follow a call to
+ *   `OTTER_INIT_TASK()` or `OTTER_DEFINE_TASK()`.
+ * - Must precede the task's `OTTER_TASK_START()` event.
+ *
+ * @param task The handle to the created task.
+ * @param create_location The source location of the event.
+ *
+ * @see `otterTaskInitialise()`
+ */
+#define OTTER_TASK_CREATE(task) otterTaskCreate(task, OTTER_SOURCE_LOCATION())
+
+/**
  * @brief Record the start of the code represented by the given task handle.
  *
  * Indicate that the code enclosed by a matching `OTTER_TASK_END()` is
@@ -247,21 +265,21 @@
  *
  * @note No synchronisation constraints are recorded by default. To indicate
  * that a task should be synchronised, see `OTTER_SYNCHRONISE()`.
- * 
+ *
  * ## Usage
- * 
+ *
  * ### OpenMP
- * 
+ *
  * When annotating OpenMP tasks, `OTTER_TASK_START` and `OTTER_TASK_END` must
  * appear **inside** the body of the task, like so:
- * 
+ *
  *     #pragma omp task
  *     {
  *      OTTER_TASK_START(...);
  *      // ...
  *      OTTER_TASK_END(...);
  *     }
- * 
+ *
  * This allows the start and end time of the task to be recorded when the task
  * is actually executed.
  *
@@ -307,17 +325,17 @@
  * duration of this task.
  *
  * @note Counterpart to #OTTER_TASK_WAIT_END
- * 
+ *
  * ## Usage
- * 
+ *
  * ### OpenMP
- * 
+ *
  * This annotation may be used to decorate a `taskwait` barrier like so:
- * 
+ *
  * OTTER_TASK_WAIT_START(task, children)
  * #pragma omp taskwait
  * OTTER_TASK_WAIT_END(task, children)
- * 
+ *
  * This will then record the time at which the task enters/leaves the task
  * scheduling point at the barrier.
  *

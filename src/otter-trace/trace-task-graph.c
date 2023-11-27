@@ -66,6 +66,74 @@ static inline void *get_user_code_return_address(void) {
   return NULL;
 }
 
+void trace_graph_event_task_create(trace_location_def_t *location,
+                                   otter_task_context *task,
+                                   trace_task_region_attr_t task_attr,
+                                   otter_src_ref_t create_ref) {
+  LOG_DEBUG("record task-graph event: task create");
+
+  OTF2_ErrorCode err = OTF2_SUCCESS;
+  OTF2_AttributeList *attr = OTF2_AttributeList_New();
+  OTF2_EvtWriter *event_writer = NULL;
+
+  trace_location_get_otf2(location, NULL, &event_writer, NULL);
+
+  err = OTF2_AttributeList_AddUint64(attr, attr_caller_return_address,
+                                     (uint64_t)get_user_code_return_address());
+  CHECK_OTF2_ERROR_CODE(err);
+
+  // The parent which creates the task
+  err = OTF2_AttributeList_AddUint64(attr, attr_encountering_task_id,
+                                     task_attr.parent_id);
+  CHECK_OTF2_ERROR_CODE(err);
+
+  // The task which is created
+  err = OTF2_AttributeList_AddUint64(attr, attr_unique_id, task_attr.id);
+  CHECK_OTF2_ERROR_CODE(err);
+
+  err = OTF2_AttributeList_AddStringRef(
+      attr, attr_region_type,
+      attr_label_ref[task_type_as_label(task_attr.type)]);
+  CHECK_OTF2_ERROR_CODE(err);
+
+  // The source location of the event
+  {
+    err = OTF2_AttributeList_AddStringRef(attr, attr_source_file,
+                                          create_ref.file);
+    CHECK_OTF2_ERROR_CODE(err);
+
+    err = OTF2_AttributeList_AddStringRef(attr, attr_source_func,
+                                          create_ref.func);
+    CHECK_OTF2_ERROR_CODE(err);
+
+    err = OTF2_AttributeList_AddInt32(attr, attr_source_line, create_ref.line);
+    CHECK_OTF2_ERROR_CODE(err);
+  }
+
+  // This is a discrete event
+  err = OTF2_AttributeList_AddStringRef(attr, attr_endpoint,
+                                        attr_label_ref[attr_endpoint_discrete]);
+  CHECK_OTF2_ERROR_CODE(err);
+
+  // The label for this task
+  {
+    err = OTF2_AttributeList_AddStringRef(attr, attr_task_label,
+                                          task_attr.label_ref);
+    CHECK_OTF2_ERROR_CODE(err);
+  }
+
+  err = OTF2_AttributeList_AddStringRef(
+      attr, attr_event_type, attr_label_ref[attr_event_type_task_create]);
+  CHECK_OTF2_ERROR_CODE(err);
+
+  err = OTF2_EvtWriter_ThreadTaskCreate(event_writer, attr, get_timestamp(),
+                                        OTF2_UNDEFINED_COMM,
+                                        OTF2_UNDEFINED_UINT32, 0);
+  CHECK_OTF2_ERROR_CODE(err);
+
+  OTF2_AttributeList_Delete(attr);
+}
+
 void trace_graph_event_task_begin(trace_location_def_t *location,
                                   otter_task_context *task,
                                   trace_task_region_attr_t task_attr,
@@ -282,10 +350,12 @@ void trace_graph_synchronise_tasks(trace_location_def_t *location,
   switch (endpoint) {
   case otter_endpoint_enter:
   case otter_endpoint_discrete:
-    err = OTF2_EvtWriter_Enter(event_writer, attr, get_timestamp(), OTF2_UNDEFINED_REGION);
+    err = OTF2_EvtWriter_Enter(event_writer, attr, get_timestamp(),
+                               OTF2_UNDEFINED_REGION);
     break;
   case otter_endpoint_leave:
-    err = OTF2_EvtWriter_Leave(event_writer, attr, get_timestamp(), OTF2_UNDEFINED_REGION);
+    err = OTF2_EvtWriter_Leave(event_writer, attr, get_timestamp(),
+                               OTF2_UNDEFINED_REGION);
     break;
   }
   CHECK_OTF2_ERROR_CODE(err);

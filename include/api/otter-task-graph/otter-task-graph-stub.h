@@ -49,6 +49,7 @@
 #define OTTER_POOL_BORROW(...)
 #define OTTER_POOL_DECL_POP(...)
 #define OTTER_POOL_DECL_BORROW(...)
+#define OTTER_TASK_CREATE(...)
 #define OTTER_TASK_START(...)
 #define OTTER_TASK_END(...)
 #define OTTER_TASK_WAIT_FOR(...)

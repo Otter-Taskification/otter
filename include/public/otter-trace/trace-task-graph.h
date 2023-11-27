@@ -22,18 +22,21 @@
 #include "public/otter-trace/trace-types.h"
 
 void trace_graph_event_task_create(trace_location_def_t *location,
-                                   otter_task_context *task,
-                                   trace_task_region_attr_t task_attr,
+                                   unique_id_t encountering_task_id,
+                                   unique_id_t new_task_id,
+                                   otter_string_ref_t task_label,
                                    otter_src_ref_t create_ref);
+
 void trace_graph_event_task_begin(trace_location_def_t *location,
-                                  otter_task_context *task,
-                                  trace_task_region_attr_t task_attr,
+                                  unique_id_t encountering_task_id,
                                   otter_src_ref_t start_ref);
+
 void trace_graph_event_task_end(trace_location_def_t *location,
-                                otter_task_context *task,
+                                unique_id_t encountering_task_id,
                                 otter_src_ref_t end_ref);
+
 void trace_graph_synchronise_tasks(trace_location_def_t *location,
-                                   otter_task_context *task,
+                                   unique_id_t encountering_task_id,
                                    trace_sync_region_attr_t sync_attr,
                                    otter_endpoint_t endpoint);
 

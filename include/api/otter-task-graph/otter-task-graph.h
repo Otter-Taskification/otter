@@ -12,6 +12,8 @@
 #if !defined(OTTER_TASK_GRAPH_H)
 #define OTTER_TASK_GRAPH_H
 
+#include <stdbool.h>
+
 #if !defined(OTTER_USE_PRIVATE_HEADER)
 #warning                                                                       \
     "It is not recommended to include this file directly. Please use otter/otter-task-graph-user.h, or pass -DOTTER_USE_PRIVATE_HEADER to ignore this warning"
@@ -155,6 +157,7 @@ void otterTraceStop(void);
 otter_task_context *otterTaskInitialise(otter_task_context *parent_task,
                                         int flavour,
                                         otter_add_to_pool_t add_to_pool,
+                                        bool record_task_create_event,
                                         otter_source_args init_location,
                                         const char *format, ...);
 
@@ -173,11 +176,12 @@ otter_task_context *otterTaskInitialise(otter_task_context *parent_task,
  * - Must precede the task's `otterTaskStart()` event.
  *
  * @param task The handle to the created task.
+ * @param parent_task The parent of the created task.
  * @param create_location The source location of the event.
  *
  * @see `otterTaskInitialise()`
  */
-void otterTaskCreate(otter_task_context *task,
+void otterTaskCreate(otter_task_context *task, otter_task_context *parent_task,
                      otter_source_args create_location);
 
 /**

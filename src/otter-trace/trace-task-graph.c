@@ -67,8 +67,9 @@ static inline void *get_user_code_return_address(void) {
 }
 
 void trace_graph_event_task_create(trace_location_def_t *location,
-                                   otter_task_context *task,
-                                   trace_task_region_attr_t task_attr,
+                                   unique_id_t encountering_task_id,
+                                   unique_id_t new_task_id,
+                                   otter_string_ref_t task_label,
                                    otter_src_ref_t create_ref) {
   LOG_DEBUG("record task-graph event: task create");
 
@@ -78,49 +79,30 @@ void trace_graph_event_task_create(trace_location_def_t *location,
 
   trace_location_get_otf2(location, NULL, &event_writer, NULL);
 
-  err = OTF2_AttributeList_AddUint64(attr, attr_caller_return_address,
-                                     (uint64_t)get_user_code_return_address());
-  CHECK_OTF2_ERROR_CODE(err);
-
-  // The parent which creates the task
   err = OTF2_AttributeList_AddUint64(attr, attr_encountering_task_id,
-                                     task_attr.parent_id);
+                                     encountering_task_id);
   CHECK_OTF2_ERROR_CODE(err);
 
-  // The task which is created
-  err = OTF2_AttributeList_AddUint64(attr, attr_unique_id, task_attr.id);
+  err = OTF2_AttributeList_AddUint64(attr, attr_unique_id, new_task_id);
   CHECK_OTF2_ERROR_CODE(err);
 
-  err = OTF2_AttributeList_AddStringRef(
-      attr, attr_region_type,
-      attr_label_ref[task_type_as_label(task_attr.type)]);
+  err =
+      OTF2_AttributeList_AddStringRef(attr, attr_source_file, create_ref.file);
   CHECK_OTF2_ERROR_CODE(err);
 
-  // The source location of the event
-  {
-    err = OTF2_AttributeList_AddStringRef(attr, attr_source_file,
-                                          create_ref.file);
-    CHECK_OTF2_ERROR_CODE(err);
+  err =
+      OTF2_AttributeList_AddStringRef(attr, attr_source_func, create_ref.func);
+  CHECK_OTF2_ERROR_CODE(err);
 
-    err = OTF2_AttributeList_AddStringRef(attr, attr_source_func,
-                                          create_ref.func);
-    CHECK_OTF2_ERROR_CODE(err);
+  err = OTF2_AttributeList_AddInt32(attr, attr_source_line, create_ref.line);
+  CHECK_OTF2_ERROR_CODE(err);
 
-    err = OTF2_AttributeList_AddInt32(attr, attr_source_line, create_ref.line);
-    CHECK_OTF2_ERROR_CODE(err);
-  }
-
-  // This is a discrete event
   err = OTF2_AttributeList_AddStringRef(attr, attr_endpoint,
                                         attr_label_ref[attr_endpoint_discrete]);
   CHECK_OTF2_ERROR_CODE(err);
 
-  // The label for this task
-  {
-    err = OTF2_AttributeList_AddStringRef(attr, attr_task_label,
-                                          task_attr.label_ref);
-    CHECK_OTF2_ERROR_CODE(err);
-  }
+  err = OTF2_AttributeList_AddStringRef(attr, attr_task_label, task_label);
+  CHECK_OTF2_ERROR_CODE(err);
 
   err = OTF2_AttributeList_AddStringRef(
       attr, attr_event_type, attr_label_ref[attr_event_type_task_create]);
@@ -134,17 +116,20 @@ void trace_graph_event_task_create(trace_location_def_t *location,
   OTF2_AttributeList_Delete(attr);
 }
 
+/**
+ * @brief Record a task-enter event with these attributes:
+ *  - encountering task (the task entered)
+ *  - event type i.e. task-enter
+ *  - endpoint i.e. enter
+ *  - source location
+ *
+ * @param location
+ * @param encountering_task_id
+ * @param start_ref
+ */
 void trace_graph_event_task_begin(trace_location_def_t *location,
-                                  otter_task_context *task,
-                                  trace_task_region_attr_t task_attr,
+                                  unique_id_t encountering_task_id,
                                   otter_src_ref_t start_ref) {
-  /*
-  Record event: OTF2_EvtWriter_ThreadTaskSwitch()
-      - Attach any relevant attributes to task->attributes i.e. endpoint
-  NOTE: if parent == NULL i.e. the new task is an orphan, it won't be possible
-  later to exclude its execution time from that of any parent task
-  */
-
   LOG_DEBUG("record task-graph event: task begin");
 
   OTF2_ErrorCode err = OTF2_SUCCESS;
@@ -153,75 +138,26 @@ void trace_graph_event_task_begin(trace_location_def_t *location,
 
   trace_location_get_otf2(location, NULL, &event_writer, NULL);
 
-  err = OTF2_AttributeList_AddUint64(attr, attr_caller_return_address,
-                                     (uint64_t)get_user_code_return_address());
-  CHECK_OTF2_ERROR_CODE(err);
-
-  err = OTF2_AttributeList_AddInt32(attr, attr_cpu, sched_getcpu());
-  CHECK_OTF2_ERROR_CODE(err);
-
   err = OTF2_AttributeList_AddUint64(attr, attr_encountering_task_id,
-                                     task_attr.parent_id);
+                                     encountering_task_id);
   CHECK_OTF2_ERROR_CODE(err);
 
   err = OTF2_AttributeList_AddStringRef(
-      attr, attr_region_type,
-      attr_label_ref[task_type_as_label(task_attr.type)]);
-  CHECK_OTF2_ERROR_CODE(err);
-
-  err = OTF2_AttributeList_AddStringRef(
-      attr, attr_event_type, attr_label_ref[attr_event_type_task_switch]);
-  CHECK_OTF2_ERROR_CODE(err);
-
-  err = OTF2_AttributeList_AddUint64(attr, attr_unique_id, task_attr.id);
-  CHECK_OTF2_ERROR_CODE(err);
-
-  err = OTF2_AttributeList_AddUint64(attr, attr_parent_task_id,
-                                     task_attr.parent_id);
+      attr, attr_event_type, attr_label_ref[attr_event_type_task_enter]);
   CHECK_OTF2_ERROR_CODE(err);
 
   err = OTF2_AttributeList_AddStringRef(attr, attr_endpoint,
                                         attr_label_ref[attr_endpoint_enter]);
   CHECK_OTF2_ERROR_CODE(err);
 
-  err = OTF2_AttributeList_AddInt32(attr, attr_task_flavour, task_attr.flavour);
+  err = OTF2_AttributeList_AddStringRef(attr, attr_source_file, start_ref.file);
   CHECK_OTF2_ERROR_CODE(err);
 
-  // ---- The location where the task was initialised
-  {
-    err = OTF2_AttributeList_AddStringRef(attr, attr_task_init_file,
-                                          task_attr.init.file);
-    CHECK_OTF2_ERROR_CODE(err);
+  err = OTF2_AttributeList_AddStringRef(attr, attr_source_func, start_ref.func);
+  CHECK_OTF2_ERROR_CODE(err);
 
-    err = OTF2_AttributeList_AddStringRef(attr, attr_task_init_func,
-                                          task_attr.init.func);
-    CHECK_OTF2_ERROR_CODE(err);
-
-    err = OTF2_AttributeList_AddInt32(attr, attr_task_init_line,
-                                      task_attr.init.line);
-    CHECK_OTF2_ERROR_CODE(err);
-  }
-
-  // The location where the task was started
-  {
-    err =
-        OTF2_AttributeList_AddStringRef(attr, attr_source_file, start_ref.file);
-    CHECK_OTF2_ERROR_CODE(err);
-
-    err =
-        OTF2_AttributeList_AddStringRef(attr, attr_source_func, start_ref.func);
-    CHECK_OTF2_ERROR_CODE(err);
-
-    err = OTF2_AttributeList_AddInt32(attr, attr_source_line, start_ref.line);
-    CHECK_OTF2_ERROR_CODE(err);
-  }
-
-  // The label a task was associated with
-  {
-    err = OTF2_AttributeList_AddStringRef(attr, attr_task_label,
-                                          task_attr.label_ref);
-    CHECK_OTF2_ERROR_CODE(err);
-  }
+  err = OTF2_AttributeList_AddInt32(attr, attr_source_line, start_ref.line);
+  CHECK_OTF2_ERROR_CODE(err);
 
   // Record event
   err = OTF2_EvtWriter_ThreadTaskSwitch(
@@ -232,10 +168,21 @@ void trace_graph_event_task_begin(trace_location_def_t *location,
   OTF2_AttributeList_Delete(attr);
 }
 
+/**
+ * @brief Record a task-complete event with these attributes:
+ *  - encountering task (the task completed)
+ *  - event type i.e. task-complete
+ *  - endpoint i.e. leave
+ *  - source location
+ *
+ * @param location
+ * @param encountering_task_id
+ * @param end_ref
+ */
 void trace_graph_event_task_end(trace_location_def_t *location,
-                                otter_task_context *task,
+                                unique_id_t encountering_task_id,
                                 otter_src_ref_t end_ref) {
-  LOG_DEBUG("record task-graph event: task end");
+  LOG_DEBUG("record task-graph event: task leave");
 
   OTF2_ErrorCode err = OTF2_SUCCESS;
   OTF2_AttributeList *attr = OTF2_AttributeList_New();
@@ -243,49 +190,25 @@ void trace_graph_event_task_end(trace_location_def_t *location,
 
   trace_location_get_otf2(location, NULL, &event_writer, NULL);
 
-  unique_id_t task_id = otterTaskContext_get_task_context_id(task);
-
-  err = OTF2_AttributeList_AddUint64(attr, attr_caller_return_address,
-                                     (uint64_t)get_user_code_return_address());
-  CHECK_OTF2_ERROR_CODE(err);
-
-  err = OTF2_AttributeList_AddInt32(attr, attr_cpu, sched_getcpu());
-  CHECK_OTF2_ERROR_CODE(err);
-
-  err = OTF2_AttributeList_AddUint64(attr, attr_encountering_task_id, task_id);
+  err = OTF2_AttributeList_AddUint64(attr, attr_encountering_task_id,
+                                     encountering_task_id);
   CHECK_OTF2_ERROR_CODE(err);
 
   err = OTF2_AttributeList_AddStringRef(
-      attr, attr_region_type, attr_label_ref[attr_task_type_explicit_task]);
-  CHECK_OTF2_ERROR_CODE(err);
-
-  // Event type
-  err = OTF2_AttributeList_AddStringRef(
-      attr, attr_event_type, attr_label_ref[attr_event_type_task_switch]);
-  CHECK_OTF2_ERROR_CODE(err);
-
-  err = OTF2_AttributeList_AddUint64(attr, attr_unique_id, task_id);
-  CHECK_OTF2_ERROR_CODE(err);
-
-  err = OTF2_AttributeList_AddUint64(
-      attr, attr_parent_task_id,
-      otterTaskContext_get_parent_task_context_id(task));
+      attr, attr_event_type, attr_label_ref[attr_event_type_task_leave]);
   CHECK_OTF2_ERROR_CODE(err);
 
   OTF2_AttributeList_AddStringRef(attr, attr_endpoint,
                                   attr_label_ref[attr_endpoint_leave]);
 
-  // The location where the task ended
-  {
-    err = OTF2_AttributeList_AddStringRef(attr, attr_source_file, end_ref.file);
-    CHECK_OTF2_ERROR_CODE(err);
+  err = OTF2_AttributeList_AddStringRef(attr, attr_source_file, end_ref.file);
+  CHECK_OTF2_ERROR_CODE(err);
 
-    err = OTF2_AttributeList_AddStringRef(attr, attr_source_func, end_ref.func);
-    CHECK_OTF2_ERROR_CODE(err);
+  err = OTF2_AttributeList_AddStringRef(attr, attr_source_func, end_ref.func);
+  CHECK_OTF2_ERROR_CODE(err);
 
-    err = OTF2_AttributeList_AddInt32(attr, attr_source_line, end_ref.line);
-    CHECK_OTF2_ERROR_CODE(err);
-  }
+  err = OTF2_AttributeList_AddInt32(attr, attr_source_line, end_ref.line);
+  CHECK_OTF2_ERROR_CODE(err);
 
   err = OTF2_EvtWriter_ThreadTaskSwitch(
       event_writer, attr, get_timestamp(), OTF2_UNDEFINED_COMM,
@@ -295,8 +218,17 @@ void trace_graph_event_task_end(trace_location_def_t *location,
   OTF2_AttributeList_Delete(attr);
 }
 
+/**
+ * @brief Record a task-sync event with these attributes:
+ *  - encountering task (the task which blocks on its dependencies)
+ *  - region type (i.e. taskwait)
+ *  - event type i.e. task-sync
+ *  - endpoint i.e. enter/leave
+ *  - sync mode (i.e. children or descendants)
+ *
+ */
 void trace_graph_synchronise_tasks(trace_location_def_t *location,
-                                   otter_task_context *task,
+                                   unique_id_t encountering_task_id,
                                    trace_sync_region_attr_t sync_attr,
                                    otter_endpoint_t endpoint) {
   LOG_DEBUG("record task-graph event: synchronise");
@@ -307,16 +239,8 @@ void trace_graph_synchronise_tasks(trace_location_def_t *location,
 
   trace_location_get_otf2(location, NULL, &event_writer, NULL);
 
-  unique_id_t task_id = otterTaskContext_get_task_context_id(task);
-
-  err = OTF2_AttributeList_AddUint64(attr, attr_caller_return_address,
-                                     (uint64_t)get_user_code_return_address());
-  CHECK_OTF2_ERROR_CODE(err);
-
-  err = OTF2_AttributeList_AddInt32(attr, attr_cpu, sched_getcpu());
-  CHECK_OTF2_ERROR_CODE(err);
-
-  err = OTF2_AttributeList_AddUint64(attr, attr_encountering_task_id, task_id);
+  err = OTF2_AttributeList_AddUint64(attr, attr_encountering_task_id,
+                                     encountering_task_id);
   CHECK_OTF2_ERROR_CODE(err);
 
   err = OTF2_AttributeList_AddStringRef(
@@ -324,22 +248,25 @@ void trace_graph_synchronise_tasks(trace_location_def_t *location,
       attr_label_ref[sync_type_as_label(sync_attr.type)]);
   CHECK_OTF2_ERROR_CODE(err);
 
-  err = OTF2_AttributeList_AddStringRef(
-      attr, attr_event_type, attr_label_ref[attr_event_type_sync_begin]);
-  CHECK_OTF2_ERROR_CODE(err);
-
-  OTF2_StringRef endpoint_str;
+  OTF2_StringRef event_type, endpoint_str;
   switch (endpoint) {
   case otter_endpoint_enter:
+    event_type = attr_label_ref[attr_event_type_sync_begin];
     endpoint_str = attr_label_ref[attr_endpoint_enter];
     break;
   case otter_endpoint_leave:
+    event_type = attr_label_ref[attr_event_type_sync_end];
     endpoint_str = attr_label_ref[attr_endpoint_leave];
     break;
   case otter_endpoint_discrete:
+    event_type = attr_label_ref[attr_event_type_sync_begin];
     endpoint_str = attr_label_ref[attr_endpoint_discrete];
     break;
   }
+
+  err = OTF2_AttributeList_AddStringRef(attr, attr_event_type, event_type);
+  CHECK_OTF2_ERROR_CODE(err);
+
   err = OTF2_AttributeList_AddStringRef(attr, attr_endpoint, endpoint_str);
   CHECK_OTF2_ERROR_CODE(err);
 

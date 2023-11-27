@@ -97,12 +97,13 @@
  *
  * If \p parent is a valid task handle, the new task is a child of this parent.
  *
- * If \p parent is #OTTER_NULL_TASK, the new task has no parent task.
+ * If \p parent is `OTTER_NULL_TASK`, the new task has no parent task.
  *
  * If `add_to_pool` is `otter_add_to_pool`, the task will be added to the task
  * pool with the given label.
  *
- * @note Does not record any events.
+ * @note Records a `task-create` event in the trace. The option to override this
+ * is currently hardcoded out, but is planned to be supported.
  *
  * @param task: The handle for the new task.
  * @param parent: The handle of the parent task, or #OTTER_NULL_TASK if there
@@ -114,7 +115,8 @@
  *
  */
 #define OTTER_INIT_TASK(task, parent, add_to_pool, label, ...)                 \
-  task = otterTaskInitialise(parent, -1, add_to_pool, OTTER_SOURCE_LOCATION(), \
+  task = otterTaskInitialise(parent, -1, add_to_pool, true,                    \
+                             OTTER_SOURCE_LOCATION(),                          \
                              label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
@@ -129,7 +131,8 @@
  * If `add_to_pool` is `otter_add_to_pool`, the task will be added to the task
  * pool with the given label.
  *
- * @note Does not record any events.
+ * @note Records a `task-create` event in the trace. The option to override this
+ * is currently hardcoded out, but is planned to be supported.
  *
  * @param task: The handle for the new task.
  * @param parent: The handle of the parent task, or #OTTER_NULL_TASK if there

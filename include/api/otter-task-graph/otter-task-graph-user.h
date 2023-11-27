@@ -24,7 +24,6 @@
 #define OTTER_POOL_DECL_POP(...)
 #define OTTER_POOL_BORROW(...)
 #define OTTER_POOL_DECL_BORROW(...)
-#define OTTER_TASK_CREATE(...)
 #define OTTER_TASK_START(...)
 #define OTTER_TASK_END(...)
 #define OTTER_TASK_WAIT_FOR(...)
@@ -235,23 +234,6 @@
 #define OTTER_POOL_DECL_BORROW(task, label, ...)                               \
   OTTER_DECLARE_HANDLE(task);                                                  \
   OTTER_POOL_BORROW(task, label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
-
-/**
- * @brief Record a discrete task-create event. This records that the given task
- * handle would be available for a runtime to schedule.
- *
- * ## Usage
- *
- * - This event requires an initialised task handle, so it must follow a call to
- *   `OTTER_INIT_TASK()` or `OTTER_DEFINE_TASK()`.
- * - Must precede the task's `OTTER_TASK_START()` event.
- *
- * @param task The handle to the created task.
- * @param create_location The source location of the event.
- *
- * @see `otterTaskInitialise()`
- */
-#define OTTER_TASK_CREATE(task) otterTaskCreate(task, OTTER_SOURCE_LOCATION())
 
 /**
  * @brief Record the start of the code represented by the given task handle.

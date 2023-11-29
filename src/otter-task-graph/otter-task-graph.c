@@ -142,9 +142,13 @@ void otterTraceInitialise(otter_source_args source_location) {
 
   // Define the implicit root task
   // TODO: want to be able to set additional task attributes here e.g. task type
-  root_task = otterTaskInitialise(NULL, 0, otter_no_add_to_pool, true,
-                                  source_location, "OTTER ROOT TASK (%s:%d)",
-                                  source_location.func, source_location.line);
+  root_task = otterTaskInitialise(
+      NULL, 0,
+      otter_no_add_to_pool /* root task not available through a pool */,
+      false /* don't record task-create for the root task                   **/,
+      source_location, "OTTER ROOT TASK (%s:%d)", source_location.func,
+      source_location.line);
+
   otterTaskStart(root_task, source_location);
 
   return;
@@ -253,13 +257,14 @@ void otterTaskCreate(otter_task_context *task, otter_task_context *parent,
   otter_src_ref_t create_ref = get_source_location_ref((otter_src_location_t){
       .file = create.file, .func = create.func, .line = create.line});
 
-  LOG_DEBUG("[%lu] create task (child of %lu)", task_attr.id,
-            task_attr.parent_id);
+  unique_id_t parent_id = otterTaskContext_get_task_context_id(parent);
+  unique_id_t child_id = otterTaskContext_get_task_context_id(task);
+  otter_string_ref_t label_ref = otterTaskContext_get_task_label_ref(task);
 
-  trace_graph_event_task_create(
-      get_thread_data()->location, otterTaskContext_get_task_context_id(parent),
-      otterTaskContext_get_task_context_id(task),
-      otterTaskContext_get_task_label_ref(task), create_ref);
+  LOG_DEBUG("[%lu] create task (child of %lu)", child_id, parent_id);
+
+  trace_graph_event_task_create(get_thread_data()->location, parent_id,
+                                child_id, label_ref, create_ref);
   return;
 }
 

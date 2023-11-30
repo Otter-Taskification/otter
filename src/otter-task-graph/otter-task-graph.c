@@ -142,14 +142,22 @@ void otterTraceInitialise(otter_source_args source_location) {
 
   // Define the implicit root task
   // TODO: want to be able to set additional task attributes here e.g. task type
-  root_task = otterTaskInitialise(
+  otter_task_context *task = otterTaskInitialise(
       NULL, 0,
       otter_no_add_to_pool /* root task not available through a pool */,
-      false /* don't record task-create for the root task                   **/,
+      false, /* want to record task-create explicitly for the root task so that
+                it can be registered during post-processing */
       source_location, "OTTER ROOT TASK (%s:%d)", source_location.func,
       source_location.line);
 
-  otterTaskStart(root_task, source_location);
+  // record task-create for root task so that it can still be registered during
+  // post-processing. Must record the parent task ID as OTF2_UNDEFINED_UINT64
+  otterTaskCreate(task, NULL, source_location);
+  otterTaskStart(task, source_location);
+
+  // Only store the root task once we're done here so we don't accdentally write
+  // an event where it is its own parent
+  root_task = task;
 
   return;
 }

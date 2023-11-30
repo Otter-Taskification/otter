@@ -67,7 +67,7 @@ otterTaskContext_get_task_context_id(const otter_task_context *task) {
   LOG_DEBUG("otterTaskContext_get_task_context_id %p", task);
   // ! HACK ! only here to temporarily work around ExaHyPE not managing task
   // pointers assert(task != NULL);
-  return task == NULL ? 0 : task->task_context_id;
+  return task == NULL ? TASK_ID_UNDEFINED : task->task_context_id;
 }
 
 unique_id_t

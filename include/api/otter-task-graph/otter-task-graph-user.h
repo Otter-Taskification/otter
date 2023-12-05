@@ -29,6 +29,7 @@
 #define OTTER_TASK_WAIT_FOR(...)
 #define OTTER_TASK_WAIT_START(...)
 #define OTTER_TASK_WAIT_END(...)
+#define OTTER_TASK_DEPEND(...)
 #define OTTER_PHASE_BEGIN(...)
 #define OTTER_PHASE_END(...)
 #define OTTER_PHASE_SWITCH(...)
@@ -337,6 +338,19 @@
  */
 #define OTTER_TASK_WAIT_END(task, mode)                                        \
   otterSynchroniseTasks(task, otter_sync_##mode, otter_endpoint_leave)
+
+/**
+ * @brief Record a dependency between two sibling tasks. This indicates that
+ * `pred` must be completed before `succ` can be started.
+ *
+ * @note `pred` and `succ` must have the same parent, and may not be the same
+ * task.
+ *
+ * @note This annotation must happend after boths tasks are initialised and
+ * before either is complete.
+ *
+ */
+#define OTTER_TASK_DEPEND(pred, succ) otterTaskDependency(pred, succ)
 
 /**
  * @brief Start a new algorithmic phase.

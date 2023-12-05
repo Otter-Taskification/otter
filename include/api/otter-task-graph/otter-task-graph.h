@@ -298,6 +298,21 @@ otter_task_context *otterTaskBorrowLabel(const char *format, ...);
 void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode,
                            otter_endpoint_t endpoint);
 
+/**
+ * @brief Indicate a partial ordering constraint between two sibling tasks. This
+ * records that the task handle `pred` is a dependency of the task handle `succ`
+ * i.e. that `pred` must be complete before `succ` can begin executing.
+ *
+ * @note Both tasks must have the same parent, and must be different tasks.
+ *
+ * @note This annotation must happen after both handles have been initialised,
+ * and before either task has completed.
+ *
+ * @param pred The initialised handle of the predecessor task
+ * @param succ The initialised handle of the successor task
+ */
+void otterTaskDependency(otter_task_context *pred, otter_task_context *succ);
+
 /******
  * Managing Phases
  ******/

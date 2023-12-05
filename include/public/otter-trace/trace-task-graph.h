@@ -40,6 +40,9 @@ void trace_graph_synchronise_tasks(trace_location_def_t *location,
                                    trace_sync_region_attr_t sync_attr,
                                    otter_endpoint_t endpoint);
 
+void trace_graph_task_dependency(trace_location_def_t *location,
+                                 unique_id_t pred, unique_id_t succ);
+
 void trace_task_graph_finalise(void);
 
 #endif // OTTER_TRACE_TASK_GRAPH_H

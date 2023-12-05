@@ -290,6 +290,36 @@ void trace_graph_synchronise_tasks(trace_location_def_t *location,
   OTF2_AttributeList_Delete(attr);
 }
 
+void trace_graph_task_dependency(trace_location_def_t *location,
+                                 unique_id_t pred, unique_id_t succ) {
+
+  LOG_DEBUG("record task dependency");
+
+  OTF2_ErrorCode err = OTF2_SUCCESS;
+  OTF2_AttributeList *attr = OTF2_AttributeList_New();
+  OTF2_EvtWriter *event_writer = NULL;
+
+  trace_location_get_otf2(location, NULL, &event_writer, NULL);
+
+  err = OTF2_AttributeList_AddStringRef(
+      attr, attr_event_type, attr_label_ref[attr_event_type_task_dependency]);
+  CHECK_OTF2_ERROR_CODE(err);
+
+  err = OTF2_AttributeList_AddUint64(attr, attr_prior_task_id, pred);
+  CHECK_OTF2_ERROR_CODE(err);
+
+  err = OTF2_AttributeList_AddUint64(attr, attr_next_task_id, succ);
+  CHECK_OTF2_ERROR_CODE(err);
+
+  err = OTF2_EvtWriter_Enter(event_writer, attr, get_timestamp(),
+                             OTF2_UNDEFINED_REGION);
+  CHECK_OTF2_ERROR_CODE(err);
+
+  OTF2_AttributeList_Delete(attr);
+
+  return;
+}
+
 void trace_task_graph_finalise(void) {
   LOG_DEBUG("=== Finalising trace-task-graph ===");
 }

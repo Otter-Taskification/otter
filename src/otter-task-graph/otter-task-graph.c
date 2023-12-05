@@ -381,6 +381,38 @@ void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode,
   return;
 }
 
+void otterTaskDependency(otter_task_context *pred, otter_task_context *succ) {
+  assert(pred != NULL);
+  assert(succ != NULL);
+
+  if (pred == succ) {
+    LOG_ERROR("a task may not be a dependency of itself (pred=%p, succ=%p)",
+              pred, succ);
+    assert(false && "self-dependent task");
+  }
+
+  unique_id_t pred_id = otterTaskContext_get_task_context_id(pred);
+  unique_id_t succ_id = otterTaskContext_get_task_context_id(succ);
+
+  unique_id_t pred_parent_id =
+      otterTaskContext_get_parent_task_context_id(pred);
+  unique_id_t succ_parent_id =
+      otterTaskContext_get_parent_task_context_id(succ);
+
+  if (pred_parent_id != succ_parent_id) {
+    LOG_ERROR(
+        "pred %lu and succ %lu are not siblings (pred_parent_id=%lu, succ_parent_id=%lu)",
+        pred_id, succ_id, pred_parent_id, succ_parent_id);
+    assert(false && "different parents");
+  }
+
+  LOG_DEBUG("pred=%lu, succ=%lu", pred_id, succ_id);
+
+  trace_graph_task_dependency(get_thread_data()->location, pred_id, succ_id);
+
+  return;
+}
+
 void otterTraceStart(void) { LOG_DEBUG("not currently implemented - ignored"); }
 
 void otterTraceStop(void) { LOG_DEBUG("not currently implemented - ignored"); }

@@ -61,8 +61,8 @@ typedef enum {
  *
  */
 typedef enum otter_add_to_pool_t {
-  otter_no_add_to_pool,
-  otter_add_to_pool
+  otter_no_add_to_pool = 0,
+  otter_add_to_pool = 1
 } otter_add_to_pool_t;
 
 #ifdef __cplusplus

@@ -88,6 +88,21 @@ static inline thread_data_t *get_thread_data(void) {
   return thread_data;
 }
 
+otter_source_args* otterCreateSourceArgs(const char *filename,
+                                         const char *function,
+                                         int linenum){
+    otter_source_args *source_arg = malloc(sizeof(otter_source_args));
+    otter_source_args->file = filename;
+    otter_source_args->func = function;
+    otter_source_args->line = linenum;
+
+    return source_arg;
+}
+
+void otterFreeSourceArgs(otter_source_args *source_arg){
+    free(source_arg);
+}
+
 static void otter_register_task_label_va_list(otter_task_context *task,
                                               bool add_to_task_manager,
                                               const char *format,
@@ -107,6 +122,10 @@ static void otter_register_task_label_va_list(otter_task_context *task,
   }
   otter_string_ref_t task_label_ref = get_string_ref(&label_buffer[0]);
   otterTaskContext_set_task_label_ref(task, task_label_ref);
+}
+
+void otterTraceInitialise_f(otter_source_args *source_location){
+    otterTraceInitialise(*source_location);
 }
 
 void otterTraceInitialise(otter_source_args source_location) {
@@ -162,6 +181,10 @@ void otterTraceInitialise(otter_source_args source_location) {
   return;
 }
 
+void otterTraceFinalise_f(otter_source_args *source){
+    otterTraceFinalise(*source);
+}
+
 void otterTraceFinalise(otter_source_args source) {
   // Finalise arhchive
   LOG_DEBUG("=== finalising archive ===");
@@ -207,6 +230,15 @@ void otterTraceFinalise(otter_source_args source) {
   return;
 }
 
+otter_task_context *otterTaskInitialise_f(otter_task_context *parent, int flavour,
+                                          otter_add_to_pool_t add_to_pool,
+                                          bool record_task_create_event,
+                                          otter_source_args *init,
+                                          const char *format){
+    return otterTaskInitialise(parent, flavour, add_to_pool, record_task_create_event,
+                               *init, format);
+}
+
 otter_task_context *otterTaskInitialise(otter_task_context *parent, int flavour,
                                         otter_add_to_pool_t add_to_pool,
                                         bool record_task_create_event,
@@ -242,6 +274,12 @@ otter_task_context *otterTaskInitialise(otter_task_context *parent, int flavour,
   return task;
 }
 
+void otterTaskCreate_f(otter_task_context *task, otter_task_context *parent,
+                       otter_source_args *create){
+    otterTaskCreate(task, parent, *create);
+}
+
+
 void otterTaskCreate(otter_task_context *task, otter_task_context *parent,
                      otter_source_args create) {
   if (task == NULL) {
@@ -276,6 +314,11 @@ void otterTaskCreate(otter_task_context *task, otter_task_context *parent,
   return;
 }
 
+otter_task_context *otterTaskStart_f(otter_task_context *task,
+                                     otter_source_args *start){
+    return otterTaskStart(task, *start);
+}
+
 otter_task_context *otterTaskStart(otter_task_context *task,
                                    otter_source_args start) {
   if (task == NULL) {
@@ -302,6 +345,10 @@ otter_task_context *otterTaskStart(otter_task_context *task,
   return task;
 }
 
+void otterTaskEnd_f(otter_task_context *task, otter_source_args *end){
+    otterTaskEnd(task, *end);
+}
+
 void otterTaskEnd(otter_task_context *task, otter_source_args end) {
   LOG_DEBUG("[%lu] end task", otterTaskContext_get_task_context_id(task));
   otter_src_ref_t end_ref = get_source_location_ref((otter_src_location_t){
@@ -312,12 +359,20 @@ void otterTaskEnd(otter_task_context *task, otter_source_args end) {
   otterTaskContext_delete(task);
 }
 
+void otterTaskPushLabel_f(otter_task_context *task, const char *format){
+    otterTaskPushLabel(task, format);
+}
+
 void otterTaskPushLabel(otter_task_context *task, const char *format, ...) {
   va_list args;
   va_start(args, format);
   otter_register_task_label_va_list(task, true, format, args);
   va_end(args);
   return;
+}
+
+otter_task_context *otterTaskPopLabel_f(const char *format){
+    return otterTaskPopLabel(format);
 }
 
 otter_task_context *otterTaskPopLabel(const char *format, ...) {
@@ -337,6 +392,10 @@ otter_task_context *otterTaskPopLabel(const char *format, ...) {
       trace_task_manager_pop_task(task_manager, label_buffer);
   TASK_MANAGER_UNLOCK();
   return task;
+}
+
+otter_task_context *otterTaskBorrowLabel_f(const char *format){
+    return otterTaskBorrowLabel(format);
 }
 
 otter_task_context *otterTaskBorrowLabel(const char *format, ...) {
@@ -385,6 +444,10 @@ void otterTraceStart(void) { LOG_DEBUG("not currently implemented - ignored"); }
 
 void otterTraceStop(void) { LOG_DEBUG("not currently implemented - ignored"); }
 
+void otterPhaseBegin_f(const char *name, otter_source_args *source) {
+    otterPhaseBegin(name, *source);
+}
+
 void otterPhaseBegin(const char *name, otter_source_args source) {
 #if OTTER_USE_PHASES
   assert(name != NULL);
@@ -401,6 +464,10 @@ void otterPhaseBegin(const char *name, otter_source_args source) {
   LOG_WARN("phases are disabled - ignoring (name=%s)", name);
 #endif
   return;
+}
+
+void otterPhaseEnd_f(otter_source_args *source){
+    otterPhaseEnd(*source);
 }
 
 void otterPhaseEnd(otter_source_args source) {
@@ -420,6 +487,10 @@ void otterPhaseEnd(otter_source_args source) {
   LOG_WARN("phases are disabled - ignoring.");
 #endif
   return;
+}
+
+void otterPhaseSwitch_f(const char *name, otter_source_args *source) {
+    otterPhaseSwitch(name, *source);
 }
 
 void otterPhaseSwitch(const char *name, otter_source_args source) {

@@ -92,9 +92,9 @@ otter_source_args* otterCreateSourceArgs(const char *filename,
                                          const char *function,
                                          int linenum){
     otter_source_args *source_arg = malloc(sizeof(otter_source_args));
-    otter_source_args->file = filename;
-    otter_source_args->func = function;
-    otter_source_args->line = linenum;
+    source_arg->file = filename;
+    source_arg->func = function;
+    source_arg->line = linenum;
 
     return source_arg;
 }

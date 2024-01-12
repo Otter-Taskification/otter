@@ -1,13 +1,13 @@
 module otter_task_graph
     enum, bind(c)
-        enumerator :: otter_no_add_to_pool = 0
-        enumerator :: otter_add_to_pool = 1
+        enumerator :: otter_no_add_to_pool
+        enumerator :: otter_add_to_pool
     end enum
 
     enum, bind(c)
-        enumerator :: otter_endpoint_enter = 0,
-        enumerator :: otter_endpoint_leave = 1,
-        enumerator :: otter_endpoint_discrete = 2
+        enumerator :: otter_endpoint_enter
+        enumerator :: otter_endpoint_leave
+        enumerator :: otter_endpoint_discrete
     end enum
 
     interface
@@ -110,7 +110,7 @@ module otter_task_graph
             end function otterTaskInitialise
         end interface
         source_location = fortran_otterCreateSourceArgs(trim(filename), trim(functionname), Int(linenum, Kind=c_int))
-        fortran_otterTaskInitialise_i = otterTaskInitialise(parent_task, Int(flavour, kind=c_int), Int(add_to_pool, kind=c_int),&
+        fortran_otterTaskInitialise = otterTaskInitialise(parent_task, Int(flavour, kind=c_int), Int(add_to_pool, kind=c_int),&
                                                             record_task_create_event, &
                                                             source_location, trim(tag))
         call fortran_otterFreeSourceArgs(source_location)
@@ -149,12 +149,12 @@ module otter_task_graph
                 use, intrinsic :: iso_c_binding
                 type(c_ptr), value :: task
                 type(c_ptr), value :: start_location
-            end subroutine otterTaskStart
+            end function otterTaskStart
         end interface
         source_location = fortran_otterCreateSourceArgs(trim(filename), trim(functionname), Int(linenum, Kind=c_int))
         fortran_otterTaskStart = otterTaskStart(task, source_location)
         call fortran_otterFreeSourceArgs(source_location)
-    end subroutine fortran_otterTaskStart
+    end function fortran_otterTaskStart
 
     subroutine fortran_otterTaskEnd(task, filename, functionname, linenum)
         use, intrinsic :: iso_c_binding
@@ -181,6 +181,7 @@ module otter_task_graph
         character(len = *) :: label
         interface
             subroutine otterTaskPushLabel(task, label) bind(C, NAME="otterTaskPushLabel_f")
+                use, intrinsic :: iso_c_binding
                 type(c_ptr), value :: task
                 character(len=1, kind=c_char), dimension(*), intent(in) :: label
             end subroutine
@@ -194,7 +195,8 @@ module otter_task_graph
         character(len = *) :: label
 
         interface
-            function type(c_ptr) otterTaskPopLabel(label) bind(C, NAME="otterTaskPopLabel_f")
+            type(c_ptr) function otterTaskPopLabel(label) bind(C, NAME="otterTaskPopLabel_f")
+                use, intrinsic :: iso_c_binding
                 character(len=1, kind=c_char), dimension(*), intent(in) :: label
             end function
         end interface
@@ -206,7 +208,8 @@ module otter_task_graph
         use, intrinsic :: iso_c_binding
         character(len = *) :: label
         interface
-            function type(c_ptr) otterTaskBorrowLabel(label) bind(C, NAME="otterTaskBorrowLabel_f")
+            type(c_ptr) function otterTaskBorrowLabel(label) bind(C, NAME="otterTaskBorrowLabel_f")
+                use, intrinsic :: iso_c_binding
                 character(len=1, kind=c_char), dimension(*), intent(in) :: label
             end function
         end interface

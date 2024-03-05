@@ -57,8 +57,7 @@
 #endif
 #define OTTER_IMPL_PASS_ARGS(...) OTTER_IMPL_PASS_ARGS_I(__VA_ARGS__)
 
-#define OTTER_SOURCE_LOCATION()                                                \
-  ((otter_source_args){.file = __FILE__, .func = __func__, .line = __LINE__})
+#define OTTER_SOURCE_LOCATION() __FILE__, __func__, __LINE__
 
 // @endcond
 

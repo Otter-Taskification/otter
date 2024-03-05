@@ -88,21 +88,6 @@ static inline thread_data_t *get_thread_data(void) {
   return thread_data;
 }
 
-otter_source_args* otterCreateSourceArgs(const char *filename,
-                                         const char *function,
-                                         int linenum){
-    otter_source_args *source_arg = malloc(sizeof(otter_source_args));
-    source_arg->file = filename;
-    source_arg->func = function;
-    source_arg->line = linenum;
-
-    return source_arg;
-}
-
-void otterFreeSourceArgs(otter_source_args *source_arg){
-    free(source_arg);
-}
-
 static void otter_register_task_label_va_list(otter_task_context *task,
                                               bool add_to_task_manager,
                                               const char *format,
@@ -124,11 +109,7 @@ static void otter_register_task_label_va_list(otter_task_context *task,
   otterTaskContext_set_task_label_ref(task, task_label_ref);
 }
 
-void otterTraceInitialise_f(otter_source_args *source_location){
-    otterTraceInitialise(*source_location);
-}
-
-void otterTraceInitialise(otter_source_args source_location) {
+void otterTraceInitialise(const char *file, const char *func, int line) {
   // Initialise archive
 
   static char host[HOST_NAME_MAX + 1] = {0};
@@ -166,13 +147,12 @@ void otterTraceInitialise(otter_source_args source_location) {
       otter_no_add_to_pool /* root task not available through a pool */,
       false, /* want to record task-create explicitly for the root task so that
                 it can be registered during post-processing */
-      source_location, "OTTER ROOT TASK (%s:%d)", source_location.func,
-      source_location.line);
+      file, func, line, "OTTER ROOT TASK (%s:%d)", func, line);
 
   // record task-create for root task so that it can still be registered during
   // post-processing. Must record the parent task ID as OTF2_UNDEFINED_UINT64
-  otterTaskCreate(task, NULL, source_location);
-  otterTaskStart(task, source_location);
+  otterTaskCreate(task, NULL, file, func, line);
+  otterTaskStart(task, file, func, line);
 
   // Only store the root task once we're done here so we don't accdentally write
   // an event where it is its own parent
@@ -181,21 +161,17 @@ void otterTraceInitialise(otter_source_args source_location) {
   return;
 }
 
-void otterTraceFinalise_f(otter_source_args *source){
-    otterTraceFinalise(*source);
-}
-
-void otterTraceFinalise(otter_source_args source) {
+void otterTraceFinalise(const char *file, const char *func, int line) {
   // Finalise arhchive
   LOG_DEBUG("=== finalising archive ===");
 
   if (phase_task != NULL) {
-    otterPhaseEnd(source);
+    otterPhaseEnd(file, func, line);
   }
 
   // TODO: add implicit synchronisation for root_task here.
 
-  otterTaskEnd(root_task, source);
+  otterTaskEnd(root_task, file, func, line);
 
 #if DEBUG_LEVEL >= 3
   otter_queue_t *queue = queue_create();
@@ -230,24 +206,15 @@ void otterTraceFinalise(otter_source_args source) {
   return;
 }
 
-otter_task_context *otterTaskInitialise_f(otter_task_context *parent, int flavour,
-                                          otter_add_to_pool_t add_to_pool,
-                                          bool record_task_create_event,
-                                          otter_source_args *init,
-                                          const char *format){
-    return otterTaskInitialise(parent, flavour, add_to_pool, record_task_create_event,
-                               *init, format);
-}
-
 otter_task_context *otterTaskInitialise(otter_task_context *parent, int flavour,
                                         otter_add_to_pool_t add_to_pool,
                                         bool record_task_create_event,
-                                        otter_source_args init,
-                                        const char *format, ...) {
-  LOG_DEBUG("%s:%d in %s", init.file, init.line, init.func);
+                                        const char *file, const char *func,
+                                        int line, const char *format, ...) {
+  LOG_DEBUG("%s:%d in %s", file, line, func);
   otter_task_context *task = otterTaskContext_alloc();
-  otter_src_ref_t init_ref = get_source_location_ref((otter_src_location_t){
-      .file = init.file, .func = init.func, .line = init.line});
+  otter_src_ref_t init_ref = get_source_location_ref(
+      (otter_src_location_t){.file = file, .func = func, .line = line});
 
   // If no parent given, set the current phase (or root) task as the parent.
   // Only the implicit root task may have a NULL parent.
@@ -269,22 +236,16 @@ otter_task_context *otterTaskInitialise(otter_task_context *parent, int flavour,
   va_end(args);
 
   if (record_task_create_event)
-    otterTaskCreate(task, parent, init);
+    otterTaskCreate(task, parent, file, func, line);
 
   return task;
 }
 
-void otterTaskCreate_f(otter_task_context *task, otter_task_context *parent,
-                       otter_source_args *create){
-    otterTaskCreate(task, parent, *create);
-}
-
-
 void otterTaskCreate(otter_task_context *task, otter_task_context *parent,
-                     otter_source_args create) {
+                     const char *file, const char *func, int line) {
   if (task == NULL) {
-    LOG_ERROR("ERROR: tried to create null task at %s:%d in %s)", create.file,
-              create.line, create.func);
+    LOG_ERROR("ERROR: tried to create null task at %s:%d in %s)", file, line,
+              func);
     return;
   }
 
@@ -300,8 +261,8 @@ void otterTaskCreate(otter_task_context *task, otter_task_context *parent,
     }
   }
 
-  otter_src_ref_t create_ref = get_source_location_ref((otter_src_location_t){
-      .file = create.file, .func = create.func, .line = create.line});
+  otter_src_ref_t create_ref = get_source_location_ref(
+      (otter_src_location_t){.file = file, .func = func, .line = line});
 
   unique_id_t parent_id = otterTaskContext_get_task_context_id(parent);
   unique_id_t child_id = otterTaskContext_get_task_context_id(task);
@@ -314,16 +275,11 @@ void otterTaskCreate(otter_task_context *task, otter_task_context *parent,
   return;
 }
 
-otter_task_context *otterTaskStart_f(otter_task_context *task,
-                                     otter_source_args *start){
-    return otterTaskStart(task, *start);
-}
-
-otter_task_context *otterTaskStart(otter_task_context *task,
-                                   otter_source_args start) {
+otter_task_context *otterTaskStart(otter_task_context *task, const char *file,
+                                   const char *func, int line) {
   if (task == NULL) {
-    LOG_ERROR("IGNORED (tried to start null task at %s:%d in %s)", start.file,
-              start.line, start.func);
+    LOG_ERROR("IGNORED (tried to start null task at %s:%d in %s)", file, line,
+              func);
     return NULL;
   }
   // TODO: not great to pass this struct by value since I only need a few of the
@@ -337,30 +293,23 @@ otter_task_context *otterTaskStart(otter_task_context *task,
   task_attr.init = otterTaskContext_get_init_location_ref(task);
   LOG_DEBUG("[%lu] begin task (child of %lu)", task_attr.id,
             task_attr.parent_id);
-  otter_src_ref_t start_ref = get_source_location_ref((otter_src_location_t){
-      .file = start.file, .func = start.func, .line = start.line});
+  otter_src_ref_t start_ref = get_source_location_ref(
+      (otter_src_location_t){.file = file, .func = func, .line = line});
   trace_graph_event_task_begin(get_thread_data()->location,
                                otterTaskContext_get_task_context_id(task),
                                start_ref);
   return task;
 }
 
-void otterTaskEnd_f(otter_task_context *task, otter_source_args *end){
-    otterTaskEnd(task, *end);
-}
-
-void otterTaskEnd(otter_task_context *task, otter_source_args end) {
+void otterTaskEnd(otter_task_context *task, const char *file, const char *func,
+                  int line) {
   LOG_DEBUG("[%lu] end task", otterTaskContext_get_task_context_id(task));
-  otter_src_ref_t end_ref = get_source_location_ref((otter_src_location_t){
-      .file = end.file, .func = end.func, .line = end.line});
+  otter_src_ref_t end_ref = get_source_location_ref(
+      (otter_src_location_t){.file = file, .func = func, .line = line});
   trace_graph_event_task_end(get_thread_data()->location,
                              otterTaskContext_get_task_context_id(task),
                              end_ref);
   otterTaskContext_delete(task);
-}
-
-void otterTaskPushLabel_f(otter_task_context *task, const char *format){
-    otterTaskPushLabel(task, format);
 }
 
 void otterTaskPushLabel(otter_task_context *task, const char *format, ...) {
@@ -369,10 +318,6 @@ void otterTaskPushLabel(otter_task_context *task, const char *format, ...) {
   otter_register_task_label_va_list(task, true, format, args);
   va_end(args);
   return;
-}
-
-otter_task_context *otterTaskPopLabel_f(const char *format){
-    return otterTaskPopLabel(format);
 }
 
 otter_task_context *otterTaskPopLabel(const char *format, ...) {
@@ -392,10 +337,6 @@ otter_task_context *otterTaskPopLabel(const char *format, ...) {
       trace_task_manager_pop_task(task_manager, label_buffer);
   TASK_MANAGER_UNLOCK();
   return task;
-}
-
-otter_task_context *otterTaskBorrowLabel_f(const char *format){
-    return otterTaskBorrowLabel(format);
 }
 
 otter_task_context *otterTaskBorrowLabel(const char *format, ...) {
@@ -444,38 +385,31 @@ void otterTraceStart(void) { LOG_DEBUG("not currently implemented - ignored"); }
 
 void otterTraceStop(void) { LOG_DEBUG("not currently implemented - ignored"); }
 
-void otterPhaseBegin_f(const char *name, otter_source_args *source) {
-    otterPhaseBegin(name, *source);
-}
-
-void otterPhaseBegin(const char *name, otter_source_args source) {
+void otterPhaseBegin(const char *name, const char *file, const char *func,
+                     int line) {
 #if OTTER_USE_PHASES
   assert(name != NULL);
   assert(phase_task == NULL);
   assert(root_task != NULL);
-  phase_task = otterTaskInitialise(root_task, 0, otter_no_add_to_pool, true,
-                                   source, "OTTER PHASE: \"%s\" (%s:%d)", name,
-                                   source.func, source.line);
+  phase_task = otterTaskInitialise(
+      root_task, 0, otter_no_add_to_pool, true, file, func, line,
+      "OTTER PHASE: \"%s\" (%s:%d)", name, func, line);
   unique_id_t phase_id = otterTaskContext_get_task_context_id(phase_task);
   LOG_DEBUG("<phase %lu> OTTER PHASE: \"%s\" (%s:%d)", phase_id, name,
             source.func, source.line);
-  otterTaskStart(phase_task, source);
+  otterTaskStart(phase_task, file, func, line);
 #else
   LOG_WARN("phases are disabled - ignoring (name=%s)", name);
 #endif
   return;
 }
 
-void otterPhaseEnd_f(otter_source_args *source){
-    otterPhaseEnd(*source);
-}
-
-void otterPhaseEnd(otter_source_args source) {
+void otterPhaseEnd(const char *file, const char *func, int line) {
 #if OTTER_USE_PHASES
   assert(phase_task != NULL);
   unique_id_t phase_id = otterTaskContext_get_task_context_id(phase_task);
   LOG_DEBUG("<phase %lu> (%s:%d)", phase_id, source.func, source.line);
-  otterTaskEnd(phase_task, source);
+  otterTaskEnd(phase_task, file, func, line);
 
   // All phases are implicitly synchronised to indicate that they must happen
   // sequentially
@@ -489,16 +423,13 @@ void otterPhaseEnd(otter_source_args source) {
   return;
 }
 
-void otterPhaseSwitch_f(const char *name, otter_source_args *source) {
-    otterPhaseSwitch(name, *source);
-}
-
-void otterPhaseSwitch(const char *name, otter_source_args source) {
+void otterPhaseSwitch(const char *name, const char *file, const char *func,
+                      int line) {
 #if OTTER_USE_PHASES
   if (phase_task != NULL) {
-    otterPhaseEnd(source);
+    otterPhaseEnd(file, func, line);
   }
-  otterPhaseBegin(name, source);
+  otterPhaseBegin(name, file, func, line);
 #else
   LOG_WARN("phases are disabled - ignoring (name=%s)", name);
 #endif
@@ -518,4 +449,35 @@ static void debug_store_count_in_queue(const char *str, int count, void *data) {
   queue_push(queue, (data_item_t){.ptr = str});
   queue_push(queue, (data_item_t){.value = count});
   return;
+}
+
+/*
+Fortran wrappers for variadic functions
+
+These functions are not declared in any C header, but are only declared in the
+Fortran code which requires them, since Fortran doesn't support variadic
+functions.
+*/
+
+otter_task_context *otterTaskInitialise_f(otter_task_context *parent,
+                                          int flavour,
+                                          otter_add_to_pool_t add_to_pool,
+                                          bool record_task_create_event,
+                                          const char *file, const char *func,
+                                          int line, const char *format) {
+  return otterTaskInitialise(parent, flavour, add_to_pool,
+                             record_task_create_event, file, func, line,
+                             format);
+}
+
+void otterTaskPushLabel_f(otter_task_context *task, const char *format) {
+  otterTaskPushLabel(task, format);
+}
+
+otter_task_context *otterTaskPopLabel_f(const char *format) {
+  return otterTaskPopLabel(format);
+}
+
+otter_task_context *otterTaskBorrowLabel_f(const char *format) {
+  return otterTaskBorrowLabel(format);
 }

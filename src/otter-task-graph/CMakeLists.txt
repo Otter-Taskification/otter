@@ -3,6 +3,7 @@ include(GNUInstallDirs)
 # Provide the otter-task-graph library
 add_library(otter-task-graph
     otter-task-graph.c
+    otter-task-graph.F90
 )
 
 target_include_directories(otter-task-graph
@@ -42,3 +43,5 @@ install(EXPORT otter-task-graph-target
     FILE OtterTaskGraph.cmake
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Otter
 )
+
+install(FILES ${CMAKE_BINARY_DIR}/lib/fmod/otter_task_graph.mod DESTINATION include/otter)

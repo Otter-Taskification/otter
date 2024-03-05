@@ -25,12 +25,6 @@
  */
 typedef struct otter_task_context otter_task_context;
 
-typedef struct {
-  const char *file;
-  const char *func;
-  int line;
-} otter_source_args;
-
 /**
  * @brief Indicates whether a task synchronisation construct should apply a
  * synchronisation constraint to immediate child tasks or all descendant tasks.
@@ -61,8 +55,8 @@ typedef enum {
  *
  */
 typedef enum otter_add_to_pool_t {
-  otter_no_add_to_pool,
-  otter_add_to_pool
+  otter_no_add_to_pool = 0,
+  otter_add_to_pool = 1
 } otter_add_to_pool_t;
 
 #ifdef __cplusplus
@@ -91,7 +85,7 @@ extern "C" {
  *  - Sets up a trace and initialises Otter's internals ready to begin tracing.
  *
  */
-void otterTraceInitialise(otter_source_args source_location);
+void otterTraceInitialise(const char *file, const char *func, int line);
 
 /**
  * @brief The counterpart to `otterTraceInitialise()`. Finalise Otter and safely
@@ -99,7 +93,7 @@ void otterTraceInitialise(otter_source_args source_location);
  *
  * @see `otterTraceInitialise()`
  */
-void otterTraceFinalise(otter_source_args source_location);
+void otterTraceFinalise(const char *file, const char *func, int line);
 
 /**
  * @brief Toggle tracing on.
@@ -150,7 +144,9 @@ void otterTraceStop(void);
  * @param parent_task: The handle of the parent of the new task.
  * @param flavour: The user-defined flavour of the new task.
  * @param push_task: Whether to associate the task with the given label.
- * @param init: The source location where the task was initialised.
+ * @param file: The file where the task was initialised.
+ * @param func: The function where the task was initialised.
+ * @param line: The line where the task was initialised.
  * @param format: the format of the label, using subsequent arguments.
  *
  */
@@ -158,8 +154,8 @@ otter_task_context *otterTaskInitialise(otter_task_context *parent_task,
                                         int flavour,
                                         otter_add_to_pool_t add_to_pool,
                                         bool record_task_create_event,
-                                        otter_source_args init_location,
-                                        const char *format, ...);
+                                        const char *file, const char *func,
+                                        int line, const char *format, ...);
 
 /******
  * Annotating Task Create, Start & End
@@ -177,12 +173,14 @@ otter_task_context *otterTaskInitialise(otter_task_context *parent_task,
  *
  * @param task The handle to the created task.
  * @param parent_task The parent of the created task.
- * @param create_location The source location of the event.
+ * @param file: The file where the task was created.
+ * @param func: The function where the task was created.
+ * @param line: The line where the task was created.
  *
  * @see `otterTaskInitialise()`
  */
 void otterTaskCreate(otter_task_context *task, otter_task_context *parent_task,
-                     otter_source_args create_location);
+                     const char *file, const char *func, int line);
 
 /**
  * @brief Record the start of a region which represents previously initialised
@@ -207,23 +205,28 @@ void otterTaskCreate(otter_task_context *task, otter_task_context *parent_task,
  * a switch from the encountering task to the new task.
  *
  * @param task The handle to the task representing the annotated region of code.
- * @param start The source location at which the task was started.
+ * @param file: The file where the task was started.
+ * @param func: The function where the task was started.
+ * @param line: The line where the task was started.
  *
  * @returns A pointer to a otter_task_context which represents the started task
  */
-otter_task_context *otterTaskStart(otter_task_context *task,
-                                   otter_source_args start_location);
+otter_task_context *otterTaskStart(otter_task_context *task, const char *file,
+                                   const char *func, int line);
 
 /**
  * @brief Counterpart to `otterTaskStart()`, indicating the end of the code
  * representing the given task.
  *
  * @param task The completed task.
- * @param end The source location at which the task ended.
+ * @param file: The file where the task was ended.
+ * @param func: The function where the task was ended.
+ * @param line: The line where the task was ended.
  *
  * @see `otterTaskStart()`
  */
-void otterTaskEnd(otter_task_context *task, otter_source_args end_location);
+void otterTaskEnd(otter_task_context *task, const char *file, const char *func,
+                  int line);
 
 /******
  * Registering & Retrieving Tasks
@@ -323,13 +326,16 @@ void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode,
  *
  *
  * @param name A unique identifier for this phase.
- * @param source The location in source where this phase began.
+ * @param file: The file where the phase started.
+ * @param func: The function where the phase started.
+ * @param line: The line where the phase started.
  *
  * @see `otterPhaseEnd()`
  * @see `otterPhaseSwitch()`
  *
  */
-void otterPhaseBegin(const char *name, otter_source_args source_location);
+void otterPhaseBegin(const char *name, const char *file, const char *func,
+                     int line);
 
 /**
  * @brief End the present algorithmic phase.
@@ -337,13 +343,15 @@ void otterPhaseBegin(const char *name, otter_source_args source_location);
  * Indicates the end of the present algorithmic phase and return to the
  * default global phase.
  *
- * @param source The location in source where this phase ended.
+ * @param file: The file where the phase ended.
+ * @param func: The function where the phase ended.
+ * @param line: The line where the phase ended.
  *
  * @see `otterPhaseBegin()`
  * @see `otterPhaseSwitch()`
  *
  */
-void otterPhaseEnd(otter_source_args source_location);
+void otterPhaseEnd(const char *file, const char *func, int line);
 
 /**
  * @brief End the present algorithmic phase and immediately switch to another.
@@ -357,13 +365,16 @@ void otterPhaseEnd(otter_source_args source_location);
  *     otterPhaseBegin(...);
  *
  * @param name The name of the next phase to begin.
- * @param source The location in source where this phase switch occurred.
+ * @param file: The file where the phase switch happened.
+ * @param func: The function where the phase switch happened.
+ * @param line: The line where the phase switch happened.
  *
  * @see `otterPhaseBegin()`
  * @see `otterPhaseEnd()`
  *
  */
-void otterPhaseSwitch(const char *name, otter_source_args source_location);
+void otterPhaseSwitch(const char *name, const char *file, const char *func,
+                      int line);
 
 #ifdef __cplusplus
 }

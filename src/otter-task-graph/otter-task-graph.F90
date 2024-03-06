@@ -10,6 +10,7 @@ module otter_task_graph
         enumerator :: otter_endpoint_discrete
     end enum
 
+    public
     contains
 
     subroutine fortran_otterTraceInitialise(filename, functionname, linenum)

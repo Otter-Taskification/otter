@@ -18,10 +18,12 @@ function(add_task_graph_examples)
         message(STATUS "Add example: ${EXAMPLE}")
         add_executable(${EXAMPLE} ${SOURCE_FILE})
         target_link_libraries(${EXAMPLE} PRIVATE otter-task-graph)
+        target_include_directories(${EXAMPLE} INTERFACE ${CMAKE_BINARY_DIR}/lib/mod)
     endforeach()
 endfunction()
 
 add_task_graph_examples(SOURCES
     fibonacci.c
     task-sequences.c
+    f_fibonacci.F90
 )

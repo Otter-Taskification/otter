@@ -63,24 +63,24 @@ Program fibonacci
     !    num = Integer(arg)
 
     write(char_n, '(I5)') num
-    call fortran_otterTraceInitialise(__FILE__, "main", __LINE__)
+    call fortran_otterTraceInitialise(__FILE__, "fibonacci", __LINE__)
 
     call fortran_otterPhaseBegin("calculate_fib("//TRIM(char_n)//")",&
-        __FILE__, "main", __LINE__)
+        __FILE__, "fibonacci", __LINE__)
 
     parent = fortran_otterTaskInitialise(parent, -1, otter_add_to_pool, c_true, &
                                          __FILE__, "fib", __LINE__, &
                                          "fib("//TRIM(char_n)//")")
-    parent= fortran_otterTaskStart(parent, __FILE__, "main", __LINE__)
+    parent= fortran_otterTaskStart(parent, __FILE__, "fibonacci", __LINE__)
     fibn = fib(num)
-    call fortran_otterTaskEnd(parent, __FILE__, "main", __LINE__)
+    call fortran_otterTaskEnd(parent, __FILE__, "fibonacci", __LINE__)
     
     call fortran_otterSynchroniseTasks(c_null_ptr, 1, otter_endpoint_discrete)
 
-    call fortran_otterPhaseEnd(__FILE__, "main", __LINE__)
+    call fortran_otterPhaseEnd(__FILE__, "fibonacci", __LINE__)
 
     print *, "fib(", num, ") = ", fibn
 
-    call fortran_otterTraceFinalise(__FILE__, "main", __LINE__)
+    call fortran_otterTraceFinalise(__FILE__, "fibonacci", __LINE__)
 
 End Program

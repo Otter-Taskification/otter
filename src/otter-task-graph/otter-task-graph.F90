@@ -26,7 +26,7 @@ module otter_task_graph
                 Integer(c_int), value :: linenum
             end subroutine otterTraceInitialise
         end interface
-        call otterTraceInitialise(trim(filename), trim(functionname), Int(linenum, Kind=c_int))
+        call otterTraceInitialise(trim(filename) // c_null_char, trim(functionname) // c_null_char, Int(linenum, Kind=c_int))
     end subroutine fortran_otterTraceInitialise
 
     subroutine fortran_otterTraceFinalise(filename, functionname, linenum)
@@ -42,7 +42,7 @@ module otter_task_graph
                 Integer(c_int), value :: linenum
             end subroutine
         end interface
-        call otterTraceFinalise(trim(filename), trim(functionname), Int(linenum, Kind=c_int))
+        call otterTraceFinalise(trim(filename) // c_null_char, trim(functionname) // c_null_char, Int(linenum, Kind=c_int))
     end subroutine fortran_otterTraceFinalise
 
     subroutine fortran_otterTraceStart()
@@ -94,7 +94,9 @@ module otter_task_graph
         end interface
         fortran_otterTaskInitialise = otterTaskInitialise(parent_task, Int(flavour, kind=c_int), Int(add_to_pool, kind=c_int),&
                                                             record_task_create_event, &
-                                                            trim(filename), trim(functionname), Int(linenum, Kind=c_int), trim(tag))
+                                                            trim(filename) // c_null_char, &
+                                                            trim(functionname) // c_null_char &
+                                                            , Int(linenum, Kind=c_int), trim(tag)  // c_null_char)
     end function fortran_otterTaskInitialise
 
     subroutine fortran_otterTaskCreate(task, parent_task, filename, functionname, linenum)
@@ -114,7 +116,8 @@ module otter_task_graph
                 Integer(c_int), value :: linenum
             end subroutine otterTaskCreate
         end interface
-        call otterTaskCreate(task, parent_task, trim(filename), trim(functionname), Int(linenum, Kind=c_int))
+        call otterTaskCreate(task, parent_task, trim(filename) // c_null_char, &
+            trim(functionname) // c_null_char, Int(linenum, Kind=c_int))
     end subroutine fortran_otterTaskCreate
 
     type(c_ptr) function fortran_otterTaskStart(task, filename, functionname, linenum)
@@ -132,7 +135,8 @@ module otter_task_graph
                 Integer(c_int), value :: linenum
             end function otterTaskStart
         end interface
-        fortran_otterTaskStart = otterTaskStart(task, trim(filename), trim(functionname), Int(linenum, Kind=c_int))
+        fortran_otterTaskStart = otterTaskStart(task, trim(filename) // c_null_char, &
+            trim(functionname) // c_null_char, Int(linenum, Kind=c_int))
     end function fortran_otterTaskStart
 
     subroutine fortran_otterTaskEnd(task, filename, functionname, linenum)
@@ -150,7 +154,8 @@ module otter_task_graph
                 Integer(c_int), value :: linenum
             end subroutine
         end interface
-        call otterTaskEnd(task, trim(filename), trim(functionname), Int(linenum, Kind=c_int))
+        call otterTaskEnd(task, trim(filename)  // c_null_char, &
+            trim(functionname) // c_null_char, Int(linenum, Kind=c_int))
     end subroutine fortran_otterTaskEnd
 
     subroutine fortran_otterTaskPushLabel(task, label)
@@ -164,7 +169,7 @@ module otter_task_graph
                 character(len=1, kind=c_char), dimension(*), intent(in) :: label
             end subroutine
         end interface
-        call ottertaskPushLabel(task, trim(label))
+        call ottertaskPushLabel(task, trim(label) // c_null_char)
     end subroutine fortran_otterTaskPushLabel
 
 
@@ -178,7 +183,7 @@ module otter_task_graph
                 character(len=1, kind=c_char), dimension(*), intent(in) :: label
             end function
         end interface
-        fortran_otterTaskPopLabel = otterTaskPopLabel(trim(label))
+        fortran_otterTaskPopLabel = otterTaskPopLabel(trim(label) // c_null_char)
     end function fortran_otterTaskPopLabel
 
 
@@ -191,7 +196,7 @@ module otter_task_graph
                 character(len=1, kind=c_char), dimension(*), intent(in) :: label
             end function
         end interface
-        fortran_otterTaskBorrowLabel = otterTaskBorrowLabel(trim(label))
+        fortran_otterTaskBorrowLabel = otterTaskBorrowLabel(trim(label)  // c_null_char)
     end function fortran_otterTaskBorrowLabel
 
 
@@ -227,7 +232,8 @@ module otter_task_graph
                 Integer(c_int), value :: linenum
             end subroutine otterPhaseBegin
         end interface
-        call otterPhaseBegin(trim(phase_name), trim(filename), trim(functionname), Int(linenum, Kind=c_int))
+        call otterPhaseBegin(trim(phase_name) // c_null_char, trim(filename) // c_null_char, &
+            trim(functionname) // c_null_char, Int(linenum, Kind=c_int))
     end subroutine fortran_otterPhaseBegin
 
     subroutine fortran_otterPhaseEnd(filename, functionname, linenum)
@@ -243,7 +249,7 @@ module otter_task_graph
                 Integer(c_int), value :: linenum
             end subroutine
        end interface
-       call otterPhaseEnd(trim(filename), trim(functionname), Int(linenum, Kind=c_int))
+       call otterPhaseEnd(trim(filename) // c_null_char, trim(functionname) // c_null_char, Int(linenum, Kind=c_int))
     end subroutine fortran_otterPhaseEnd
 
     subroutine fortran_otterPhaseSwitch(phase_name, filename, functionname, linenum)
@@ -261,6 +267,7 @@ module otter_task_graph
                 Integer(c_int), value :: linenum
             end subroutine otterPhaseSwitch
        end interface
-       call otterPhaseSwitch(trim(phase_name), trim(filename), trim(functionname), Int(linenum, Kind=c_int))
+       call otterPhaseSwitch(trim(phase_name) // c_null_char, trim(filename) // c_null_char,&
+           trim(functionname) // c_null_char, Int(linenum, Kind=c_int))
    end subroutine fortran_otterPhaseSwitch
 end module otter_task_graph

@@ -55,7 +55,8 @@ to distinct tasks across separate scopes.
 Declaring and defining tasks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-These macros do not record any trace events.
+The ``OTTER_INIT_TASK`` and ``OTTER_DEFINE_TASK`` macros record task-create
+events in the trace.
 
 +--------------------------------------------------------------+--------------------------------------------------+
 | Macro                                                        | Usage                                            |

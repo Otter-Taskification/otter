@@ -296,10 +296,15 @@ otter_task_context *otterTaskBorrowLabel(const char *format, ...);
  * @param mode Indicates whether this barrier synchronises immediate children of
  * the encountering task (`otter_sync_children`) or all descendants of the
  * encountering task (`otter_sync_descendants`).
+ * @param file: The file where the task encountered the synchronisation point.
+ * @param func: The function where the task encountered the synchronisation
+ * point.
+ * @param line: The line where the task encountered the synchronisation point.
  *
  */
 void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode,
-                           otter_endpoint_t endpoint);
+                           otter_endpoint_t endpoint, const char *file,
+                           const char *func, int line);
 
 /******
  * Managing Phases

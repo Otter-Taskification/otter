@@ -359,8 +359,12 @@ otter_task_context *otterTaskBorrowLabel(const char *format, ...) {
 }
 
 void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode,
-                           otter_endpoint_t endpoint) {
+                           otter_endpoint_t endpoint, const char *file,
+                           const char *func, int line) {
   LOG_DEBUG("synchronise tasks: %d", mode);
+
+  otter_src_ref_t src_ref = get_source_location_ref(
+      (otter_src_location_t){.file = file, .func = func, .line = line});
 
   if (task == NULL) {
     if (phase_task != NULL) {
@@ -377,7 +381,7 @@ void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode,
   sync_attr.encountering_task_id = otterTaskContext_get_task_context_id(task);
   trace_graph_synchronise_tasks(get_thread_data()->location,
                                 otterTaskContext_get_task_context_id(task),
-                                sync_attr, endpoint);
+                                sync_attr, endpoint, src_ref);
   return;
 }
 
@@ -413,8 +417,8 @@ void otterPhaseEnd(const char *file, const char *func, int line) {
 
   // All phases are implicitly synchronised to indicate that they must happen
   // sequentially
-  otterSynchroniseTasks(root_task, otter_sync_children,
-                        otter_endpoint_discrete);
+  otterSynchroniseTasks(root_task, otter_sync_children, otter_endpoint_discrete,
+                        file, func, line);
 
   phase_task = NULL;
 #else

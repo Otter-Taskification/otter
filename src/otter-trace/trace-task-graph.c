@@ -230,7 +230,8 @@ void trace_graph_event_task_end(trace_location_def_t *location,
 void trace_graph_synchronise_tasks(trace_location_def_t *location,
                                    unique_id_t encountering_task_id,
                                    trace_sync_region_attr_t sync_attr,
-                                   otter_endpoint_t endpoint) {
+                                   otter_endpoint_t endpoint,
+                                   otter_src_ref_t src_ref) {
   LOG_DEBUG("record task-graph event: synchronise");
 
   OTF2_ErrorCode err = OTF2_SUCCESS;
@@ -272,6 +273,15 @@ void trace_graph_synchronise_tasks(trace_location_def_t *location,
 
   err = OTF2_AttributeList_AddUint8(attr, attr_sync_descendant_tasks,
                                     sync_attr.sync_descendant_tasks ? 1 : 0);
+  CHECK_OTF2_ERROR_CODE(err);
+
+  err = OTF2_AttributeList_AddStringRef(attr, attr_source_file, src_ref.file);
+  CHECK_OTF2_ERROR_CODE(err);
+
+  err = OTF2_AttributeList_AddStringRef(attr, attr_source_func, src_ref.func);
+  CHECK_OTF2_ERROR_CODE(err);
+
+  err = OTF2_AttributeList_AddInt32(attr, attr_source_line, src_ref.line);
   CHECK_OTF2_ERROR_CODE(err);
 
   switch (endpoint) {

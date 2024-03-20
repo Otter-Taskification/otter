@@ -300,7 +300,8 @@
  *
  */
 #define OTTER_TASK_WAIT_FOR(task, mode)                                        \
-  otterSynchroniseTasks(task, otter_sync_##mode, otter_endpoint_discrete)
+  otterSynchroniseTasks(task, otter_sync_##mode, otter_endpoint_discrete,      \
+                        OTTER_SOURCE_LOCATION())
 
 /**
  * @brief Record the start of a region where the task waits for children or
@@ -325,7 +326,8 @@
  *
  */
 #define OTTER_TASK_WAIT_START(task, mode)                                      \
-  otterSynchroniseTasks(task, otter_sync_##mode, otter_endpoint_enter)
+  otterSynchroniseTasks(task, otter_sync_##mode, otter_endpoint_enter,         \
+                        OTTER_SOURCE_LOCATION())
 
 /**
  * @brief Record the end of a region where the task waits for children or
@@ -335,7 +337,8 @@
  *
  */
 #define OTTER_TASK_WAIT_END(task, mode)                                        \
-  otterSynchroniseTasks(task, otter_sync_##mode, otter_endpoint_leave)
+  otterSynchroniseTasks(task, otter_sync_##mode, otter_endpoint_leave,         \
+                        OTTER_SOURCE_LOCATION())
 
 /**
  * @brief Start a new algorithmic phase.

@@ -201,20 +201,28 @@ module otter_task_graph
 
 
 
-    subroutine fortran_otterSynchroniseTasks(task, mode, endpoint)
+    subroutine fortran_otterSynchroniseTasks(task, mode, endpoint, filename, functionname, linenum)
         use, intrinsic :: iso_c_binding
         type(c_ptr) :: task
         integer :: mode
         integer :: endpoint
+        character(len = *) :: filename
+        character(len = *) :: functionname
+        integer :: linenum
         interface
-            subroutine otterSynchroniseTasks(task, mode, endpoint) bind(C, NAME="otterSynchroniseTasks")
+            subroutine otterSynchroniseTasks(task, mode, endpoint, filename, functionname, linenum) bind(C, NAME="otterSynchroniseTasks")
                 use, intrinsic :: iso_c_binding
                 type(c_ptr), value :: task
                 integer(c_int), value :: mode
                 integer(c_int), value :: endpoint
+                character(len=1, kind=c_char), dimension(*), intent(in) :: filename
+                character(len=1, kind=c_char), dimension(*), intent(in) :: functionname
+                Integer(c_int), value :: linenum
             end subroutine otterSynchroniseTasks
         end interface
-        call otterSynchroniseTasks(task, Int(mode, kind=c_int), Int(endpoint, kind=c_int))
+        call otterSynchroniseTasks(task, Int(mode, kind=c_int), &
+            Int(endpoint, kind=c_int), trim(filename)  // c_null_char, &
+            trim(functionname) // c_null_char, Int(linenum, Kind=c_int))
     end subroutine fortran_otterSynchroniseTasks
 
     subroutine fortran_otterPhaseBegin(phase_name, filename, functionname, linenum)

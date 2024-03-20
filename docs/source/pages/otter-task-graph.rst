@@ -124,6 +124,12 @@ These macros record trace events.
 |                                            | until all prior child or descendant tasks are       |
 |                                            | complete.                                           |
 +--------------------------------------------+-----------------------------------------------------+
+| ``OTTER_TASK_WAIT_START(task, mode)``      | Record the start of a region where the task waits   |
+|                                            | for children or descendants to complete.            |
++--------------------------------------------+-----------------------------------------------------+
+| ``OTTER_TASK_WAIT_END(task, mode)``        | Record the end of a region where the task waits     |
+|                                            | for children or descendants to complete.            |
++--------------------------------------------+-----------------------------------------------------+
 
 Managing global phases
 ~~~~~~~~~~~~~~~~~~~~~~

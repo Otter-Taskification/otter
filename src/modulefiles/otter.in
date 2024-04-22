@@ -28,7 +28,9 @@ prepend-path PATH ${Otter_ROOT}/bin
 prepend-path CPATH ${Otter_ROOT}/include
 prepend-path OTTER_FORTRAN_INCLUDES ${Otter_ROOT}/include/otter
 prepend-path LIBRARY_PATH ${Otter_ROOT}/lib
+prepend-path LIBRARY_PATH ${Otter_ROOT}/lib64
 prepend-path LD_LIBRARY_PATH ${Otter_ROOT}/lib
+prepend-path LD_LIBRARY_PATH ${Otter_ROOT}/lib64
 
 setenv Otter_ROOT ${Otter_ROOT}
 setenv OTTER_OMPT_LIBRARY ${Otter_ROOT}/lib/libotter-ompt.so

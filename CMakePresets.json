@@ -12,6 +12,9 @@
             "description": "Default build using Makefiles",
             "generator": "Unix Makefiles",
             "binaryDir": "${sourceDir}/build/default",
+            "cacheVariables": {
+                "CMAKE_Fortran_FLAGS": "-ffree-line-length-512"
+            },
             "environment": {
                 "CMAKE_BUILD_TYPE": "Release"
             }

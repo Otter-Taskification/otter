@@ -11,3 +11,5 @@
 /docs/html
 
 CMakeUserPresets.json
+
+!/build-all.sh

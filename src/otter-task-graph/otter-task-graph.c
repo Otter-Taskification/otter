@@ -399,8 +399,8 @@ void otterPhaseBegin(const char *name, const char *file, const char *func,
       root_task, 0, otter_no_add_to_pool, true, file, func, line,
       "OTTER PHASE: \"%s\" (%s:%d)", name, func, line);
   unique_id_t phase_id = otterTaskContext_get_task_context_id(phase_task);
-  LOG_DEBUG("<phase %lu> OTTER PHASE: \"%s\" (%s:%d)", phase_id, name,
-            source.func, source.line);
+  LOG_DEBUG("<phase-begin %lu> OTTER PHASE: \"%s\" (%s:%d in %s)", phase_id, name,
+            file, line, func);
   otterTaskStart(phase_task, file, func, line);
 #else
   LOG_WARN("phases are disabled - ignoring (name=%s)", name);
@@ -412,7 +412,7 @@ void otterPhaseEnd(const char *file, const char *func, int line) {
 #if OTTER_USE_PHASES
   assert(phase_task != NULL);
   unique_id_t phase_id = otterTaskContext_get_task_context_id(phase_task);
-  LOG_DEBUG("<phase %lu> (%s:%d)", phase_id, source.func, source.line);
+  LOG_DEBUG("<phase-end %lu> (%s:%d in %s)", phase_id, file, line, func);
   otterTaskEnd(phase_task, file, func, line);
 
   // All phases are implicitly synchronised to indicate that they must happen

@@ -1,79 +1,95 @@
 {
-    "version": 2,
+    "version": 4,
     "cmakeMinimumRequired": {
         "major": 3,
-        "minor": 20,
+        "minor": 23,
         "patch": 0
     },
+    "include": [
+        "cmake/CMakePresetBases.json"
+    ],
     "configurePresets": [
         {
-            "name": "default",
-            "displayName": "Default config",
-            "description": "Default build using Makefiles",
-            "generator": "Unix Makefiles",
-            "binaryDir": "${sourceDir}/build/default",
-            "cacheVariables": {
-                "CMAKE_Fortran_FLAGS": "-ffree-line-length-512"
-            },
-            "environment": {
-                "CMAKE_BUILD_TYPE": "Release"
-            }
+            "name": "clang-release",
+            "displayName": "Clang (release)",
+            "inherits": [
+                "common",
+                "compiler-clang",
+                "build-release"
+            ]
         },
         {
-            "name": "debug",
-            "displayName": "Debug config",
-            "description": "Debug build using Makefiles",
-            "generator": "Unix Makefiles",
-            "binaryDir": "${sourceDir}/build/debug",
-            "environment": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
+            "name": "clang-debug",
+            "displayName": "Clang (debug)",
+            "inherits": [
+                "common",
+                "compiler-clang",
+                "build-debug"
+            ]
         },
         {
-            "name": "clang-asan",
-            "displayName": "Debug config with Clang address sanitiser",
-            "description": "Debug build with Clang address sanitiser, using Makefiles",
-            "generator": "Unix Makefiles",
-            "binaryDir": "${sourceDir}/build/clang-asan",
-            "cacheVariables": {
-                "CMAKE_C_COMPILER": "clang",
-                "CMAKE_CXX_COMPILER": "clang++",
-                "CMAKE_C_FLAGS": "-fsanitize=address",
-                "CMAKE_CXX_FLAGS": "-fsanitize=address"
-            },
-            "environment": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
+            "name": "clang-debug-asan",
+            "displayName": "Clang (debug, asan)",
+            "inherits": [
+                "common",
+                "compiler-clang",
+                "flags-add-asan",
+                "build-debug"
+            ]
         },
         {
-            "name": "verbose",
-            "displayName": "Verbose config",
-            "description": "Verbose build using Makefiles",
-            "generator": "Unix Makefiles",
-            "binaryDir": "${sourceDir}/build/verbose",
-            "environment": {
-                "CMAKE_BUILD_TYPE": "Verbose"
-            }
+            "name": "gcc-release",
+            "displayName": "GCC (release)",
+            "inherits": [
+                "common",
+                "compiler-gcc",
+                "build-release"
+            ]
         },
         {
-            "inherits": "default",
-            "name": "shared",
-            "displayName": "Default config with shared libs",
-            "description": "Default config building shared libs",
-            "binaryDir": "${sourceDir}/build/shared",
-            "cacheVariables": {
-                "BUILD_SHARED_LIBS": "ON"
-            }
+            "name": "gcc-debug",
+            "displayName": "GCC (debug)",
+            "inherits": [
+                "common",
+                "compiler-gcc",
+                "build-debug"
+            ]
+        },
+        {
+            "name": "gcc-debug-asan",
+            "displayName": "GCC (debug, asan)",
+            "inherits": [
+                "common",
+                "compiler-gcc",
+                "flags-add-asan",
+                "build-debug"
+            ]
         }
     ],
     "buildPresets": [
         {
-            "name": "default",
-            "configurePreset": "default"
+            "name": "clang-release",
+            "configurePreset": "clang-release"
         },
         {
-            "name": "shared",
-            "configurePreset": "shared"
+            "name": "clang-debug",
+            "configurePreset": "clang-debug"
+        },
+        {
+            "name": "clang-debug-asan",
+            "configurePreset": "clang-debug-asan"
+        },
+        {
+            "name": "gcc-release",
+            "configurePreset": "gcc-release"
+        },
+        {
+            "name": "gcc-debug",
+            "configurePreset": "gcc-debug"
+        },
+        {
+            "name": "gcc-debug-asan",
+            "configurePreset": "gcc-debug-asan"
         }
     ]
 }

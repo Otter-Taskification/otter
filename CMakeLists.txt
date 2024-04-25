@@ -1,7 +1,8 @@
 # 3.19: presets
 # 3.20: buildPresets
 # 3.21: $<TARGET_OBJECTS>
-cmake_minimum_required(VERSION 3.21)
+# 3.23: CMakePresets.json version 4 (use includes)
+cmake_minimum_required(VERSION 3.23)
 
 project(Otter
     VERSION 0.1.0

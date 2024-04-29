@@ -33,49 +33,46 @@
 
 #define PASS_ARGS(...) PASS_ARGS_I(__VA_ARGS__)
 
-#define LOG_ERROR(fmt, ...)                                                    \
-  fprintf(stderr, "[E] [%-32s] " fmt "\n", __func__ PASS_ARGS(__VA_ARGS__))
+#define LOG_ERROR(fmt, ...) fprintf(stderr, "[E] [%-32s] " fmt "\n", __func__ PASS_ARGS(__VA_ARGS__))
 
-#define LOG_ERROR_IF(pred, fmt, ...)                                           \
-  do {                                                                         \
-    if (pred)                                                                  \
-      LOG_ERROR(fmt, __VA_ARGS__);                                             \
-  } while (0)
+#define LOG_ERROR_IF(pred, fmt, ...)                                                                                   \
+    do {                                                                                                               \
+        if (pred)                                                                                                      \
+            LOG_ERROR(fmt, __VA_ARGS__);                                                                               \
+    } while (0)
 
 #if DEBUG_LEVEL >= 1
-#define LOG_WARN(fmt, ...)                                                     \
-  fprintf(stderr, "[W] [%-32s] " fmt "\n", __func__ PASS_ARGS(__VA_ARGS__))
-#define LOG_WARN_IF(pred, fmt, ...)                                            \
-  do {                                                                         \
-    if (pred)                                                                  \
-      LOG_WARN(fmt, __VA_ARGS__);                                              \
-  } while (0)
+#define LOG_WARN(fmt, ...) fprintf(stderr, "[W] [%-32s] " fmt "\n", __func__ PASS_ARGS(__VA_ARGS__))
+#define LOG_WARN_IF(pred, fmt, ...)                                                                                    \
+    do {                                                                                                               \
+        if (pred)                                                                                                      \
+            LOG_WARN(fmt, __VA_ARGS__);                                                                                \
+    } while (0)
 #else
 #define LOG_WARN(...)
 #define LOG_WARN_IF(...)
 #endif
 
 #if DEBUG_LEVEL >= 2
-#define LOG_INFO(fmt, ...)                                                     \
-  fprintf(stderr, "[i] [%-32s] " fmt "\n", __func__ PASS_ARGS(__VA_ARGS__))
-#define LOG_INFO_IF(pred, fmt, ...)                                            \
-  do {                                                                         \
-    if (pred)                                                                  \
-      LOG_INFO(fmt, __VA_ARGS__);                                              \
-  } while (0)
+#define LOG_INFO(fmt, ...) fprintf(stderr, "[i] " fmt "\n" PASS_ARGS(__VA_ARGS__))
+#define LOG_INFO_SRC(file, line, fmt, ...) LOG_INFO("(%s:%d) " fmt, file, line PASS_ARGS(__VA_ARGS__))
+#define LOG_INFO_IF(pred, fmt, ...)                                                                                    \
+    do {                                                                                                               \
+        if (pred)                                                                                                      \
+            LOG_INFO(fmt, __VA_ARGS__);                                                                                \
+    } while (0)
 #else
 #define LOG_INFO(...)
 #define LOG_INFO_IF(...)
 #endif
 
 #if DEBUG_LEVEL >= 3
-#define LOG_DEBUG(fmt, ...)                                                    \
-  fprintf(stderr, "[d] [%-32s] " fmt "\n", __func__ PASS_ARGS(__VA_ARGS__))
-#define LOG_DEBUG_IF(pred, fmt, ...)                                           \
-  do {                                                                         \
-    if (pred)                                                                  \
-      LOG_DEBUG(fmt, __VA_ARGS__);                                             \
-  } while (0)
+#define LOG_DEBUG(fmt, ...) fprintf(stderr, "[d] [%-32s] " fmt "\n", __func__ PASS_ARGS(__VA_ARGS__))
+#define LOG_DEBUG_IF(pred, fmt, ...)                                                                                   \
+    do {                                                                                                               \
+        if (pred)                                                                                                      \
+            LOG_DEBUG(fmt, __VA_ARGS__);                                                                               \
+    } while (0)
 #else
 #define LOG_DEBUG(...)
 #define LOG_DEBUG_IF(...)

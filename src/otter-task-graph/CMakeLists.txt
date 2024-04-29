@@ -14,11 +14,10 @@ target_include_directories(otter-task-graph
 )
 
 target_link_libraries(otter-task-graph
+    PRIVATE Otter::debug_level
     PRIVATE otter-trace otter-dtype
     INTERFACE OTF2::otf2 pthread # add to the link interface for consumers of otter-task-graph
 )
-
-target_compile_definitions(otter-task-graph PRIVATE DEBUG_LEVEL=$<IF:$<CONFIG:Debug>,3,0>)
 
 foreach(_HEADER IN ITEMS otter-task-graph-user.h otter-task-graph.h otter-task-graph-stub.h)
     list(APPEND OTTER_TASK_GRAPH_PUBLIC_HEADERS "${PROJECT_SOURCE_DIR}/include/api/otter-task-graph/${_HEADER}")

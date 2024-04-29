@@ -12,7 +12,9 @@
             "generator": "Unix Makefiles",
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
-                "CMAKE_Fortran_FLAGS": "-ffree-line-length-512"
+                "CMAKE_Fortran_FLAGS": "-ffree-line-length-512",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "WITH_THREAD_LOCAL_TASK_HANDLE": "ON"
             }
         },
         {
@@ -52,6 +54,13 @@
             "hidden": true,
             "environment": {
                 "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "build-info",
+            "hidden": true,
+            "environment": {
+                "CMAKE_BUILD_TYPE": "Info"
             }
         },
         {

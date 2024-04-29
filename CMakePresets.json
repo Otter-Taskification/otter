@@ -19,6 +19,15 @@
             ]
         },
         {
+            "name": "clang-info",
+            "displayName": "Clang (info)",
+            "inherits": [
+                "common",
+                "compiler-clang",
+                "build-info"
+            ]
+        },
+        {
             "name": "clang-debug",
             "displayName": "Clang (debug)",
             "inherits": [
@@ -47,6 +56,15 @@
             ]
         },
         {
+            "name": "gcc-info",
+            "displayName": "GCC (info)",
+            "inherits": [
+                "common",
+                "compiler-gcc",
+                "build-info"
+            ]
+        },
+        {
             "name": "gcc-debug",
             "displayName": "GCC (debug)",
             "inherits": [
@@ -72,6 +90,10 @@
             "configurePreset": "clang-release"
         },
         {
+            "name": "clang-info",
+            "configurePreset": "clang-info"
+        },
+        {
             "name": "clang-debug",
             "configurePreset": "clang-debug"
         },
@@ -82,6 +104,10 @@
         {
             "name": "gcc-release",
             "configurePreset": "gcc-release"
+        },
+        {
+            "name": "gcc-info",
+            "configurePreset": "gcc-info"
         },
         {
             "name": "gcc-debug",

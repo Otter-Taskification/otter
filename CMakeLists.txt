@@ -25,6 +25,10 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/lib/fmod)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/ar)
 
+# Custom Info build type is the same as Debug, but uses a different logging level
+set(CMAKE_C_FLAGS_INFO "${CMAKE_C_FLAGS_DEBUG}")
+set(CMAKE_CXX_FLAGS_INFO "${CMAKE_CXX_FLAGS_DEBUG}")
+
 # Absolutely required
 find_package(OTF2)
 message(VERBOSE "OTF2_ROOT: ${OTF2_ROOT}")
@@ -43,6 +47,14 @@ configure_file(
 configure_file(
     ${PROJECT_SOURCE_DIR}/include/public/config.h.in
     ${PROJECT_BINARY_DIR}/include/public/config.h # write to build tree
+)
+
+add_library(Otter::debug_level IMPORTED INTERFACE)
+target_compile_definitions(Otter::debug_level INTERFACE
+    $<IF:$<CONFIG:Debug>, DEBUG_LEVEL=3,
+    $<IF:$<CONFIG:Info>, DEBUG_LEVEL=2,
+    $<IF:$<CONFIG:Release>, DEBUG_LEVEL=1,
+    $<IF:$<CONFIG:RelWithDebInfo>, DEBUG_LEVEL=1, DEBUG_LEVEL=0>>>>
 )
 
 add_subdirectory(src/types)

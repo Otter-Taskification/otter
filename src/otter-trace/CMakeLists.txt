@@ -24,10 +24,9 @@ target_include_directories(otter-trace
 )
 
 target_link_libraries(otter-trace
+    PRIVATE Otter::debug_level
     PUBLIC OTF2::otf2 # some otter-trace public headers include OTF2
 )
-
-target_compile_definitions(otter-trace PRIVATE DEBUG_LEVEL=$<IF:$<CONFIG:Debug>,3,0>)
 
 set_property(TARGET otter-trace PROPERTY POSITION_INDEPENDENT_CODE ON)
 

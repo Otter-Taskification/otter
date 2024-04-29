@@ -13,10 +13,7 @@ target_include_directories(otter-dtype
     PRIVATE ${PROJECT_SOURCE_DIR}/include # for all other includes
 )
 
-target_compile_definitions(otter-dtype
-    PRIVATE
-    DEBUG_LEVEL=$<IF:$<CONFIG:Verbose>,3,0>
-)
+target_link_libraries(otter-dtype PRIVATE Otter::debug_level)
 
 set_property(TARGET otter-dtype PROPERTY POSITION_INDEPENDENT_CODE ON)
 

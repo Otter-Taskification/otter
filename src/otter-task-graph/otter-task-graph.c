@@ -148,6 +148,16 @@ void otterTraceInitialise(const char *file, const char *func, int line) {
     // an event where it is its own parent
     root_task = task;
 
+    // The thread which initialised Otter is considered the main thread
+    get_thread_data()->is_master_thread = true;
+
+#if USE_THREAD_LOCAL_TASK_HANDLE
+    LOG_INFO_SRC(file, line, "main thread (%" PRIu64 ") started root task: %" PRIxPTR, get_thread_data()->id,
+                 (uintptr_t)root_task);
+    // don't actually track the root task as the active task
+    get_thread_data()->active_task = NULL;
+#endif
+
     return;
 }
 
@@ -202,6 +212,13 @@ otter_task_context *otterTaskInitialise(otter_task_context *parent, int flavour,
     otter_src_ref_t init_ref =
         get_source_location_ref((otter_src_location_t){.file = file, .func = func, .line = line});
 
+#if USE_THREAD_LOCAL_TASK_HANDLE
+    // ignore whatever was passed in, unless it was explicitly NULL
+    if (parent != NULL) {
+        parent = get_thread_data()->active_task; // can be NULL if the thread not currently executing a task
+    }
+#endif
+
     // If no parent given, set the current phase (or root) task as the parent.
     // Only the implicit root task may have a NULL parent.
     if (parent == NULL) {
@@ -214,14 +231,17 @@ otter_task_context *otterTaskInitialise(otter_task_context *parent, int flavour,
         }
     }
 
+    LOG_INFO_SRC(file, line, "task-create: parent=%" PRIxPTR " child=%" PRIxPTR, (uintptr_t)parent, (uintptr_t)task);
+
     otterTaskContext_init(task, parent, flavour, init_ref);
     va_list args;
     va_start(args, format);
     otter_register_task_label_va_list(task, add_to_pool == otter_add_to_pool ? true : false, format, args);
     va_end(args);
 
-    if (record_task_create_event)
+    if (record_task_create_event) {
         otterTaskCreate(task, parent, file, func, line);
+    }
 
     return task;
 }
@@ -263,8 +283,25 @@ otter_task_context *otterTaskStart(otter_task_context *task, const char *file, c
         LOG_ERROR("IGNORED (tried to start null task at %s:%d in %s)", file, line, func);
         return NULL;
     }
-    // TODO: not great to pass this struct by value since I only need a few of the
-    // fields here
+
+    /**
+     * @brief On task-start (OTTER_TASK_START(task)) we either:
+     *  - started a new task from no task
+     *  - were told to suspend a current task and start a new one
+     *
+     * So:
+     *  - `task` is now the active task for this thread.
+     *  - if we were previously executing a differen task which was suspended, it is up to the annotations at
+     *      that task-suspend point to store the handle of the suspended task.
+     *  - this means we can assert here that the active task is NULL, since we either came here from
+     *      no existing task, or suspended the active task and switched back to the implicit task.
+     */
+
+#if USE_THREAD_LOCAL_TASK_HANDLE
+    assert(get_thread_data()->active_task == NULL);
+#endif
+
+    // TODO: not great to pass this struct by value since I only need a few of the fields here
     trace_task_region_attr_t task_attr;
     task_attr.type = otter_task_explicit;
     task_attr.id = otterTaskContext_get_task_context_id(task);
@@ -276,14 +313,41 @@ otter_task_context *otterTaskStart(otter_task_context *task, const char *file, c
     otter_src_ref_t start_ref =
         get_source_location_ref((otter_src_location_t){.file = file, .func = func, .line = line});
     trace_graph_event_task_begin(get_thread_data()->location, otterTaskContext_get_task_context_id(task), start_ref);
+
+    LOG_INFO_SRC(file, line, "task-start: task=%" PRIxPTR, (uintptr_t)task);
+
+#if USE_THREAD_LOCAL_TASK_HANDLE
+    get_thread_data()->active_task = task;
+#endif
+
     return task;
 }
 
 void otterTaskEnd(otter_task_context *task, const char *file, const char *func, int line) {
     LOG_DEBUG("[%lu] end task", otterTaskContext_get_task_context_id(task));
+
+#if USE_THREAD_LOCAL_TASK_HANDLE || 1
+    if (task == root_task) {
+        assert(get_thread_data()->is_master_thread);
+        assert(get_thread_data()->active_task == NULL);
+    } else if (task == phase_task) {
+        assert(get_thread_data()->is_master_thread);
+        assert(get_thread_data()->active_task == NULL);
+    } else {
+        assert(task != NULL);
+        assert(get_thread_data()->active_task == task);
+    }
+#endif
+
+    LOG_INFO_SRC(file, line, "task-end: task=%" PRIxPTR, (uintptr_t)task);
+
     otter_src_ref_t end_ref = get_source_location_ref((otter_src_location_t){.file = file, .func = func, .line = line});
     trace_graph_event_task_end(get_thread_data()->location, otterTaskContext_get_task_context_id(task), end_ref);
     otterTaskContext_delete(task);
+
+#if USE_THREAD_LOCAL_TASK_HANDLE
+    get_thread_data()->active_task = NULL;
+#endif
 }
 
 void otterTaskPushLabel(otter_task_context *task, const char *format, ...) {
@@ -326,11 +390,37 @@ otter_task_context *otterTaskBorrowLabel(const char *format, ...) {
     return task;
 }
 
-void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode, otter_endpoint_t endpoint,
-                           const char *file, const char *func, int line) {
+otter_task_context *otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode, otter_endpoint_t endpoint,
+                                          const char *file, const char *func, int line) {
     LOG_DEBUG("synchronise tasks: %d", mode);
 
     otter_src_ref_t src_ref = get_source_location_ref((otter_src_location_t){.file = file, .func = func, .line = line});
+
+    LOG_ERROR_IF(endpoint == otter_endpoint_discrete,
+                 "(%s:%d) otter_endpoint_discrete is deprecated, please switch "
+                 "to otter_endpoint_enter/otter_endpoint_leave",
+                 file, line);
+
+#if USE_THREAD_LOCAL_TASK_HANDLE
+    switch (endpoint) {
+    case otter_endpoint_discrete:
+    case otter_endpoint_enter:
+        // switch to implicit task i.e. set active task to NULL
+        task = get_thread_data()->active_task;
+        get_thread_data()->active_task = NULL;
+        break;
+
+    case otter_endpoint_leave:
+        // thread's active task must be NULL when switching back to a task
+        assert(get_thread_data()->active_task == NULL);
+        // resume the given task
+        get_thread_data()->active_task = task;
+        break;
+    }
+#endif
+
+    // don't return the phase or root task
+    otter_task_context *result = task;
 
     if (task == NULL) {
         if (phase_task != NULL) {
@@ -346,7 +436,7 @@ void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode, ott
     sync_attr.encountering_task_id = otterTaskContext_get_task_context_id(task);
     trace_graph_synchronise_tasks(get_thread_data()->location, otterTaskContext_get_task_context_id(task), sync_attr,
                                   endpoint, src_ref);
-    return;
+    return result;
 }
 
 void otterTraceStart(void) { LOG_DEBUG("not currently implemented - ignored"); }
@@ -358,11 +448,24 @@ void otterPhaseBegin(const char *name, const char *file, const char *func, int l
     assert(name != NULL);
     assert(phase_task == NULL);
     assert(root_task != NULL);
+    assert(get_thread_data()->is_master_thread);
+
+#if USE_THREAD_LOCAL_TASK_HANDLE
+    assert(get_thread_data()->active_task == NULL);
+#endif
+
     phase_task = otterTaskInitialise(root_task, 0, otter_no_add_to_pool, true, file, func, line,
                                      "OTTER PHASE: \"%s\" (%s:%d)", name, func, line);
     unique_id_t phase_id = otterTaskContext_get_task_context_id(phase_task);
     LOG_DEBUG("<phase-begin %lu> OTTER PHASE: \"%s\" (%s:%d in %s)", phase_id, name, file, line, func);
     otterTaskStart(phase_task, file, func, line);
+
+#if USE_THREAD_LOCAL_TASK_HANDLE
+    // don't actually track the phase as the active task
+    get_thread_data()->active_task = NULL;
+    assert(get_thread_data()->active_task == NULL);
+#endif
+
 #else
     LOG_WARN("phases are disabled - ignoring (name=%s)", name);
 #endif
@@ -372,6 +475,12 @@ void otterPhaseBegin(const char *name, const char *file, const char *func, int l
 void otterPhaseEnd(const char *file, const char *func, int line) {
 #if OTTER_USE_PHASES
     assert(phase_task != NULL);
+    assert(get_thread_data()->is_master_thread);
+
+#if USE_THREAD_LOCAL_TASK_HANDLE
+    assert(get_thread_data()->active_task == NULL);
+#endif
+
     unique_id_t phase_id = otterTaskContext_get_task_context_id(phase_task);
     LOG_DEBUG("<phase-end %lu> (%s:%d in %s)", phase_id, file, line, func);
     otterTaskEnd(phase_task, file, func, line);
@@ -381,6 +490,11 @@ void otterPhaseEnd(const char *file, const char *func, int line) {
     otterSynchroniseTasks(root_task, otter_sync_children, otter_endpoint_discrete, file, func, line);
 
     phase_task = NULL;
+
+#if USE_THREAD_LOCAL_TASK_HANDLE
+    assert(get_thread_data()->active_task == NULL);
+#endif
+
 #else
     LOG_WARN("phases are disabled - ignoring.");
 #endif
@@ -398,6 +512,10 @@ void otterPhaseSwitch(const char *name, const char *file, const char *func, int 
 #endif
     return;
 }
+
+otter_task_context *otterGetActiveTask(void) { return get_thread_data()->active_task; }
+
+void otterSetActiveTask(otter_task_context *task) { get_thread_data()->active_task = task; }
 
 static void debug_print_count(const char *str, int count, void *data) {
     LOG_DEBUG("%s %d", str, count);

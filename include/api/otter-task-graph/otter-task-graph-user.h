@@ -45,8 +45,7 @@
    credit: https://stackoverflow.com/a/48045656
 */
 #define OTTER_IMPL_THIRD_ARG(a, b, c, ...) c
-#define OTTER_IMPL_VA_OPT_AVAIL_I(...)                                         \
-  OTTER_IMPL_THIRD_ARG(__VA_OPT__(, ), 1, 0, )
+#define OTTER_IMPL_VA_OPT_AVAIL_I(...) OTTER_IMPL_THIRD_ARG(__VA_OPT__(, ), 1, 0, )
 #define OTTER_IMPL_VA_OPT_AVAIL OTTER_IMPL_VA_OPT_AVAIL_I(?)
 
 /* my addition to make variadic macros agnostic of __VA_OPT__ support */
@@ -112,10 +111,9 @@
  * @param ...: Variadic arguments for use with \p label.
  *
  */
-#define OTTER_INIT_TASK(task, parent, add_to_pool, label, ...)                 \
-  task = otterTaskInitialise(parent, -1, add_to_pool, true,                    \
-                             OTTER_SOURCE_LOCATION(),                          \
-                             label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
+#define OTTER_INIT_TASK(task, parent, add_to_pool, label, ...)                                                         \
+    task = otterTaskInitialise(parent, -1, add_to_pool, true, OTTER_SOURCE_LOCATION(),                                 \
+                               label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
  * @brief Declare and initialise a new task handle in the current scope.
@@ -141,10 +139,9 @@
  * @param ...: Variadic arguments for use with \p label.
  *
  */
-#define OTTER_DEFINE_TASK(task, parent, add_to_pool, label, ...)               \
-  OTTER_DECLARE_HANDLE(task);                                                  \
-  OTTER_INIT_TASK(task, parent, add_to_pool,                                   \
-                  label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
+#define OTTER_DEFINE_TASK(task, parent, add_to_pool, label, ...)                                                       \
+    OTTER_DECLARE_HANDLE(task);                                                                                        \
+    OTTER_INIT_TASK(task, parent, add_to_pool, label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
  * @brief Add a task handle to the task pool with the given label.
@@ -157,8 +154,7 @@
  * @param ...: Variadic arguments for use with \p label.
  *
  */
-#define OTTER_POOL_ADD(task, label, ...)                                       \
-  otterTaskPushLabel(task, label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
+#define OTTER_POOL_ADD(task, label, ...) otterTaskPushLabel(task, label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
  * @brief Remove a task from the task pool with the given label. \p task is
@@ -172,8 +168,7 @@
  * @param ...: Variadic arguments for use with \p label.
  *
  */
-#define OTTER_POOL_POP(task, label, ...)                                       \
-  task = otterTaskPopLabel(label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
+#define OTTER_POOL_POP(task, label, ...) task = otterTaskPopLabel(label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
  * @brief Borrow a task from the task pool with the given label. \p task is
@@ -192,8 +187,7 @@
  * @param ...: Variadic arguments for use with \p label.
  *
  */
-#define OTTER_POOL_BORROW(task, label, ...)                                    \
-  task = otterTaskBorrowLabel(label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
+#define OTTER_POOL_BORROW(task, label, ...) task = otterTaskBorrowLabel(label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
  * @brief Declare a handle in the current scope, assigning a task removed from
@@ -208,9 +202,9 @@
  * @param ...: Variadic arguments for use with \p label.
  *
  */
-#define OTTER_POOL_DECL_POP(task, label, ...)                                  \
-  OTTER_DECLARE_HANDLE(task);                                                  \
-  OTTER_POOL_POP(task, label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
+#define OTTER_POOL_DECL_POP(task, label, ...)                                                                          \
+    OTTER_DECLARE_HANDLE(task);                                                                                        \
+    OTTER_POOL_POP(task, label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
  * @brief Declare a handle in the current scope, assigning a task borrowed from
@@ -230,9 +224,9 @@
  * @param ...: Variadic arguments for use with \p label.
  *
  */
-#define OTTER_POOL_DECL_BORROW(task, label, ...)                               \
-  OTTER_DECLARE_HANDLE(task);                                                  \
-  OTTER_POOL_BORROW(task, label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
+#define OTTER_POOL_DECL_BORROW(task, label, ...)                                                                       \
+    OTTER_DECLARE_HANDLE(task);                                                                                        \
+    OTTER_POOL_BORROW(task, label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
 /**
  * @brief Record the start of the code represented by the given task handle.
@@ -271,8 +265,7 @@
  *
  * @see #OTTER_TASK_END
  */
-#define OTTER_TASK_START(task)                                                 \
-  task = otterTaskStart(task, OTTER_SOURCE_LOCATION())
+#define OTTER_TASK_START(task) task = otterTaskStart(task, OTTER_SOURCE_LOCATION())
 
 /**
  * @brief Counterpart to `OTTER_TASK_START()`, indicating the end of the code
@@ -299,9 +292,8 @@
  * (`descendants`).
  *
  */
-#define OTTER_TASK_WAIT_FOR(task, mode)                                        \
-  otterSynchroniseTasks(task, otter_sync_##mode, otter_endpoint_discrete,      \
-                        OTTER_SOURCE_LOCATION())
+#define OTTER_TASK_WAIT_FOR(task, mode)                                                                                \
+    otterSynchroniseTasks(task, otter_sync_##mode, otter_endpoint_discrete, OTTER_SOURCE_LOCATION())
 
 /**
  * @brief Record the start of a region where the task waits for children or
@@ -325,9 +317,8 @@
  * scheduling point at the barrier.
  *
  */
-#define OTTER_TASK_WAIT_START(task, mode)                                      \
-  otterSynchroniseTasks(task, otter_sync_##mode, otter_endpoint_enter,         \
-                        OTTER_SOURCE_LOCATION())
+#define OTTER_TASK_WAIT_START(task, mode)                                                                              \
+    otterSynchroniseTasks(task, otter_sync_##mode, otter_endpoint_enter, OTTER_SOURCE_LOCATION())
 
 /**
  * @brief Record the end of a region where the task waits for children or
@@ -336,35 +327,44 @@
  * @note Counterpart to #OTTER_TASK_WAIT_START
  *
  */
-#define OTTER_TASK_WAIT_END(task, mode)                                        \
-  otterSynchroniseTasks(task, otter_sync_##mode, otter_endpoint_leave,         \
-                        OTTER_SOURCE_LOCATION())
+#define OTTER_TASK_WAIT_END(task, mode)                                                                                \
+    otterSynchroniseTasks(task, otter_sync_##mode, otter_endpoint_leave, OTTER_SOURCE_LOCATION())
 
-/**
- * @brief Start a new algorithmic phase.
- *
- * By default, all trace events fall into the same global phase. However, some
- * codes run through particular phases and will want to study these phases
- * independently. With the present routine you mark the begin of such a phase.
- * Each phase has to be given a unique name.
- *
- *
- * ## Usage
- *
- * - Must be matched by a corresponding `OTTER_PHASE_END()` or
- * `OTTER_PHASE_SWITCH()`.
- *
- *
- * ## Semantics
- *
- * Creates a meta-region to nest all other regions encountered within it.
- *
- *
- * @param name A unique string identifying this phase.
- *
- * @see `OTTER_PHASE_END()`
- * @see `OTTER_PHASE_SWITCH()`
- *
+#define OTTER_TASK_WAIT_START_SCOPED(mode)                                                                             \
+    {                                                                                                                  \
+        otter_task_sync_t _otter_suspend_mode = otter_sync_##mode;                                                     \
+        otter_task_context *_otter_suspended_task = otterSynchroniseTasks(                                             \
+            otterGetActiveTask(), _otter_suspend_mode, otter_endpoint_enter, OTTER_SOURCE_LOCATION());
+
+#define OTTER_TASK_WAIT_END_SCOPED()                                                                                   \
+    otterSynchroniseTasks(_otter_suspended_task, _otter_suspend_mode, otter_endpoint_leave, OTTER_SOURCE_LOCATION());  \
+    }
+
+/**                                                                                                                    \
+ * @brief Start a new algorithmic phase.                                                                               \
+ *                                                                                                                     \
+ * By default, all trace events fall into the same global phase. However, some                                         \
+ * codes run through particular phases and will want to study these phases                                             \
+ * independently. With the present routine you mark the begin of such a phase.                                         \
+ * Each phase has to be given a unique name.                                                                           \
+ *                                                                                                                     \
+ *                                                                                                                     \
+ * ## Usage                                                                                                            \
+ *                                                                                                                     \
+ * - Must be matched by a corresponding `OTTER_PHASE_END()` or                                                         \
+ * `OTTER_PHASE_SWITCH()`.                                                                                             \
+ *                                                                                                                     \
+ *                                                                                                                     \
+ * ## Semantics                                                                                                        \
+ *                                                                                                                     \
+ * Creates a meta-region to nest all other regions encountered within it.                                              \
+ *                                                                                                                     \
+ *                                                                                                                     \
+ * @param name A unique string identifying this phase.                                                                 \
+ *                                                                                                                     \
+ * @see `OTTER_PHASE_END()`                                                                                            \
+ * @see `OTTER_PHASE_SWITCH()`                                                                                         \
+ *                                                                                                                     \
  */
 #define OTTER_PHASE_BEGIN(name) otterPhaseBegin((name), OTTER_SOURCE_LOCATION())
 
@@ -397,7 +397,6 @@
  * @see `OTTER_PHASE_END()`
  *
  */
-#define OTTER_PHASE_SWITCH(name)                                               \
-  otterPhaseSwitch((name), OTTER_SOURCE_LOCATION())
+#define OTTER_PHASE_SWITCH(name) otterPhaseSwitch((name), OTTER_SOURCE_LOCATION())
 
 #endif

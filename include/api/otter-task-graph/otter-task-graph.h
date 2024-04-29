@@ -15,7 +15,7 @@
 #include <stdbool.h>
 
 #if !defined(OTTER_USE_PRIVATE_HEADER)
-#warning                                                                       \
+#warning                                                                                                               \
     "It is not recommended to include this file directly. Please use otter/otter-task-graph-user.h, or pass -DOTTER_USE_PRIVATE_HEADER to ignore this warning"
 #endif
 
@@ -32,21 +32,14 @@ typedef struct otter_task_context otter_task_context;
  * @see otterSynchroniseTasks
  *
  */
-typedef enum otter_task_sync_t {
-  otter_sync_children,
-  otter_sync_descendants
-} otter_task_sync_t;
+typedef enum otter_task_sync_t { otter_sync_children, otter_sync_descendants } otter_task_sync_t;
 
 /**
  * @brief Indicates the endpoint of an event i.e. whether it represents entry to
  * or exit from some region of code, or a discrete event.
  *
  */
-typedef enum {
-  otter_endpoint_enter = 0,
-  otter_endpoint_leave = 1,
-  otter_endpoint_discrete = 2
-} otter_endpoint_t;
+typedef enum { otter_endpoint_enter = 0, otter_endpoint_leave = 1, otter_endpoint_discrete = 2 } otter_endpoint_t;
 
 /**
  * @brief Used to indicate whether a task should be added to a given task pool.
@@ -54,10 +47,7 @@ typedef enum {
  * @see otterTaskInitialise
  *
  */
-typedef enum otter_add_to_pool_t {
-  otter_no_add_to_pool = 0,
-  otter_add_to_pool = 1
-} otter_add_to_pool_t;
+typedef enum otter_add_to_pool_t { otter_no_add_to_pool = 0, otter_add_to_pool = 1 } otter_add_to_pool_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -150,12 +140,9 @@ void otterTraceStop(void);
  * @param format: the format of the label, using subsequent arguments.
  *
  */
-otter_task_context *otterTaskInitialise(otter_task_context *parent_task,
-                                        int flavour,
-                                        otter_add_to_pool_t add_to_pool,
-                                        bool record_task_create_event,
-                                        const char *file, const char *func,
-                                        int line, const char *format, ...);
+otter_task_context *otterTaskInitialise(otter_task_context *parent_task, int flavour, otter_add_to_pool_t add_to_pool,
+                                        bool record_task_create_event, const char *file, const char *func, int line,
+                                        const char *format, ...);
 
 /******
  * Annotating Task Create, Start & End
@@ -179,8 +166,8 @@ otter_task_context *otterTaskInitialise(otter_task_context *parent_task,
  *
  * @see `otterTaskInitialise()`
  */
-void otterTaskCreate(otter_task_context *task, otter_task_context *parent_task,
-                     const char *file, const char *func, int line);
+void otterTaskCreate(otter_task_context *task, otter_task_context *parent_task, const char *file, const char *func,
+                     int line);
 
 /**
  * @brief Record the start of a region which represents previously initialised
@@ -211,8 +198,7 @@ void otterTaskCreate(otter_task_context *task, otter_task_context *parent_task,
  *
  * @returns A pointer to a otter_task_context which represents the started task
  */
-otter_task_context *otterTaskStart(otter_task_context *task, const char *file,
-                                   const char *func, int line);
+otter_task_context *otterTaskStart(otter_task_context *task, const char *file, const char *func, int line);
 
 /**
  * @brief Counterpart to `otterTaskStart()`, indicating the end of the code
@@ -225,8 +211,7 @@ otter_task_context *otterTaskStart(otter_task_context *task, const char *file,
  *
  * @see `otterTaskStart()`
  */
-void otterTaskEnd(otter_task_context *task, const char *file, const char *func,
-                  int line);
+void otterTaskEnd(otter_task_context *task, const char *file, const char *func, int line);
 
 /******
  * Registering & Retrieving Tasks
@@ -301,10 +286,11 @@ otter_task_context *otterTaskBorrowLabel(const char *format, ...);
  * point.
  * @param line: The line where the task encountered the synchronisation point.
  *
+ * @returns The handle of the suspended or resumed task, according to `endpoint`.
+ *
  */
-void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode,
-                           otter_endpoint_t endpoint, const char *file,
-                           const char *func, int line);
+otter_task_context *otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode, otter_endpoint_t endpoint,
+                                          const char *file, const char *func, int line);
 
 /******
  * Managing Phases
@@ -339,8 +325,7 @@ void otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode,
  * @see `otterPhaseSwitch()`
  *
  */
-void otterPhaseBegin(const char *name, const char *file, const char *func,
-                     int line);
+void otterPhaseBegin(const char *name, const char *file, const char *func, int line);
 
 /**
  * @brief End the present algorithmic phase.
@@ -378,8 +363,25 @@ void otterPhaseEnd(const char *file, const char *func, int line);
  * @see `otterPhaseEnd()`
  *
  */
-void otterPhaseSwitch(const char *name, const char *file, const char *func,
-                      int line);
+void otterPhaseSwitch(const char *name, const char *file, const char *func, int line);
+
+/******
+ * Managing The Active Task
+ ******/
+
+/**
+ * @brief Get the active task for the encountering thread.
+ *
+ * @return otter_task_context*
+ */
+otter_task_context *otterGetActiveTask(void);
+
+/**
+ * @brief Set the active task for the encountering thread.
+ *
+ * @return otter_task_context*
+ */
+void otterSetActiveTask(otter_task_context *task);
 
 #ifdef __cplusplus
 }

@@ -265,20 +265,18 @@
  *
  * @see #OTTER_TASK_END
  */
-#define OTTER_TASK_START(task) task = otterTaskStart(task, OTTER_SOURCE_LOCATION())
+#define OTTER_TASK_START(task)                                                                                         \
+    {                                                                                                                  \
+        otter_task_context *_otter_encountering_task = otterTaskStart(task, OTTER_SOURCE_LOCATION())
 
 /**
- * @brief Counterpart to `OTTER_TASK_START()`, indicating the end of the code
- * represented by the given task handle.
- *
- * @warning The caller must own the given task instance i.e. it must not be
- * borrowed.
- *
- * @param task: The task representing the annotated region of code.
+ * @brief Counterpart to `OTTER_TASK_START()`, indicating the end of an annotated task block.
  *
  * @see #OTTER_TASK_START
  */
-#define OTTER_TASK_END(task) otterTaskEnd(task, OTTER_SOURCE_LOCATION())
+#define OTTER_TASK_END()                                                                                               \
+    otterTaskEnd(otterGetActiveTask(), _otter_encountering_task, OTTER_SOURCE_LOCATION());                             \
+    }
 
 /**
  * @brief Records a barrier where the given task must wait until all prior child

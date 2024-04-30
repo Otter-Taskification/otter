@@ -171,7 +171,7 @@ void otterTraceFinalise(const char *file, const char *func, int line) {
 
     // TODO: add implicit synchronisation for root_task here.
 
-    otterTaskEnd(root_task, file, func, line);
+    otterTaskEnd(root_task, NULL, file, func, line);
 
 #if DEBUG_LEVEL >= 3
     otter_queue_t *queue = queue_create();
@@ -290,15 +290,23 @@ otter_task_context *otterTaskStart(otter_task_context *task, const char *file, c
      *  - were told to suspend a current task and start a new one
      *
      * So:
-     *  - `task` is now the active task for this thread.
+     *  - `task` will become the active task for this thread.
      *  - if we were previously executing a differen task which was suspended, it is up to the annotations at
      *      that task-suspend point to store the handle of the suspended task.
-     *  - this means we can assert here that the active task is NULL, since we either came here from
-     *      no existing task, or suspended the active task and switched back to the implicit task.
+     *  - if the active task is not NULL, we assume we start a task which is included in the body of
+     *      its parent i.e. we have annotated some region that could be (but isn't actually) a task.
+     *      In this case, consider the active task as being suspended awaiting children, store the
+     *      supplied task as the active task, and return the suspended task.
      */
 
 #if USE_THREAD_LOCAL_TASK_HANDLE
+    otter_task_context *encountering_task = get_thread_data()->active_task;
+    if (encountering_task) {
+        LOG_INFO_SRC(file, line, "task-suspend (included child): task=%" PRIxPTR, (uintptr_t)encountering_task);
+        otterSynchroniseTasks(encountering_task, otter_sync_children, otter_endpoint_enter, file, func, line);
+    }
     assert(get_thread_data()->active_task == NULL);
+    get_thread_data()->active_task = task;
 #endif
 
     // TODO: not great to pass this struct by value since I only need a few of the fields here
@@ -316,37 +324,46 @@ otter_task_context *otterTaskStart(otter_task_context *task, const char *file, c
 
     LOG_INFO_SRC(file, line, "task-start: task=%" PRIxPTR, (uintptr_t)task);
 
-#if USE_THREAD_LOCAL_TASK_HANDLE
-    get_thread_data()->active_task = task;
-#endif
-
-    return task;
+    return encountering_task;
 }
 
-void otterTaskEnd(otter_task_context *task, const char *file, const char *func, int line) {
-    LOG_DEBUG("[%lu] end task", otterTaskContext_get_task_context_id(task));
+void otterTaskEnd(otter_task_context *completed, otter_task_context *resumed, const char *file, const char *func,
+                  int line) {
+
+    /**
+     * @brief `completed` is the task completed in this call. `resumed` is the task to be resumed
+     * after this call (should usually be the handle returned by otterTaskStart) and stored as the
+     * thread's active task.
+     *
+     */
 
 #if USE_THREAD_LOCAL_TASK_HANDLE || 1
-    if (task == root_task) {
+    if (completed == root_task) {
         assert(get_thread_data()->is_master_thread);
         assert(get_thread_data()->active_task == NULL);
-    } else if (task == phase_task) {
+    } else if (completed == phase_task) {
         assert(get_thread_data()->is_master_thread);
         assert(get_thread_data()->active_task == NULL);
     } else {
-        assert(task != NULL);
-        assert(get_thread_data()->active_task == task);
+        assert(completed != NULL);
+        assert(get_thread_data()->active_task == completed);
     }
 #endif
 
-    LOG_INFO_SRC(file, line, "task-end: task=%" PRIxPTR, (uintptr_t)task);
+    LOG_DEBUG("[%lu] end task", otterTaskContext_get_task_context_id(completed));
+    LOG_INFO_SRC(file, line, "task-end: task=%" PRIxPTR, (uintptr_t)completed);
 
     otter_src_ref_t end_ref = get_source_location_ref((otter_src_location_t){.file = file, .func = func, .line = line});
-    trace_graph_event_task_end(get_thread_data()->location, otterTaskContext_get_task_context_id(task), end_ref);
-    otterTaskContext_delete(task);
+    trace_graph_event_task_end(get_thread_data()->location, otterTaskContext_get_task_context_id(completed), end_ref);
+    otterTaskContext_delete(completed);
 
 #if USE_THREAD_LOCAL_TASK_HANDLE
     get_thread_data()->active_task = NULL;
+    if (resumed) {
+        LOG_INFO_SRC(file, line, "task-resume (included child): task=%" PRIxPTR, (uintptr_t)resumed);
+        otterSynchroniseTasks(resumed, otter_sync_children, otter_endpoint_leave, file, func, line);
+    }
+    get_thread_data()->active_task = resumed;
 #endif
 }
 
@@ -483,7 +500,7 @@ void otterPhaseEnd(const char *file, const char *func, int line) {
 
     unique_id_t phase_id = otterTaskContext_get_task_context_id(phase_task);
     LOG_DEBUG("<phase-end %lu> (%s:%d in %s)", phase_id, file, line, func);
-    otterTaskEnd(phase_task, file, func, line);
+    otterTaskEnd(phase_task, NULL, file, func, line);
 
     // All phases are implicitly synchronised to indicate that they must happen
     // sequentially

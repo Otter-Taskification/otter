@@ -177,12 +177,19 @@ void otterTaskCreate(otter_task_context *task, otter_task_context *parent_task, 
  * task which could be scheduled. Note that this does not mean that the enclosed
  * code is actually a task, rather that it could/should be a task after
  * parallelisation.
- *
- *
- * ## Usage
+ * 
+ * If a task handle is already stored by a thread encountering this call, the returned value is the
+ * handle of the encountering task which is considered suspended awaiting its children. The use-case
+ * for this is annotating a region of code which is not actually realised as a task by a runtime,
+ * meaning the task-start call occurs immediately following the tast-create call.
+ * 
+ * @note
+ * 
+ * If the encountering thread stores no task handle, the return value is NULL.
  *
  * - Must be matched by a `otterTaskEnd()` call enclosing a region which could/
  *   should be a task.
+ * 
  * - No synchronisation constraints are recorded by default. To indicate that
  *   a task should be synchronised, see `otterSynchroniseTasks()`.
  *
@@ -196,22 +203,26 @@ void otterTaskCreate(otter_task_context *task, otter_task_context *parent_task, 
  * @param func: The function where the task was started.
  * @param line: The line where the task was started.
  *
- * @returns A pointer to a otter_task_context which represents the started task
+ * @returns The handle of the task which was suspended to start the new task, or NULL if no such task.
  */
 otter_task_context *otterTaskStart(otter_task_context *task, const char *file, const char *func, int line);
 
 /**
  * @brief Counterpart to `otterTaskStart()`, indicating the end of the code
  * representing the given task.
+ * 
+ * Note that the `resumed` argument should generally be the handle returned from `otterTaskStart`. This
+ * will be stored as the thread's active task after recording the end of the completed task.
  *
- * @param task The completed task.
+ * @param completed The task completed by this call.
+ * @param resumed The task resumed following this call.
  * @param file: The file where the task was ended.
  * @param func: The function where the task was ended.
  * @param line: The line where the task was ended.
  *
  * @see `otterTaskStart()`
  */
-void otterTaskEnd(otter_task_context *task, const char *file, const char *func, int line);
+void otterTaskEnd(otter_task_context *completed, otter_task_context *resumed, const char *file, const char *func, int line);
 
 /******
  * Registering & Retrieving Tasks

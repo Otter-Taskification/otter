@@ -63,6 +63,7 @@
     } while (0)
 #else
 #define LOG_INFO(...)
+#define LOG_INFO_SRC(...)
 #define LOG_INFO_IF(...)
 #endif
 

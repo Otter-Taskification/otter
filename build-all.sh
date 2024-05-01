@@ -1,7 +1,7 @@
 #! /bin/env bash
 
 if [ -z "$1" ]; then
-    printf "Error: didn't specify a compiler preset (clang, gcc)\n" >&2
+    printf "Error: didn't specify a compiler preset (clang, gcc, intel)\n" >&2
     exit 1
 fi
 

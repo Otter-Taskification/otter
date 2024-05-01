@@ -34,6 +34,14 @@
             }
         },
         {
+            "name": "compiler-intel",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "icx",
+                "CMAKE_CXX_COMPILER": "icpx"
+            }
+        },
+        {
             "name": "flags-add-asan",
             "hidden": true,
             "cacheVariables": {

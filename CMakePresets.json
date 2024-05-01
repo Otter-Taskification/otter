@@ -19,11 +19,31 @@
             ]
         },
         {
+            "name": "clang-release-asan",
+            "displayName": "Clang (release, asan)",
+            "inherits": [
+                "common",
+                "compiler-clang",
+                "flags-add-asan",
+                "build-release"
+            ]
+        },
+        {
             "name": "clang-info",
             "displayName": "Clang (info)",
             "inherits": [
                 "common",
                 "compiler-clang",
+                "build-info"
+            ]
+        },
+        {
+            "name": "clang-info-asan",
+            "displayName": "Clang (info, asan)",
+            "inherits": [
+                "common",
+                "compiler-clang",
+                "flags-add-asan",
                 "build-info"
             ]
         },
@@ -56,11 +76,31 @@
             ]
         },
         {
+            "name": "gcc-release-asan",
+            "displayName": "GCC (release, asan)",
+            "inherits": [
+                "common",
+                "compiler-gcc",
+                "flags-add-asan",
+                "build-release"
+            ]
+        },
+        {
             "name": "gcc-info",
             "displayName": "GCC (info)",
             "inherits": [
                 "common",
                 "compiler-gcc",
+                "build-info"
+            ]
+        },
+        {
+            "name": "gcc-info-asan",
+            "displayName": "GCC (info, asan)",
+            "inherits": [
+                "common",
+                "compiler-gcc",
+                "flags-add-asan",
                 "build-info"
             ]
         },
@@ -82,6 +122,63 @@
                 "flags-add-asan",
                 "build-debug"
             ]
+        },
+        {
+            "name": "intel-release",
+            "displayName": "Intel (release)",
+            "inherits": [
+                "common",
+                "compiler-intel",
+                "build-release"
+            ]
+        },
+        {
+            "name": "intel-release-asan",
+            "displayName": "Intel (release, asan)",
+            "inherits": [
+                "common",
+                "compiler-intel",
+                "flags-add-asan",
+                "build-release"
+            ]
+        },
+        {
+            "name": "intel-info",
+            "displayName": "Intel (info)",
+            "inherits": [
+                "common",
+                "compiler-intel",
+                "build-info"
+            ]
+        },
+        {
+            "name": "intel-info-asan",
+            "displayName": "Intel (info, asan)",
+            "inherits": [
+                "common",
+                "compiler-intel",
+                "flags-add-asan",
+                "build-info"
+            ]
+        },
+        {
+            "name": "intel-debug",
+            "displayName": "Intel (debug)",
+            "inherits": [
+                "common",
+                "compiler-intel",
+                "build-debug"
+            ]
+        },
+        {
+            "name": "intel-debug-asan",
+            "displayName": "Intel (debug, asan)",
+            "inherits": [
+                "common",
+                "compiler-intel",
+                "flags-add-asan",
+                "build-debug"
+            ]
         }
     ],
     "buildPresets": [
@@ -90,8 +187,16 @@
             "configurePreset": "clang-release"
         },
         {
+            "name": "clang-release-asan",
+            "configurePreset": "clang-release-asan"
+        },
+        {
             "name": "clang-info",
             "configurePreset": "clang-info"
+        },
+        {
+            "name": "clang-info-asan",
+            "configurePreset": "clang-info-asan"
         },
         {
             "name": "clang-debug",
@@ -106,8 +211,16 @@
             "configurePreset": "gcc-release"
         },
         {
+            "name": "gcc-release-asan",
+            "configurePreset": "gcc-release-asan"
+        },
+        {
             "name": "gcc-info",
             "configurePreset": "gcc-info"
+        },
+        {
+            "name": "gcc-info-asan",
+            "configurePreset": "gcc-info-asan"
         },
         {
             "name": "gcc-debug",
@@ -116,6 +229,30 @@
         {
             "name": "gcc-debug-asan",
             "configurePreset": "gcc-debug-asan"
+        },
+        {
+            "name": "intel-release",
+            "configurePreset": "intel-release"
+        },
+        {
+            "name": "intel-release-asan",
+            "configurePreset": "intel-release-asan"
+        },
+        {
+            "name": "intel-info",
+            "configurePreset": "intel-info"
+        },
+        {
+            "name": "intel-info-asan",
+            "configurePreset": "intel-info-asan"
+        },
+        {
+            "name": "intel-debug",
+            "configurePreset": "intel-debug"
+        },
+        {
+            "name": "intel-debug-asan",
+            "configurePreset": "intel-debug-asan"
         }
     ]
 }

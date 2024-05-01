@@ -12,14 +12,6 @@
 
 #pragma once
 
-#ifdef __cplusplus
-#include <cassert>
-#else
-#include <assert.h>
-#define OTTER_NULL_TASK ((void *)0)
-#endif
-
-
 #if defined(OTTER_TASK_GRAPH_DISABLE_USER)
 
 #define OTTER_UTIL_ASSERT(...)
@@ -75,8 +67,10 @@
  *
  */
 #ifdef __cplusplus
+#include <cassert>
 #define OTTER_NULL_TASK nullptr
 #else
+#include <assert.h>
 #define OTTER_NULL_TASK ((void *)0)
 #endif
 

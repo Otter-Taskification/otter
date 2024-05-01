@@ -259,6 +259,8 @@ otter_task_context *otterTaskPopLabel(const char *format, ...);
  */
 otter_task_context *otterTaskBorrowLabel(const char *format, ...);
 
+size_t otterTaskGetPoolSize(const char *format);
+
 /******
  * Annotating Task Synchronisation Constraints
  ******/

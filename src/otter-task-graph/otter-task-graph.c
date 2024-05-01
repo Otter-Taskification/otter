@@ -407,6 +407,13 @@ otter_task_context *otterTaskBorrowLabel(const char *format, ...) {
     return task;
 }
 
+size_t otterTaskGetPoolSize(const char *format) {
+    TASK_MANAGER_LOCK();
+    size_t size = trace_task_manager_pool_size(task_manager, format);
+    TASK_MANAGER_UNLOCK();
+    return size;
+}
+
 otter_task_context *otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode, otter_endpoint_t endpoint,
                                           const char *file, const char *func, int line) {
     LOG_DEBUG("synchronise tasks: %d", mode);
@@ -501,12 +508,12 @@ void otterPhaseEnd(const char *file, const char *func, int line) {
     unique_id_t phase_id = otterTaskContext_get_task_context_id(phase_task);
     LOG_DEBUG("<phase-end %lu> (%s:%d in %s)", phase_id, file, line, func);
     otterTaskEnd(phase_task, NULL, file, func, line);
+    phase_task = NULL;
 
     // All phases are implicitly synchronised to indicate that they must happen
     // sequentially
     otterSynchroniseTasks(root_task, otter_sync_children, otter_endpoint_discrete, file, func, line);
 
-    phase_task = NULL;
 
 #if USE_THREAD_LOCAL_TASK_HANDLE
     assert(get_thread_data()->active_task == NULL);

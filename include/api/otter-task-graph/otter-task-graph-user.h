@@ -12,8 +12,17 @@
 
 #pragma once
 
+#ifdef __cplusplus
+#include <cassert>
+#else
+#include <assert.h>
+#define OTTER_NULL_TASK ((void *)0)
+#endif
+
+
 #if defined(OTTER_TASK_GRAPH_DISABLE_USER)
 
+#define OTTER_UTIL_ASSERT(...)
 #define OTTER_INITIALISE()
 #define OTTER_FINALISE()
 #define OTTER_DECLARE_HANDLE(...)
@@ -70,6 +79,8 @@
 #else
 #define OTTER_NULL_TASK ((void *)0)
 #endif
+
+#define OTTER_UTIL_ASSERT(cond) assert(cond)
 
 /**
  * @brief Start Otter. Must be invoked before any other Otter function or macro.
@@ -227,6 +238,8 @@
 #define OTTER_POOL_DECL_BORROW(task, label, ...)                                                                       \
     OTTER_DECLARE_HANDLE(task);                                                                                        \
     OTTER_POOL_BORROW(task, label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
+
+#define OTTER_POOL_SIZE(label) otterTaskGetPoolSize(label)
 
 /**
  * @brief Record the start of the code represented by the given task handle.

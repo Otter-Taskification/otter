@@ -32,4 +32,6 @@ otter_task_context *trace_task_manager_borrow_task(trace_task_manager_t *,
 void trace_task_manager_count_insertions(trace_task_manager_t *,
                                          trace_task_manager_callback *, void *);
 
+size_t trace_task_manager_pool_size(trace_task_manager_t *, const char *);
+
 #endif // OTTER_TRACE_TASK_MANAGER_PUBLIC_H

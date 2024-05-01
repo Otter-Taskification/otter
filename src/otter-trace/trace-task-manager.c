@@ -136,3 +136,16 @@ void trace_task_manager_count_insertions(trace_task_manager_t *manager,
                                          void *data) {
   vptr_manager_count_inserts((vptr_manager *)manager, callback, data);
 }
+
+size_t trace_task_manager_pool_size(trace_task_manager_t *manager, const char *format) {
+
+    // get the queue for this key. If no queue, warn and return 0
+    otter_queue_t *task_queue = (otter_queue_t *)vptr_manager_get_item((vptr_manager *)manager, format);
+    if (task_queue == NULL) {
+        LOG_WARN("(manager=%p) no task queue found for label: '%s'", manager, format);
+        return 0;
+    }
+
+    // return the size of the queue
+    return queue_length(task_queue);
+}

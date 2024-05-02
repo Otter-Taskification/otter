@@ -319,6 +319,15 @@
     otterSynchroniseTasks(_otter_suspended_task, _otter_suspend_mode, otter_endpoint_leave, OTTER_SOURCE_LOCATION());  \
     }
 
+#define OTTER_TASK_YIELD_START()                                                                                       \
+    {                                                                                                                  \
+        otter_task_context *_otter_suspended_task = otterSynchroniseTasks(                                             \
+            otterGetActiveTask(), otter_sync_yield, otter_endpoint_enter, OTTER_SOURCE_LOCATION());
+
+#define OTTER_TASK_YIELD_END()                                                                                         \
+    otterSynchroniseTasks(_otter_suspended_task, otter_sync_yield, otter_endpoint_leave, OTTER_SOURCE_LOCATION());     \
+    }
+
 /**
  * @brief Indicates a task synchronisation applies to the children or descendants of the encountering
  * task at the annotated point in the program. This is a convenience around #OTTER_TASK_WAIT_START and

@@ -413,6 +413,7 @@ void i_otterSynchroniseTasksRecordEvent(otter_task_context *task, otter_task_syn
     sync_attr.type = otter_sync_region_taskwait;
     sync_attr.sync_descendant_tasks = mode == otter_sync_descendants ? true : false;
     sync_attr.encountering_task_id = otterTaskContext_get_task_context_id(task);
+    sync_attr.mode = mode;
     trace_graph_synchronise_tasks(get_thread_data()->location, sync_attr.encountering_task_id, sync_attr, endpoint,
                                   src_ref);
 }

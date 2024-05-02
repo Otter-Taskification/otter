@@ -13,6 +13,7 @@
 #define OTTER_TASK_GRAPH_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #if !defined(OTTER_USE_PRIVATE_HEADER)
 #warning                                                                                                               \
@@ -29,10 +30,13 @@ typedef struct otter_task_context otter_task_context;
  * @brief Indicates whether a task synchronisation construct should apply a
  * synchronisation constraint to immediate child tasks or all descendant tasks.
  *
+ * A value of "yield" indicates that the task may be suspended to allow other tasks to be scheduled,
+ * but that no synchronisation constraint applies to this task i.e. it could be immediately resumed.
+ *
  * @see otterSynchroniseTasks
  *
  */
-typedef enum otter_task_sync_t { otter_sync_children, otter_sync_descendants } otter_task_sync_t;
+typedef enum otter_task_sync_t { otter_sync_children, otter_sync_descendants, otter_sync_yield } otter_task_sync_t;
 
 /**
  * @brief Indicates the endpoint of an event i.e. whether it represents entry to

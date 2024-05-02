@@ -11,6 +11,10 @@
 
 #pragma once
 
+#define OTTER_USE_PRIVATE_HEADER
+#include "api/otter-task-graph/otter-task-graph.h" // for otter_task_sync_t
+#undef OTTER_USE_PRIVATE_HEADER
+
 #include "public/otter-common.h"
 #include "public/otter-trace/trace-types.h"
 #include "public/types/queue.h"
@@ -47,6 +51,7 @@ typedef struct {
   otter_sync_region_t type;
   bool sync_descendant_tasks;
   unique_id_t encountering_task_id;
+  otter_task_sync_t mode;
 } trace_sync_region_attr_t;
 
 /* Attributes of a task region */

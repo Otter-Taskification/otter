@@ -298,6 +298,9 @@
  * This will then record the time at which the task enters/leaves the task
  * scheduling point at the barrier.
  *
+ * @param mode: Either `children` or `descendants` to indicate what set of tasks the synchronisation
+ * applies to.
+ *
  */
 #define OTTER_TASK_WAIT_START(mode)                                                                                    \
     {                                                                                                                  \
@@ -315,6 +318,19 @@
 #define OTTER_TASK_WAIT_END()                                                                                          \
     otterSynchroniseTasks(_otter_suspended_task, _otter_suspend_mode, otter_endpoint_leave, OTTER_SOURCE_LOCATION());  \
     }
+
+/**
+ * @brief Indicates a task synchronisation applies to the children or descendants of the encountering
+ * task at the annotated point in the program. This is a convenience around #OTTER_TASK_WAIT_START and
+ * #OTTER_TASK_WAIT_END which can be used when there is no explicit task synchronisation point, but an
+ * implicit synchronisation point exists.
+ *
+ * @param mode: See #OTTER_TASK_WAIT_START
+ *
+ */
+#define OTTER_TASK_WAIT_IMPLICIT(mode)                                                                                 \
+    OTTER_TASK_WAIT_START(mode);                                                                                       \
+    OTTER_TASK_WAIT_END();
 
 /**                                                                                                                    \
  * @brief Start a new algorithmic phase.                                                                               \

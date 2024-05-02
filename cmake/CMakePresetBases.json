@@ -13,8 +13,7 @@
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
                 "CMAKE_Fortran_FLAGS": "-ffree-line-length-512",
-                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-                "WITH_THREAD_LOCAL_TASK_HANDLE": "ON"
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
             }
         },
         {

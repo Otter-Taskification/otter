@@ -10,6 +10,19 @@
     ],
     "configurePresets": [
         {
+            "name": "clang-dev",
+            "displayName": "Clang (dev)",
+            "inherits": [
+                "common",
+                "compiler-clang",
+                "build-debug"
+            ],
+            "cacheVariables": {
+                "CMAKE_C_FLAGS": "-std=c11 -g3 -Wall -Wextra -fsanitize-trap=undefined",
+                "CMAKE_CXX_FLAGS": "-std=c++17 -g3 -Wall -Wextra -fsanitize-trap=undefined"
+            }
+        },
+        {
             "name": "clang-release",
             "displayName": "Clang (release)",
             "inherits": [
@@ -65,6 +78,19 @@
                 "flags-add-asan",
                 "build-debug"
             ]
+        },
+        {
+            "name": "gcc-dev",
+            "displayName": "GCC (dev)",
+            "inherits": [
+                "common",
+                "compiler-gcc",
+                "build-debug"
+            ],
+            "cacheVariables": {
+                "CMAKE_C_FLAGS": "-std=c11 -g3 -Wall -Wextra -fsanitize-trap=undefined",
+                "CMAKE_CXX_FLAGS": "-std=c++17 -g3 -Wall -Wextra -fsanitize-trap=undefined"
+            }
         },
         {
             "name": "gcc-release",
@@ -183,6 +209,10 @@
     ],
     "buildPresets": [
         {
+            "name": "clang-dev",
+            "configurePreset": "clang-dev"
+        },
+        {
             "name": "clang-release",
             "configurePreset": "clang-release"
         },
@@ -205,6 +235,10 @@
         {
             "name": "clang-debug-asan",
             "configurePreset": "clang-debug-asan"
+        },
+        {
+            "name": "gcc-dev",
+            "configurePreset": "gcc-dev"
         },
         {
             "name": "gcc-release",

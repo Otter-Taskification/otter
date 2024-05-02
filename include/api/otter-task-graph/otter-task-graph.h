@@ -177,19 +177,19 @@ void otterTaskCreate(otter_task_context *task, otter_task_context *parent_task, 
  * task which could be scheduled. Note that this does not mean that the enclosed
  * code is actually a task, rather that it could/should be a task after
  * parallelisation.
- * 
+ *
  * If a task handle is already stored by a thread encountering this call, the returned value is the
  * handle of the encountering task which is considered suspended awaiting its children. The use-case
  * for this is annotating a region of code which is not actually realised as a task by a runtime,
  * meaning the task-start call occurs immediately following the tast-create call.
- * 
+ *
  * @note
- * 
+ *
  * If the encountering thread stores no task handle, the return value is NULL.
  *
  * - Must be matched by a `otterTaskEnd()` call enclosing a region which could/
  *   should be a task.
- * 
+ *
  * - No synchronisation constraints are recorded by default. To indicate that
  *   a task should be synchronised, see `otterSynchroniseTasks()`.
  *
@@ -210,7 +210,7 @@ otter_task_context *otterTaskStart(otter_task_context *task, const char *file, c
 /**
  * @brief Counterpart to `otterTaskStart()`, indicating the end of the code
  * representing the given task.
- * 
+ *
  * Note that the `resumed` argument should generally be the handle returned from `otterTaskStart`. This
  * will be stored as the thread's active task after recording the end of the completed task.
  *
@@ -222,7 +222,8 @@ otter_task_context *otterTaskStart(otter_task_context *task, const char *file, c
  *
  * @see `otterTaskStart()`
  */
-void otterTaskEnd(otter_task_context *completed, otter_task_context *resumed, const char *file, const char *func, int line);
+void otterTaskEnd(otter_task_context *completed, otter_task_context *resumed, const char *file, const char *func,
+                  int line);
 
 /******
  * Registering & Retrieving Tasks
@@ -267,10 +268,17 @@ size_t otterTaskGetPoolSize(const char *format);
 
 /**
  * @brief Indicate a synchronisation constraint on the children or descendants
- * of the encountering task. If no encountering task is specified, the
- * synchronisation applies to child/descendant tasks of the current phase, or
- * the implicit global phase if no phase is active.
+ * of the encountering task.
  *
+ * When endpoint is `otter_endpoint_enter`, inspect the thread's private storage to get
+ * the handle of the active task. If there is no active task, use the current phase or
+ * the implicit global phase if there is no active phase. Return a taskwait-enter event.
+ * The return value is the handle of the suspended task, or NULL if there is no active task.
+ *
+ * When endpoint is `otter_endpoint_leave`, set the given `task` as the thread's active
+ * task. If `task` is non-NULL, record a taskwait-leave event for the given task, or for
+ * the current phase or implicit global phase otherwise. The return value is the handle of
+ * the resumed task, or NULL if `task` is NULL.
  *
  * ## Usage
  *
@@ -287,10 +295,9 @@ size_t otterTaskGetPoolSize(const char *format);
  * synchronisation constraint which applies its child or descendant tasks which
  * were previously created.
  *
- * @param task The context for the task which encountered the synchronisation
- * contraint. The constraint applies to the scheduling of child or descendants
- * of the encountering task. If NULL, assume that the constraint applies to all
- * orphan tasks previously created and not already synchronised.
+ * @param task Ignored when endpoint is `otter_endpoint_enter`. When endpoint is
+ * `otter_endpoint_leave`, indicates that the given task has no outstanding synchronisation
+ * constraints and may be resumed.
  * @param mode Indicates whether this barrier synchronises immediate children of
  * the encountering task (`otter_sync_children`) or all descendants of the
  * encountering task (`otter_sync_descendants`).

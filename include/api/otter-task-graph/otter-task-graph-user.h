@@ -12,29 +12,7 @@
 
 #pragma once
 
-#if defined(OTTER_TASK_GRAPH_DISABLE_USER)
-
-#define OTTER_UTIL_ASSERT(...)
-#define OTTER_INITIALISE()
-#define OTTER_FINALISE()
-#define OTTER_DECLARE_HANDLE(...)
-#define OTTER_INIT_TASK(...)
-#define OTTER_DEFINE_TASK(...)
-#define OTTER_POOL_ADD(...)
-#define OTTER_POOL_POP(...)
-#define OTTER_POOL_DECL_POP(...)
-#define OTTER_POOL_BORROW(...)
-#define OTTER_POOL_DECL_BORROW(...)
-#define OTTER_TASK_START(...)
-#define OTTER_TASK_END(...)
-#define OTTER_TASK_WAIT_FOR(...)
-#define OTTER_TASK_WAIT_START(...)
-#define OTTER_TASK_WAIT_END(...)
-#define OTTER_PHASE_BEGIN(...)
-#define OTTER_PHASE_END(...)
-#define OTTER_PHASE_SWITCH(...)
-
-#else
+#if !defined(OTTER_TASK_GRAPH_DISABLE_USER)
 
 #define OTTER_USE_PRIVATE_HEADER
 #include "otter-task-graph.h"
@@ -74,7 +52,7 @@
 #define OTTER_NULL_TASK ((void *)0)
 #endif
 
-#define OTTER_UTIL_ASSERT(cond) assert(cond)
+#define OTTER_UTIL_ASSERT(cond) assert((cond))
 
 /**
  * @brief Start Otter. Must be invoked before any other Otter function or macro.
@@ -233,6 +211,14 @@
     OTTER_DECLARE_HANDLE(task);                                                                                        \
     OTTER_POOL_BORROW(task, label OTTER_IMPL_PASS_ARGS(__VA_ARGS__))
 
+/**
+ * @brief Get the number of tasks stored in pool under the given label.
+ *
+ * @note doesn't currently support a parametrised label.
+ *
+ * @param label: The label for the given task pool.
+ *
+ */
 #define OTTER_POOL_SIZE(label) otterTaskGetPoolSize(label)
 
 /**
@@ -251,6 +237,9 @@
  * @note No synchronisation constraints are recorded by default. To indicate
  * that a task should be synchronised, see `OTTER_SYNCHRONISE()`.
  *
+ * @note This annotation starts a scope which is ends by #OTTER_TASK_END so
+ * take care in case any variables are declared between these annotations.
+ *
  * ## Usage
  *
  * ### OpenMP
@@ -262,7 +251,7 @@
  *     {
  *      OTTER_TASK_START(...);
  *      // ...
- *      OTTER_TASK_END(...);
+ *      OTTER_TASK_END();
  *     }
  *
  * This allows the start and end time of the task to be recorded when the task
@@ -286,25 +275,13 @@
     }
 
 /**
- * @brief Records a barrier where the given task must wait until all prior child
- * or descendant tasks are complete.
- *
- * @note This constraint is not enforced but is simply recorded in the trace.
- *
- * @param task: The task which encounters the barrier.
- * @param mode: Whether this barrier applies to the children of the encountering
- * task (`children`) or all descendants of the encountering task
- * (`descendants`).
- *
- */
-#define OTTER_TASK_WAIT_FOR(task, mode)                                                                                \
-    otterSynchroniseTasks(task, otter_sync_##mode, otter_endpoint_discrete, OTTER_SOURCE_LOCATION())
-
-/**
- * @brief Record the start of a region where the task waits for children or
+ * @brief Record the start of a region where the encountering task waits for children or
  * descendants to complete. Inside this region the task is considered by Otter
  * to be suspended, so time spent in this region is not attributed to the
  * duration of this task.
+ *
+ * @note This macro implicitly creates a new scope, so take care in case any variables are declared
+ * between this macro and the matching #OTTER_TASK_WAIT_END annotation.
  *
  * @note Counterpart to #OTTER_TASK_WAIT_END
  *
@@ -314,16 +291,19 @@
  *
  * This annotation may be used to decorate a `taskwait` barrier like so:
  *
- * OTTER_TASK_WAIT_START(task, children)
+ * OTTER_TASK_WAIT_START(children)
  * #pragma omp taskwait
- * OTTER_TASK_WAIT_END(task, children)
+ * OTTER_TASK_WAIT_END()
  *
  * This will then record the time at which the task enters/leaves the task
  * scheduling point at the barrier.
  *
  */
-#define OTTER_TASK_WAIT_START(task, mode)                                                                              \
-    otterSynchroniseTasks(task, otter_sync_##mode, otter_endpoint_enter, OTTER_SOURCE_LOCATION())
+#define OTTER_TASK_WAIT_START(mode)                                                                                    \
+    {                                                                                                                  \
+        otter_task_sync_t _otter_suspend_mode = otter_sync_##mode;                                                     \
+        otter_task_context *_otter_suspended_task = otterSynchroniseTasks(                                             \
+            otterGetActiveTask(), _otter_suspend_mode, otter_endpoint_enter, OTTER_SOURCE_LOCATION());
 
 /**
  * @brief Record the end of a region where the task waits for children or
@@ -332,16 +312,7 @@
  * @note Counterpart to #OTTER_TASK_WAIT_START
  *
  */
-#define OTTER_TASK_WAIT_END(task, mode)                                                                                \
-    otterSynchroniseTasks(task, otter_sync_##mode, otter_endpoint_leave, OTTER_SOURCE_LOCATION())
-
-#define OTTER_TASK_WAIT_START_SCOPED(mode)                                                                             \
-    {                                                                                                                  \
-        otter_task_sync_t _otter_suspend_mode = otter_sync_##mode;                                                     \
-        otter_task_context *_otter_suspended_task = otterSynchroniseTasks(                                             \
-            otterGetActiveTask(), _otter_suspend_mode, otter_endpoint_enter, OTTER_SOURCE_LOCATION());
-
-#define OTTER_TASK_WAIT_END_SCOPED()                                                                                   \
+#define OTTER_TASK_WAIT_END()                                                                                          \
     otterSynchroniseTasks(_otter_suspended_task, _otter_suspend_mode, otter_endpoint_leave, OTTER_SOURCE_LOCATION());  \
     }
 
@@ -404,4 +375,26 @@
  */
 #define OTTER_PHASE_SWITCH(name) otterPhaseSwitch((name), OTTER_SOURCE_LOCATION())
 
-#endif
+#else
+
+#define OTTER_UTIL_ASSERT(...)
+#define OTTER_INITIALISE()
+#define OTTER_FINALISE()
+#define OTTER_DECLARE_HANDLE(...)
+#define OTTER_INIT_TASK(...)
+#define OTTER_DEFINE_TASK(...)
+#define OTTER_POOL_ADD(...)
+#define OTTER_POOL_POP(...)
+#define OTTER_POOL_DECL_POP(...)
+#define OTTER_POOL_BORROW(...)
+#define OTTER_POOL_DECL_BORROW(...)
+#define OTTER_POOL_SIZE(...)
+#define OTTER_TASK_START(...)
+#define OTTER_TASK_END(...)
+#define OTTER_TASK_WAIT_START(...)
+#define OTTER_TASK_WAIT_END(...)
+#define OTTER_PHASE_BEGIN(...)
+#define OTTER_PHASE_END(...)
+#define OTTER_PHASE_SWITCH(...)
+
+#endif // OTTER_TASK_GRAPH_DISABLE_USER

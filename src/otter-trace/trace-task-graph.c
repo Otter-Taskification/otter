@@ -275,7 +275,7 @@ void trace_graph_synchronise_tasks(trace_location_def_t *location,
                                     sync_attr.sync_descendant_tasks ? 1 : 0);
   CHECK_OTF2_ERROR_CODE(err);
 
-  err = OTF2_AttributeList_AddUint8(attr, attr_sync_mode, sync_attr.mode);
+  err = OTF2_AttributeList_AddInt32(attr, attr_sync_mode, sync_attr.mode);
   CHECK_OTF2_ERROR_CODE(err);
 
   err = OTF2_AttributeList_AddStringRef(attr, attr_source_file, src_ref.file);

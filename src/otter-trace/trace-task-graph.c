@@ -12,6 +12,7 @@
 #include <execinfo.h>
 #include <otf2/otf2.h>
 #include <pthread.h>
+#include <sched.h>
 #include <time.h>
 
 #include "public/debug.h"
@@ -70,7 +71,8 @@ void trace_graph_event_task_create(trace_location_def_t *location,
                                    unique_id_t encountering_task_id,
                                    unique_id_t new_task_id,
                                    otter_string_ref_t task_label,
-                                   otter_src_ref_t create_ref) {
+                                   otter_src_ref_t create_ref,
+                                   int tid) {
   LOG_DEBUG("record task-graph event: task create");
 
   OTF2_ErrorCode err = OTF2_SUCCESS;
@@ -108,6 +110,12 @@ void trace_graph_event_task_create(trace_location_def_t *location,
       attr, attr_event_type, attr_label_ref[attr_event_type_task_create]);
   CHECK_OTF2_ERROR_CODE(err);
 
+  err = OTF2_AttributeList_AddInt32(attr, attr_cpu, sched_getcpu());
+  CHECK_OTF2_ERROR_CODE(err);
+
+  err = OTF2_AttributeList_AddInt32(attr, attr_tid, tid);
+  CHECK_OTF2_ERROR_CODE(err);
+
   err = OTF2_EvtWriter_ThreadTaskCreate(event_writer, attr, get_timestamp(),
                                         OTF2_UNDEFINED_COMM,
                                         OTF2_UNDEFINED_UINT32, 0);
@@ -129,7 +137,8 @@ void trace_graph_event_task_create(trace_location_def_t *location,
  */
 void trace_graph_event_task_begin(trace_location_def_t *location,
                                   unique_id_t encountering_task_id,
-                                  otter_src_ref_t start_ref) {
+                                  otter_src_ref_t start_ref,
+                                  int tid) {
   LOG_DEBUG("record task-graph event: task begin");
 
   OTF2_ErrorCode err = OTF2_SUCCESS;
@@ -159,6 +168,12 @@ void trace_graph_event_task_begin(trace_location_def_t *location,
   err = OTF2_AttributeList_AddInt32(attr, attr_source_line, start_ref.line);
   CHECK_OTF2_ERROR_CODE(err);
 
+  err = OTF2_AttributeList_AddInt32(attr, attr_cpu, sched_getcpu());
+  CHECK_OTF2_ERROR_CODE(err);
+
+  err = OTF2_AttributeList_AddInt32(attr, attr_tid, tid);
+  CHECK_OTF2_ERROR_CODE(err);
+
   // Record event
   err = OTF2_EvtWriter_ThreadTaskSwitch(
       event_writer, attr, get_timestamp(), OTF2_UNDEFINED_COMM,
@@ -181,7 +196,8 @@ void trace_graph_event_task_begin(trace_location_def_t *location,
  */
 void trace_graph_event_task_end(trace_location_def_t *location,
                                 unique_id_t encountering_task_id,
-                                otter_src_ref_t end_ref) {
+                                otter_src_ref_t end_ref,
+                                int tid) {
   LOG_DEBUG("record task-graph event: task leave");
 
   OTF2_ErrorCode err = OTF2_SUCCESS;
@@ -210,6 +226,12 @@ void trace_graph_event_task_end(trace_location_def_t *location,
   err = OTF2_AttributeList_AddInt32(attr, attr_source_line, end_ref.line);
   CHECK_OTF2_ERROR_CODE(err);
 
+  err = OTF2_AttributeList_AddInt32(attr, attr_cpu, sched_getcpu());
+  CHECK_OTF2_ERROR_CODE(err);
+
+  err = OTF2_AttributeList_AddInt32(attr, attr_tid, tid);
+  CHECK_OTF2_ERROR_CODE(err);
+
   err = OTF2_EvtWriter_ThreadTaskSwitch(
       event_writer, attr, get_timestamp(), OTF2_UNDEFINED_COMM,
       OTF2_UNDEFINED_UINT32, 0); /* creating thread, generation number */
@@ -231,7 +253,8 @@ void trace_graph_synchronise_tasks(trace_location_def_t *location,
                                    unique_id_t encountering_task_id,
                                    trace_sync_region_attr_t sync_attr,
                                    otter_endpoint_t endpoint,
-                                   otter_src_ref_t src_ref) {
+                                   otter_src_ref_t src_ref,
+                                   int tid) {
   LOG_DEBUG("record task-graph event: synchronise");
 
   OTF2_ErrorCode err = OTF2_SUCCESS;
@@ -285,6 +308,12 @@ void trace_graph_synchronise_tasks(trace_location_def_t *location,
   CHECK_OTF2_ERROR_CODE(err);
 
   err = OTF2_AttributeList_AddInt32(attr, attr_source_line, src_ref.line);
+  CHECK_OTF2_ERROR_CODE(err);
+
+  err = OTF2_AttributeList_AddInt32(attr, attr_cpu, sched_getcpu());
+  CHECK_OTF2_ERROR_CODE(err);
+
+  err = OTF2_AttributeList_AddInt32(attr, attr_tid, tid);
   CHECK_OTF2_ERROR_CODE(err);
 
   switch (endpoint) {

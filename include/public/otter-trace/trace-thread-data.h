@@ -29,6 +29,12 @@ typedef struct thread_data_t {
      *
      */
     otter_task_context *active_task;
+
+    /**
+     * @brief The ID of this thread, as returned by syscall(SYS_gettid)
+     *
+     */
+    int tid;
 } thread_data_t;
 
 thread_data_t *new_thread_data(otter_thread_t type);

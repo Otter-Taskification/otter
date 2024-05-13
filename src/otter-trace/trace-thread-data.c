@@ -1,3 +1,11 @@
+#define _GNU_SOURCE
+#include <unistd.h>
+#include <sys/syscall.h>
+
+#if !defined(SYS_gettid)
+#error No SYS_gettid
+#endif
+
 #include <inttypes.h>
 #include <stdlib.h>
 
@@ -14,13 +22,14 @@ thread_data_t *new_thread_data(otter_thread_t type) {
         .type = type,
         .is_master_thread = false,
         .active_task = NULL, // threads start out without holding any specific task
+        .tid = syscall(SYS_gettid),
     };
 
     /* Create a location definition for this thread */
     thread_data->location =
         trace_new_location_definition(thread_data->id, type, OTF2_LOCATION_TYPE_CPU_THREAD, DEFAULT_LOCATION_GRP);
 
-    LOG_INFO("create thread %" PRIu64, thread_data->id);
+    LOG_INFO("create thread %" PRIu64 ", gettid=%d", thread_data->id, thread_data->tid);
 
     return thread_data;
 }

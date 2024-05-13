@@ -101,6 +101,9 @@ INCLUDE_LABEL(event_type, phase_end)
 INCLUDE_ATTRIBUTE(OTF2_TYPE_INT32, cpu,
                   "cpu on which the encountering thread is running")
 
+/* Result of call to gettid() */
+INCLUDE_ATTRIBUTE(OTF2_TYPE_INT32, tid, "the thread which encountered the event")
+
 /* Region begin or end event? */
 INCLUDE_ATTRIBUTE(OTF2_TYPE_STRING, endpoint,
                   "is this a region-enter or region-leave event")

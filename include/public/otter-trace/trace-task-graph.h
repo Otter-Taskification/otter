@@ -25,21 +25,25 @@ void trace_graph_event_task_create(trace_location_def_t *location,
                                    unique_id_t encountering_task_id,
                                    unique_id_t new_task_id,
                                    otter_string_ref_t task_label,
-                                   otter_src_ref_t create_ref);
+                                   otter_src_ref_t create_ref,
+                                   int tid);
 
 void trace_graph_event_task_begin(trace_location_def_t *location,
                                   unique_id_t encountering_task_id,
-                                  otter_src_ref_t start_ref);
+                                  otter_src_ref_t start_ref,
+                                  int tid);
 
 void trace_graph_event_task_end(trace_location_def_t *location,
                                 unique_id_t encountering_task_id,
-                                otter_src_ref_t end_ref);
+                                otter_src_ref_t end_ref,
+                                int tid);
 
 void trace_graph_synchronise_tasks(trace_location_def_t *location,
                                    unique_id_t encountering_task_id,
                                    trace_sync_region_attr_t sync_attr,
                                    otter_endpoint_t endpoint,
-                                   otter_src_ref_t src_ref);
+                                   otter_src_ref_t src_ref,
+                                   int tid);
 
 void trace_task_graph_finalise(void);
 

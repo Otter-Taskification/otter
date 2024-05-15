@@ -8,6 +8,7 @@
 
 #define _GNU_SOURCE
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -25,6 +26,8 @@
 #include "trace-static-constants.h"
 #include "trace-timestamp.h"
 #include "trace-unique-refs.h"
+
+uint64_t trace_archive_timestamp_datum = 0;
 
 /* Lookup tables mapping enum value to string ref */
 OTF2_StringRef attr_name_ref[n_attr_defined][2] = {0};
@@ -188,6 +191,12 @@ bool trace_initialise_archive(const char *archive_path,
                                       attr_name_ref[attr_##Name][0],           \
                                       attr_name_ref[attr_##Name][1], Type);
 #include "trace-attribute-defs.h"
+
+/* set the global timestamp datum */
+  LOG_INFO("setting trace timestamp datum");
+  assert(trace_archive_timestamp_datum == 0);
+  trace_archive_timestamp_datum = get_timestamp();
+  LOG_INFO("timestamp datum: %lu", trace_archive_timestamp_datum);
 
   return true;
 }

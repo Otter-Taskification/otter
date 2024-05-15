@@ -1,8 +1,10 @@
 #include <stdint.h>
 #include <time.h>
 
+extern uint64_t trace_archive_timestamp_datum;
+
 static uint64_t get_timestamp(void) {
   struct timespec time;
   clock_gettime(CLOCK_MONOTONIC, &time);
-  return time.tv_sec * (uint64_t)1000000000 + time.tv_nsec;
+  return time.tv_sec * (uint64_t)1000000000 + time.tv_nsec - trace_archive_timestamp_datum;
 }

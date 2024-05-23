@@ -33,6 +33,8 @@
 
 #define PASS_ARGS(...) PASS_ARGS_I(__VA_ARGS__)
 
+#define LOG(fmt, ...) fprintf(stderr, "[OTTER] [%-32s] " fmt "\n", __func__ PASS_ARGS(__VA_ARGS__))
+
 #define LOG_ERROR(fmt, ...) fprintf(stderr, "[E] [%-32s] " fmt "\n", __func__ PASS_ARGS(__VA_ARGS__))
 
 #define LOG_ERROR_IF(pred, fmt, ...)                                                                                   \

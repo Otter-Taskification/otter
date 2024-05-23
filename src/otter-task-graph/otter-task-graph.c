@@ -118,11 +118,11 @@ void otterTraceInitialise(const char *file, const char *func, int line) {
     if (opt.tracepath == NULL)
         opt.tracepath = DEFAULT_OTF2_TRACE_PATH;
 
-    LOG_INFO("Otter environment variables:");
-    LOG_INFO("%-30s %s", "host", opt.hostname);
-    LOG_INFO("%-30s %s", ENV_VAR_TRACE_PATH, opt.tracepath);
-    LOG_INFO("%-30s %s", ENV_VAR_TRACE_OUTPUT, opt.tracename);
-    LOG_INFO("%-30s %s", ENV_VAR_APPEND_HOST, opt.append_hostname ? "Yes" : "No");
+    LOG("Otter environment variables:");
+    LOG("%-30s %s", "host", opt.hostname);
+    LOG("%-30s %s", ENV_VAR_TRACE_PATH, opt.tracepath);
+    LOG("%-30s %s", ENV_VAR_TRACE_OUTPUT, opt.tracename);
+    LOG("%-30s %s", ENV_VAR_APPEND_HOST, opt.append_hostname ? "Yes" : "No");
 
     trace_initialise(&opt);
     task_manager = trace_task_manager_alloc();
@@ -478,14 +478,9 @@ otter_task_context *otterSynchroniseTasks(otter_task_context *task, otter_task_s
 
         // resume the given task, unless it is the phase task or the root task
         if ((resumed == phase_task) || (resumed == root_task)) {
-            LOG_WARN("phase or root task exited a barrier, don't set as active task "
-                     "(phase=%" PRIxPTR ", root=%" PRIxPTR ")",
-                     (uintptr_t)phase_task, (uintptr_t)root_task);
             i_otterSynchroniseTasksRecordEvent(resumed, mode, endpoint, file, func, line);
-
             //! don't return phase or root task
             resumed = NULL;
-
         } else {
             i_otterSynchroniseTasksRecordEvent(task, mode, endpoint, file, func, line);
             otterSetActiveTask(resumed);

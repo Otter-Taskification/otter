@@ -305,8 +305,8 @@
 #define OTTER_TASK_WAIT_START(mode)                                                                                    \
     {                                                                                                                  \
         otter_task_sync_t _otter_suspend_mode = otter_sync_##mode;                                                     \
-        otter_task_context *_otter_suspended_task = otterSynchroniseTasks(                                             \
-            otterGetActiveTask(), _otter_suspend_mode, otter_endpoint_enter, OTTER_SOURCE_LOCATION());
+        otter_task_context *_otter_suspended_task =                                                                    \
+            otterSuspendActiveTask(_otter_suspend_mode, OTTER_SOURCE_LOCATION());
 
 /**
  * @brief Record the end of a region where the task waits for children or
@@ -316,16 +316,15 @@
  *
  */
 #define OTTER_TASK_WAIT_END()                                                                                          \
-    otterSynchroniseTasks(_otter_suspended_task, _otter_suspend_mode, otter_endpoint_leave, OTTER_SOURCE_LOCATION());  \
+    otterResumeSuspendedTask(_otter_suspended_task, _otter_suspend_mode, OTTER_SOURCE_LOCATION());                     \
     }
 
 #define OTTER_TASK_YIELD_START()                                                                                       \
     {                                                                                                                  \
-        otter_task_context *_otter_suspended_task = otterSynchroniseTasks(                                             \
-            otterGetActiveTask(), otter_sync_yield, otter_endpoint_enter, OTTER_SOURCE_LOCATION());
+        otter_task_context *_otter_suspended_task = otterSuspendActiveTask(otter_sync_yield, OTTER_SOURCE_LOCATION());
 
 #define OTTER_TASK_YIELD_END()                                                                                         \
-    otterSynchroniseTasks(_otter_suspended_task, otter_sync_yield, otter_endpoint_leave, OTTER_SOURCE_LOCATION());     \
+    otterResumeSuspendedTask(_otter_suspended_task, otter_sync_yield, OTTER_SOURCE_LOCATION());                        \
     }
 
 /**

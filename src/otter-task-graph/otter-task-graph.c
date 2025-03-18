@@ -299,7 +299,7 @@ otter_task_context *otterTaskStart(otter_task_context *task, const char *file, c
     otter_task_context *encountering_task = get_thread_data()->active_task;
     if (encountering_task) {
         LOG_INFO_SRC(file, line, "task-suspend (included child): task=%" PRIxPTR, (uintptr_t)encountering_task);
-        otterSynchroniseTasks(encountering_task, otter_sync_children, otter_endpoint_enter, file, func, line);
+        otterSuspendActiveTask(otter_sync_yield, file, func, line);
     }
     assert(get_thread_data()->active_task == NULL);
     if (task != phase_task) {
@@ -357,7 +357,7 @@ void otterTaskEnd(otter_task_context *completed, otter_task_context *resumed, co
     otterSetActiveTask(NULL);
     if (resumed) {
         LOG_INFO_SRC(file, line, "task-resume (included child): task=%" PRIxPTR, (uintptr_t)resumed);
-        otterSynchroniseTasks(resumed, otter_sync_children, otter_endpoint_leave, file, func, line);
+        otterResumeSuspendedTask(resumed, otter_sync_yield, file, func, line);
     }
     otterSetActiveTask(resumed);
 }
@@ -423,77 +423,44 @@ void i_otterSynchroniseTasksRecordEvent(otter_task_context *task, otter_task_syn
                                   src_ref, get_thread_data()->tid);
 }
 
-otter_task_context *otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode, otter_endpoint_t endpoint,
-                                          const char *file, const char *func, int line) {
-    LOG_DEBUG("synchronise tasks: %d", mode);
+otter_task_context *otterSuspendActiveTask(otter_task_sync_t mode, const char *file, const char *func, int line) {
 
-    switch (endpoint) {
+    // get the thread's active task (might be NULL)
+    otter_task_context *suspended = get_thread_data()->active_task;
 
-    case otter_endpoint_discrete: {
-        LOG_ERROR("(%s:%d) otter_endpoint_discrete is deprecated, please switch to "
-                  "otter_endpoint_enter/otter_endpoint_leave",
-                  file, line);
-        // fall-through
+    //! the phase/root tasks should never be the active task of a thread
+    if (phase_task != NULL) {
+        assert(suspended != phase_task);
     }
+    assert(suspended != root_task);
 
-    case otter_endpoint_enter: {
-        //! ignore the passed `task` argument, use the thread's active task. If this is NULL, fall
-        //! back to phase_task then root_task and return NULL.
+    // set active task to NULL (i.e. switch to implicit task)
+    otterSetActiveTask(NULL);
 
-        // get the thread's active task (might be NULL)
-        otter_task_context *suspended = get_thread_data()->active_task;
-
-        //! the phase/root tasks should never be the active task of a thread, as they are implicit
-        if (phase_task != NULL)
-            assert(suspended != phase_task);
-        assert(suspended != root_task);
-
-        // set active task to NULL (i.e. switch to implicit task)
-        otterSetActiveTask(NULL);
-
-        // fall back to phase_task then root_task
-        if (suspended != NULL) {
-            i_otterSynchroniseTasksRecordEvent(suspended, mode, endpoint, file, func, line);
-        } else {
-            i_otterSynchroniseTasksRecordEvent((phase_task ? phase_task : root_task), mode, endpoint, file, func, line);
-        }
-        return suspended;
+    // fall back to phase_task then root_task
+    if (suspended != NULL) {
+        i_otterSynchroniseTasksRecordEvent(suspended, mode, otter_endpoint_enter, file, func, line);
+    } else {
+        i_otterSynchroniseTasksRecordEvent((phase_task ? phase_task : root_task), mode, otter_endpoint_enter, file,
+                                           func, line);
     }
+    return suspended;
+}
 
-    case otter_endpoint_leave: {
-        //! `task` is the task handle to resume, so set it as the thread's active task. If the phase
-        //! or the root task are passed in, record the event but do not set it as the active task.
-        //! This can only happen within Otter, as these tasks are not exposed to the application.
-        //! If NULL, fall back to phase then root task.
-
-        otter_task_context *resumed = task;
-
-        // thread's active task must be NULL when switching back to a task
-        assert(get_thread_data()->active_task == NULL);
-
-        // fall back to phase or root task
-        if (resumed == NULL) {
-            resumed = phase_task ? phase_task : root_task;
-        }
-
-        // resume the given task, unless it is the phase task or the root task
-        if ((resumed == phase_task) || (resumed == root_task)) {
-            i_otterSynchroniseTasksRecordEvent(resumed, mode, endpoint, file, func, line);
-            //! don't return phase or root task
-            resumed = NULL;
-        } else {
-            i_otterSynchroniseTasksRecordEvent(task, mode, endpoint, file, func, line);
-            otterSetActiveTask(resumed);
-        }
-
-        return resumed;
+otter_task_context *otterResumeSuspendedTask(otter_task_context *task, otter_task_sync_t mode, const char *file,
+                                             const char *func, int line) {
+    // thread's active task must be NULL when switching back to a task
+    assert(get_thread_data()->active_task == NULL);
+    // fall back to phase or root task
+    otter_task_context *resumed = task ? task : (phase_task ? phase_task : root_task);
+    i_otterSynchroniseTasksRecordEvent(resumed, mode, otter_endpoint_leave, file, func, line);
+    // resume the given task, unless it is the phase task or the root task
+    if ((resumed == phase_task) || (resumed == root_task)) {
+        resumed = NULL;
+    } else {
+        otterSetActiveTask(resumed);
     }
-
-    default: {
-        LOG_ERROR("(%s:%d) invalid endpoint value: %d", file, line, endpoint);
-        assert(false);
-    }
-    }
+    return resumed;
 }
 
 void otterTraceStart(void) { LOG_DEBUG("not currently implemented - ignored"); }
@@ -536,11 +503,9 @@ void otterPhaseEnd(const char *file, const char *func, int line) {
     phase_task = NULL;
 
     // All phases are implicitly synchronised to indicate that they must happen sequentially
-    // so record an immediate barrier enter-exit event pair
-    otterSynchroniseTasks(NULL /* fall back to root_task */, otter_sync_children, otter_endpoint_enter, file, func,
-                          line);
-    otterSynchroniseTasks(NULL /* fall back to root_task */, otter_sync_children, otter_endpoint_leave, file, func,
-                          line);
+    // so record a synchronisation point in the root task
+    otterSuspendActiveTask(otter_sync_children, file, func, line);
+    otterResumeSuspendedTask(NULL, otter_sync_children, file, func, line);
 
     assert(get_thread_data()->active_task == NULL);
 

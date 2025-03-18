@@ -312,9 +312,14 @@ size_t otterTaskGetPoolSize(const char *format);
  *
  * @returns The handle of the suspended or resumed task, according to `endpoint`.
  *
+ * otter_task_context *otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode, otter_endpoint_t
+ * endpoint, const char *file, const char *func, int line);
  */
-otter_task_context *otterSynchroniseTasks(otter_task_context *task, otter_task_sync_t mode, otter_endpoint_t endpoint,
-                                          const char *file, const char *func, int line);
+
+otter_task_context *otterSuspendActiveTask(otter_task_sync_t mode, const char *file, const char *func, int line);
+
+otter_task_context *otterResumeSuspendedTask(otter_task_context *task, otter_task_sync_t mode, const char *file,
+                                             const char *func, int line);
 
 /******
  * Managing Phases

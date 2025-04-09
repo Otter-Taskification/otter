@@ -1,0 +1,135 @@
+#! /usr/bin/env bash
+
+set -e
+
+RED="\e[1;31m"
+GRN="\e[1;32m"
+ENDCOLOR="\e[0m"
+
+quiet() {
+    [[ -n "${build_quiet}" ]]
+}
+
+quietly() {
+    if quiet; then
+        $@ >/dev/null 2>&1
+    else
+        $@
+    fi
+}
+
+echo_error() {
+    echo -e "${RED}Error: ${1}${ENDCOLOR}"
+}
+
+echo_success() {
+    echo -e "${GRN}${1}${ENDCOLOR}"
+}
+
+echo_info() {
+    quiet || echo "====== ${1}" >&2
+}
+
+echo_args() {
+    echo_info "compiler preset:   ${vendor}"
+    echo_info "install prefix:    ${install_prefix}"
+    echo_info "symlink prefix:    ${symlink_prefix}"
+}
+
+list_presets() {
+    cmake --list-presets | grep "^ " | sed 's/\"//g' | tr -s " " | cut -d " " -f 2
+}
+
+list_vendors() {
+    list_presets | cut -d- -f1 | sort | uniq
+}
+
+configure() {
+    echo_info "${1}: configuring"
+    echo_info
+    quietly cmake --log-level VERBOSE --preset "${1}"
+}
+
+build() {
+    echo_info "${1}: building"
+    echo_info
+    quietly cmake --build --preset "${1}"
+}
+
+install() {
+    echo_info "${1}: installing in ${2}"
+    echo_info
+    quietly cmake --install build/"${1}" --prefix ${2}
+}
+
+link_installed_module() {
+    echo_info "${1}: link module file"
+    quietly ln -s "${2}/etc/modulefiles/otter/otter" "${3}"
+}
+
+function main() {
+
+    while [[ "$1" == -* ]]; do
+        case "$1" in
+            -m|--modules)
+                shift; modulesfile="$1";
+                ;;
+            -i|--install)
+                shift; install_prefix="$1";
+                ;;
+            -l|--link)
+                shift; symlink_prefix="$1";
+                ;;
+            -q|--quiet)
+                build_quiet="1";
+                ;;
+            *)
+                echo "unknown option ${1}, skipping"
+                ;;
+        esac
+        shift
+    done
+
+    # Expect the compiler preset as the positional arg
+    vendor="$1"
+    vendors=($(list_vendors))
+    printf -v choices "|%s|" "${vendors[@]}"
+    while [[ -z "$vendor" ]]; do
+        echo "choose a vendor: "
+        select vendor in "${vendors[@]}"; do
+            [[ "${choices}" =~ "|${REPLY}|" ]] && vendor="${REPLY}"
+            [[ -z "$vendor" ]] && echo "invalid choice: '${REPLY}'"
+            break
+        done
+    done
+
+    install_prefix=${install_prefix:-~/local/apps/otter}
+    symlink_prefix=${symlink_prefix:-~/.config/modulefiles/otter}
+
+    if [[ -n "$modulesfile" ]]; then
+        echo_info load modules from file: "$modulesfile" >&2
+        source "$modulesfile"
+    fi
+
+    echo_args >&2
+
+    for preset in $(list_presets | grep "^${vendor}"); do
+        configure "${preset}" >&2
+        if build "${preset}" >&2; then
+            install_dir="${install_prefix}/${preset}"
+            module_symlink="${symlink_prefix}/${preset}"
+            install "${preset}" "${install_dir}" >&2
+            if [ ! -f "${module_symlink}" ]; then
+                link_installed_module "${preset}" "${install_dir}" "${module_symlink}" >&2
+            fi
+            echo_success "-> ${preset} complete!"
+        else
+            echo_error "${preset} preset failed to build"
+        fi
+    done
+
+    echo_args
+
+}
+
+main $@

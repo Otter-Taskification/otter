@@ -103,7 +103,6 @@ function main() {
         done
     done
 
-    install_prefix=${install_prefix:-~/local/apps/otter}
     symlink_prefix=${symlink_prefix:-~/.config/modulefiles/otter}
 
     if [[ -n "$modulesfile" ]]; then
@@ -116,11 +115,13 @@ function main() {
     for preset in $(list_presets | grep "^${vendor}"); do
         configure "${preset}" >&2
         if build "${preset}" >&2; then
-            install_dir="${install_prefix}/${preset}"
-            module_symlink="${symlink_prefix}/${preset}"
-            install "${preset}" "${install_dir}" >&2
-            if [ ! -f "${module_symlink}" ]; then
-                link_installed_module "${preset}" "${install_dir}" "${module_symlink}" >&2
+            if [[ -n "$install_prefix" ]]; then
+                install_dir="${install_prefix}/${preset}"
+                module_symlink="${symlink_prefix}/${preset}"
+                install "${preset}" "${install_dir}" >&2
+                if [ ! -f "${module_symlink}" ]; then
+                    link_installed_module "${preset}" "${install_dir}" "${module_symlink}" >&2
+                fi
             fi
             echo_success "-> ${preset} complete!"
         else

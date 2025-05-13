@@ -3,49 +3,66 @@ Installation
 
 This page explains how to build and install Otter.
 
-Otter
+Installing Otter
 ---------------------------------------------------
 
-Pre-requisites
+Prerequisites
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Otter requires a reasonably recent version of CMake (>=3.21). To build Otter's
-OMPT plugin you must have a C compiler which supports OpenMP 5.0 and the OMPT
-interface (see `here <https://www.openmp.org/resources/openmp-compilers-tools/>`__
-for a list of compilers).
+- CMake >= 3.23
+- For the OMPT plugin, a C compiler supporting OpenMP >= 5.0
+- `OTF2 <https://doi.org/10.5281/zenodo.1240851>` >= 2.3
 
-Otter requires the OTF2 tracing library. We recommend installing
-`OTF v2.3 <https://zenodo.org/record/4682684>`__ as this is the only version
-Otter has been tested with. Full installation instructions for OTF2 are included
-with the OTF2 source. To download, build and install OTF2, run:
+To download OTF2 2.3 from source, run:
 
 ::
 
    wget https://zenodo.org/record/4682684/files/otf2-2.3.tar.gz
    tar -xzvf otf2-2.3.tar.gz && cd otf2-2.3
-   ./configure
+   ./configure [--prefix=/preferred/install/prefix]
    make
    make install
 
-The default installation location of ``/opt/otf2`` can be overridden with the ``--prefix`` option to ``./configure``.
+To get OTF2 from spack:
+
+::
+
+    spack install otf2@2.3
+
+If your machine has the `module <https://modules.readthedocs.io/en/latest/>` command, you may already
+have otf2 available:
+
+::
+
+    module avail otf2
 
 Building Otter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To build Otter, first obtain the latest version of the Otter repository:
+After the pre-requisites are installed, clone the repository:
 
 ::
 
-   git clone -b dev https://github.com/Otter-Taskification/otter.git
+   git clone https://github.com/Otter-Taskification/otter.git
    cd otter/
 
-Otter uses CMake to perform an out-of-source build. For a first-time build, we
-recommend using a preset:
+For a first build, Otter provides a number of presets. List them with:
 
 ::
 
-    cmake --preset default
-    cmake --build --preset default
+    cmake --list-presets
+
+Configure a preset with:
+
+::
+
+    cmake --preset <preset-name>
+
+Then build it with:
+
+::
+
+    cmake --build --preset <preset-name>
 
 Otter checks for an OTF2 installation under the default location of ``/opt/otf2``.
 If you installed OTF2 somewhere else, use ``-DOTF2_INSTALL_DIR=<install-path>``
@@ -178,7 +195,7 @@ that OTF2 comes with the helpful ``otf2-config`` utility to provide these argume
 programatically.
 
 
-PyOtter
+Installing PyOtter
 ---------------------------------------------------
 
 The only non-Python dependency is the ``dot`` command, available as part of `graphviz <https://graphviz.org/>`__.

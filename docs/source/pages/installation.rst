@@ -1,19 +1,14 @@
 Installation
 ===================================================
 
-This page explains how to build and install Otter.
-
-Installing Otter
----------------------------------------------------
-
 Prerequisites
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------------------------
 
 - CMake >= 3.23
 - For the OMPT plugin, a C compiler supporting OpenMP >= 5.0
-- `OTF2 <https://doi.org/10.5281/zenodo.1240851>` >= 2.3
+- `OTF2 <https://doi.org/10.5281/zenodo.1240851>`__ >= 2.3
 
-To download OTF2 2.3 from source, run:
+To build and install OTF2 2.3 from source, run:
 
 ::
 
@@ -23,21 +18,24 @@ To download OTF2 2.3 from source, run:
    make
    make install
 
-To get OTF2 from spack:
+Alternatively, from spack:
 
 ::
 
     spack install otf2@2.3
 
-If your machine has the `module <https://modules.readthedocs.io/en/latest/>` command, you may already
+If your machine has the `module <https://modules.readthedocs.io/en/latest/>`__ command, you may already
 have otf2 available:
 
 ::
 
     module avail otf2
 
+The CMake build system will search for OTF2 in the locations specified by the `OTF2_ROOT` CMake
+variable and the `OTF2_ROOT` environment variable, in that order.
+
 Building Otter
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------------------------
 
 After the pre-requisites are installed, clone the repository:
 
@@ -46,7 +44,7 @@ After the pre-requisites are installed, clone the repository:
    git clone https://github.com/Otter-Taskification/otter.git
    cd otter/
 
-For a first build, Otter provides a number of presets. List them with:
+For a first build, Otter provides a number of presets:
 
 ::
 
@@ -58,15 +56,20 @@ Configure a preset with:
 
     cmake --preset <preset-name>
 
+View the variables associated with the build:
+
+::
+
+    cmake -LA -N <buid-dir>
+
 Then build it with:
 
 ::
 
     cmake --build --preset <preset-name>
 
-Otter checks for an OTF2 installation under the default location of ``/opt/otf2``.
-If you installed OTF2 somewhere else, use ``-DOTF2_INSTALL_DIR=<install-path>``
-to tell Otter where to look.
+Key CMake Options
+---------------------------------------------------
 
 This table describes the key options for building Otter:
 
@@ -79,31 +82,31 @@ This table describes the key options for building Otter:
 | ``-DCMAKE_INSTALL_PREFIX=[...]``                                               | Target installation path  |      ``/usr/local`` |
 |                                                                                | for Otter                 |                     |
 +--------------------------------------------------------------------------------+---------------------------+---------------------+
-| ``-DCMAKE_BUILD_TYPE=[Debug\|Release]``                                        | Build type                |     ``Release``     |
+| ``-DCMAKE_BUILD_TYPE=[Debug|Release]``                                         | Build type                |     ``Release``     |
 +--------------------------------------------------------------------------------+---------------------------+---------------------+
-| ``-DOTF2_INSTALL_DIR=[PATH]``                                                  | Location of OTF2          |    ``/opt/otf2``    |
+| ``-DOTF2_ROOT=[PATH]``                                                         | Location of OTF2          |                     |
 |                                                                                | installation              |                     |
 +--------------------------------------------------------------------------------+---------------------------+---------------------+
-| ``-DWITH_OMPT_PLUGIN=[ON\|OFF]``                                               | Build the OMPT plugin     |            ``OFF``  |
+| ``-DWITH_OMPT_PLUGIN=[ON|OFF]``                                                | Build the OMPT plugin     |            ``OFF``  |
 |                                                                                |                           |                     |
 +--------------------------------------------------------------------------------+---------------------------+---------------------+
-| ``-DWITH_EXAMPLES=[ON\|OFF]``                                                  | Build Otter with examples |            ``OFF``  |
+| ``-DWITH_EXAMPLES=[ON|OFF]``                                                   | Build Otter with examples |            ``OFF``  |
 |                                                                                |                           |                     |
 +--------------------------------------------------------------------------------+---------------------------+---------------------+
-| ``-DWITH_TESTS=[ON\|OFF]``                                                     | Build tests               |            ``OFF``  |
+| ``-DWITH_TESTS=[ON|OFF]``                                                      | Build tests               |            ``OFF``  |
 +--------------------------------------------------------------------------------+---------------------------+---------------------+
-| ``-DBUILD_SHARED_LIBS=[ON\|OFF]``                                              | Build shared libraries    |            ``OFF``  |
+| ``-DBUILD_SHARED_LIBS=[ON|OFF]``                                               | Build shared libraries    |            ``OFF``  |
 +--------------------------------------------------------------------------------+---------------------------+---------------------+
 
 
 Installing Otter
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------------------------
 
-To install the ``default`` preset:
+To install a build:
 
 ::
 
-    cmake --install build/default/ [--prefix=...]
+    cmake --install <buid-dir> [--prefix=...]
 
 Choose a custom installation prefix with the ``--prefix`` option. The following
 files (among others) will be installed:
@@ -123,10 +126,7 @@ files (among others) will be installed:
    machines which make use of modulefiles)
 
 Using Otter
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-This section contains generic advice to help you set up your environment
-to use Otter.
+---------------------------------------------------
 
 .. note::
 
@@ -135,21 +135,21 @@ to use Otter.
    headers and libraries are available when compiling your target
    application.
 
-Using Otter with the ``module`` command
-"""""""""""""""""""""""""""""""""""""""
+Using Otter with the ``module`` command (recommended)
+"""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-The Otter modulefile is the recommended method for setting up your environment
-to use Otter.
-
-If you have the `module <https://modules.readthedocs.io/en/latest/index.html>`__ command on your machine, the Otter modulefile is the easiest
-way to set up your environment to use Otter. To enable the modulefile, add your
-Otter installation to the ``MODULEPATH`` environment variable, for example:
+Add your Otter installation to the ``MODULEPATH`` environment variable like so:
 
 ::
 
-    module use --append <installdir>/etc/modulefiles/otter
-    
-You may wish to persist this in your ``~/.bashrc`` or similar.
+    module use --append <install-prefix>/etc/modulefiles/otter
+
+Alternatively, create a link to the folder containing the installed modulefile in a location that is
+already on your ``MODULEPATH`` like so:
+
+::
+
+    ln -s <install-prefix>/etc/modulefiles/otter ~/.config/modulefiles/otter
 
 Using Otter in a CMake project
 """"""""""""""""""""""""""""""
@@ -169,10 +169,10 @@ on behalf of the calling project, so there is no need to also call
 
 To make the Otter target visible to CMake, you can do any **one** of the following:
 
--  (**recommended**) Use the modulefile (see above) to set up your environment to use Otter.
+-  Use the modulefile (see above) to set up your environment to use Otter (**recommended**).
+-  Pass the CMake variable ``-DOtter_ROOT=<install-prefix>``.
 -  Define the environment variable ``Otter_ROOT=<install-prefix>`` to point to
    the root of your Otter installation.
--  Pass the CMake variable ``-DOtter_ROOT=<install-prefix>``.
 
 Using Otter in a non-CMake project
 """"""""""""""""""""""""""""""""""
@@ -182,14 +182,14 @@ this should install Otter to a standard location on your system, and
 the Otter headers and libraries should be visible to your compiler by
 default.
 
-If you choose a custom installation prefix with ``--prefix=<installdir>`` then
+If you choose a custom installation prefix with ``--prefix=<install-prefix>`` then
 you will need to tell your compiler where you have installed Otter when using
-it in your target application. Use ``-I<installdir>/include`` and
-``-L<installdir>/lib`` arguments to add the relevant include and
+it in your target application. Use ``-I<install-prefix>/include`` and
+``-L<install-prefix>/lib`` arguments to add the relevant include and
 library paths. **Note:** this is handled for you if you use the
 modulefile provided with Otter (see above).
 
-To link against Otter, use ``-lotter-task-graph``. You will likely also need to
+To link against Otter, use ``-lotter-task-graph -lstdc++``. You will likely also need to
 pass ``-L<otf2-install-prefix>/lib -lotf2 -lm`` to link the OTF2 dependency. Note
 that OTF2 comes with the helpful ``otf2-config`` utility to provide these arguments
 programatically.

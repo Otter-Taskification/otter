@@ -29,7 +29,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/ar)
 set(CMAKE_C_FLAGS_INFO "${CMAKE_C_FLAGS_DEBUG}")
 set(CMAKE_CXX_FLAGS_INFO "${CMAKE_CXX_FLAGS_DEBUG}")
 
-# Absolutely required
+# Set OTF2_ROOT empty in the cache, the user has to provide a value
+set(OTF2_ROOT "" CACHE FILEPATH "The root of the OTF2 installation")
 find_package(OTF2)
 
 if(NOT OTF2_FOUND)

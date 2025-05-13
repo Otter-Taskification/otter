@@ -31,10 +31,11 @@ set(CMAKE_CXX_FLAGS_INFO "${CMAKE_CXX_FLAGS_DEBUG}")
 
 # Absolutely required
 find_package(OTF2)
-message(VERBOSE "OTF2_ROOT: ${OTF2_ROOT}")
 
 if(NOT OTF2_FOUND)
-    message(FATAL_ERROR "OTF2 was not found. Did you specify OTF2_INSTALL_DIR?")
+    message(FATAL_ERROR "OTF2 was not found. Did you specify OTF2_ROOT?")
+else()
+    message(VERBOSE "OTF2_ROOT: ${OTF2_ROOT}")
 endif()
 
 # Configure version header

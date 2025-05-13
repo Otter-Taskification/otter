@@ -51,57 +51,34 @@ include(FindPackageHandleStandardArgs)
 if(NOT OTF2_FOUND)
 
     # #########################################################
-    # set the default search location
+    # set defaults
     # #########################################################
-    set(OTF2_DEFAULT_INSTALL_DIR "/opt/otf2")
     set(OTF2_CONFIG "otf2-config")
     set(OTF2_HEADER "otf2/otf2.h")
     set(OTF2_LIBS libotf2.a libotf2.so libotf2 otf2)
 
     # #########################################################
-    # define the search path, preferring a user-specified installation if given
-    # #########################################################
-    if(NOT OTF2_INSTALL_DIR)
-        set(OTF2_INSTALL_DIR ${OTF2_DEFAULT_INSTALL_DIR})
-    endif()
-    set(OTF2_SEARCH_PATH ${OTF2_INSTALL_DIR})
-
-    message(VERBOSE "OTF2 search path:")
-    foreach(SEARCH_PATH IN ITEMS ${OTF2_SEARCH_PATH})
-        message(VERBOSE "  ${SEARCH_PATH}")
-    endforeach()
-
-    # #########################################################
     # find the include dir
     # #########################################################
-    find_path(OTF2_INCLUDE_DIR "${OTF2_HEADER}"
-        PATHS ${OTF2_SEARCH_PATH}
-        PATH_SUFFIXES include
-    )
+    find_path(OTF2_INCLUDE_DIR "${OTF2_HEADER}")
     if(NOT OTF2_INCLUDE_DIR)
-        message(FATAL_ERROR "failed to find ${OTF2_HEADER} in ${OTF2_SEARCH_PATH}")
+        message(SEND_ERROR "failed to find ${OTF2_HEADER}")
     endif()
 
     # #########################################################
     # find otf2-config
     # #########################################################
-    find_program(OTF2_CONFIG_EXE "${OTF2_CONFIG}"
-        PATHS ${OTF2_SEARCH_PATH}
-        PATH_SUFFIXES bin
-    )
+    find_program(OTF2_CONFIG_EXE "${OTF2_CONFIG}")
     if(NOT OTF2_CONFIG_EXE)
-        message(FATAL_ERROR "failed to find ${OTF2_CONFIG} in ${OTF2_SEARCH_PATH}")
+        message(SEND_ERROR "failed to find ${OTF2_CONFIG}")
     endif()
 
     # #########################################################
     # find the library, preferring static over shared
     # #########################################################
-    find_library(OTF2_LIBRARY NAMES ${OTF2_LIBS}
-        PATHS ${OTF2_SEARCH_PATH}
-        PATH_SUFFIXES lib
-    )
+    find_library(OTF2_LIBRARY NAMES ${OTF2_LIBS})
     if(NOT OTF2_LIBRARY)
-        message(FATAL_ERROR "failed to find ${OTF2_LIBS} in ${OTF2_SEARCH_PATH}")
+        message(SEND_ERROR "failed to find ${OTF2_LIBS}")
     endif()
 
     # #########################################################
@@ -115,7 +92,7 @@ if(NOT OTF2_FOUND)
     execute_process(COMMAND ${OTF2_CONFIG_EXE} --version OUTPUT_VARIABLE OTF2_VERSION_OUTPUT OUTPUT_STRIP_TRAILING_WHITESPACE)
     string(REGEX REPLACE "otf2-config: version \(.*\)" "\\1" OTF2_VERSION "${OTF2_VERSION_OUTPUT}")
     if(NOT OTF2_VERSION)
-        message(FATAL_ERROR "failed to parse OTF2 version from ${OTF2_CONFIG_EXE}")
+        message(SEND_ERROR "failed to parse OTF2 version from ${OTF2_CONFIG_EXE}")
     endif()
 
     message(VERBOSE "OTF2 environment:")
@@ -144,7 +121,6 @@ if(NOT OTF2_FOUND)
     endif()
 
     unset(OTF2_DEFAULT_INSTALL_DIR)
-    unset(OTF2_SEARCH_PATH)
     unset(OTF2_CONFIG)
     unset(OTF2_HEADER)
     unset(OTF2_LIBS)

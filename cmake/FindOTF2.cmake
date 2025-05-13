@@ -54,11 +54,17 @@ if(NOT OTF2_FOUND)
     # set the default search location
     # #########################################################
     set(OTF2_DEFAULT_INSTALL_DIR "/opt/otf2")
+    set(OTF2_CONFIG "otf2-config")
+    set(OTF2_HEADER "otf2/otf2.h")
+    set(OTF2_LIBS libotf2.a libotf2.so libotf2 otf2)
 
     # #########################################################
     # define the search path, preferring a user-specified installation if given
     # #########################################################
-    set(OTF2_SEARCH_PATH ${OTF2_INSTALL_DIR} ${OTF2_DEFAULT_INSTALL_DIR})
+    if(NOT OTF2_INSTALL_DIR)
+        set(OTF2_INSTALL_DIR ${OTF2_DEFAULT_INSTALL_DIR})
+    endif()
+    set(OTF2_SEARCH_PATH ${OTF2_INSTALL_DIR})
 
     message(VERBOSE "OTF2 search path:")
     foreach(SEARCH_PATH IN ITEMS ${OTF2_SEARCH_PATH})
@@ -68,37 +74,54 @@ if(NOT OTF2_FOUND)
     # #########################################################
     # find the include dir
     # #########################################################
-    find_path(OTF2_INCLUDE_DIR otf2/otf2.h
+    find_path(OTF2_INCLUDE_DIR "${OTF2_HEADER}"
         PATHS ${OTF2_SEARCH_PATH}
         PATH_SUFFIXES include
     )
-    message(VERBOSE "OTF2_INCLUDE_DIR: ${OTF2_INCLUDE_DIR}")
+    if(NOT OTF2_INCLUDE_DIR)
+        message(FATAL_ERROR "failed to find ${OTF2_HEADER} in ${OTF2_SEARCH_PATH}")
+    endif()
 
     # #########################################################
-    # store the installation root
+    # find otf2-config
     # #########################################################
-    if(OTF2_INCLUDE_DIR)
-        cmake_path(REMOVE_FILENAME OTF2_INCLUDE_DIR OUTPUT_VARIABLE OTF2_ROOT)
+    find_program(OTF2_CONFIG_EXE "${OTF2_CONFIG}"
+        PATHS ${OTF2_SEARCH_PATH}
+        PATH_SUFFIXES bin
+    )
+    if(NOT OTF2_CONFIG_EXE)
+        message(FATAL_ERROR "failed to find ${OTF2_CONFIG} in ${OTF2_SEARCH_PATH}")
     endif()
 
     # #########################################################
     # find the library, preferring static over shared
     # #########################################################
-    find_library(OTF2_LIBRARY NAMES libotf2.a libotf2.so libotf2 otf2
+    find_library(OTF2_LIBRARY NAMES ${OTF2_LIBS}
         PATHS ${OTF2_SEARCH_PATH}
         PATH_SUFFIXES lib
     )
-    message(VERBOSE "OTF2_LIBRARY: ${OTF2_LIBRARY}")
+    if(NOT OTF2_LIBRARY)
+        message(FATAL_ERROR "failed to find ${OTF2_LIBS} in ${OTF2_SEARCH_PATH}")
+    endif()
+
+    # #########################################################
+    # store the installation root
+    # #########################################################
+    cmake_path(REMOVE_FILENAME OTF2_INCLUDE_DIR OUTPUT_VARIABLE OTF2_ROOT)
 
     # #########################################################
     # get the version string
     # #########################################################
-    if(OTF2_INCLUDE_DIR)
-        file(READ "${OTF2_INCLUDE_DIR}/otf2/OTF2_GeneralDefinitions.h" _otf2_defs)
-        string(REGEX REPLACE ".*#define OTF2_VERSION_MAJOR[ \t]+([0-9+]).*" "\\1" OTF2_VERSION_MAJOR "${_otf2_defs}")
-        string(REGEX REPLACE ".*#define OTF2_VERSION_MINOR[ \t]+([0-9+]).*" "\\1" OTF2_VERSION_MINOR "${_otf2_defs}")
-        set(OTF2_VERSION "${OTF2_VERSION_MAJOR}.${OTF2_VERSION_MINOR}")
+    execute_process(COMMAND ${OTF2_CONFIG_EXE} --version OUTPUT_VARIABLE OTF2_VERSION_OUTPUT OUTPUT_STRIP_TRAILING_WHITESPACE)
+    string(REGEX REPLACE "otf2-config: version \(.*\)" "\\1" OTF2_VERSION "${OTF2_VERSION_OUTPUT}")
+    if(NOT OTF2_VERSION)
+        message(FATAL_ERROR "failed to parse OTF2 version from ${OTF2_CONFIG_EXE}")
     endif()
+
+    message(VERBOSE "OTF2 environment:")
+    message(VERBOSE "  include:         ${OTF2_INCLUDE_DIR}")
+    message(VERBOSE "  lib:             ${OTF2_LIBRARY}")
+    message(VERBOSE "  version output:  '${OTF2_VERSION_OUTPUT}'")
 
     find_package_handle_standard_args(OTF2
         REQUIRED_VARS OTF2_ROOT OTF2_INCLUDE_DIR OTF2_LIBRARY
@@ -122,4 +145,7 @@ if(NOT OTF2_FOUND)
 
     unset(OTF2_DEFAULT_INSTALL_DIR)
     unset(OTF2_SEARCH_PATH)
+    unset(OTF2_CONFIG)
+    unset(OTF2_HEADER)
+    unset(OTF2_LIBS)
 endif()

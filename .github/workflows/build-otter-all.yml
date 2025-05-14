@@ -12,7 +12,7 @@ jobs:
       matrix:
         os: [ubuntu-22.04, ubuntu-20.04]
         otf2_version: [2.3, 3.0]
-    uses: .github/workflows/build-otter.yml
+    uses: .github/workflows/build-otter.yml@dev
     with:
       cc: gcc
       cxx: g++

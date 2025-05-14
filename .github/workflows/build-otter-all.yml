@@ -4,6 +4,11 @@ on:
   push:
     branches: ["dev"]
 
+env:
+  otf2_root: /opt/deps/otf2
+  intel_root: /opt/intel
+  intel_version: '2025.1'
+
 jobs:
 
   build:
@@ -14,8 +19,29 @@ jobs:
         os: [ubuntu-22.04, ubuntu-24.04]
         otf2_version: ["2.3", "3.0"]
         toolchain: ["gcc", "clang", "intel"]
-    uses: ./.github/workflows/build-otter.yml
-    with:
-      toolchain: ${{ matrix.toolchain }}
-      os: ${{ matrix.os }}
-      otf2_version: ${{ matrix.otf2_version }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: get repo
+        uses: actions/checkout@v4
+      - name: setup otf2
+        uses: ./.github/actions/setup-otf2
+        with:
+          install_root: ${{ env.otf2_root }}
+          version: ${{ matrix.otf2_version }}
+      - if: ${{ matrix.toolchain == 'intel' }}
+        name: setup intel
+        uses: ./.github/actions/setup-intel
+        with:
+          install_root: ${{ env.intel_root }}
+          version: ${{ env.intel_version }}
+      - if: ${{ matrix.toolchain == 'intel' }}
+        run: |
+          echo "source=${{ env.intel_root }}/${{ env.intel_version }}/setvars.sh" >> $GITHUB_ENV
+      - name: build otter
+        uses: ./.github/actions/build-otter
+        with:
+          otf2_root: ${{ env.otf2_root }}
+          otf2_version: ${{ matrix.otf2_version }}
+          cc: ${{ matrix.toolchain == 'gcc' && 'gcc' || matrix.toolchain == 'clang' && 'clang' || matrix.toolchain == 'intel' && 'icx' }}
+          cxx: ${{ matrix.toolchain == 'gcc' && 'g++' || matrix.toolchain == 'clang' && 'clang++' || matrix.toolchain == 'intel' && 'icpx' }}
+          source: ${{ env.source }}

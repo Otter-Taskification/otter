@@ -1,0 +1,30 @@
+name: 'Set up an Intel oneAPI installation'
+description: 'Set up an Intel oneAPI installation with a given version and install location'
+
+inputs:
+  install_root:
+    description: "The install location for oneAPI"
+    required: true
+  version:
+    description: "The oneAPI version to use"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+
+    - name: Check for cached installation
+      id: check-cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ inputs.install_root }}/${{ inputs.version }}
+        key: ${{ runner.OS }}-intel-cache-${{ inputs.install_root }}/${{ inputs.version }}
+
+    - name: Re-install intel on cache miss
+      if: ${{ steps.check-cache.outputs.cache-hit != 'true' }}
+      shell: bash
+      env:
+        INTEL_INSTALL_PREFIX: ${{ inputs.install_root }}/${{ inputs.version }}
+        INTEL_VERSION_TARGET: ${{ inputs.version }}
+      run: |
+        ./.github/ci/scripts/download-and-install-intel.sh

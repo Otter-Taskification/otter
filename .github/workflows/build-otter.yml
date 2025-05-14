@@ -3,10 +3,7 @@ name: Build Otter
 on:
   workflow_call:
     inputs:
-      cc:
-        required: true
-        type: string
-      cxx:
+      toolchain:
         required: true
         type: string
       os:
@@ -18,6 +15,8 @@ on:
 
 env:
   otf2_root: /opt/deps/otf2
+  intel_root: /opt/intel
+  intel_version: "2025.1"
 
 jobs:
 
@@ -32,10 +31,20 @@ jobs:
         with:
           install_root: ${{ env.otf2_root }}
           version: ${{ inputs.otf2_version }}
+      - if: ${{ inputs.toolchain == "intel" }}
+        name: setup intel
+        uses: ./.github/actions/setup-intel
+        with:
+          install_root: ${{ env.intel_root }}
+          version: ${{ env.intel_version }}
+      - if: ${{ inputs.toolchain == "intel" }}
+        name: load intel
+        run: |
+          source ${{ env.intel_root }}/${{ env.intel_version }}/setvars.sh
       - name: build otter
         uses: ./.github/actions/build-otter
         with:
           otf2_root: ${{ env.otf2_root }}
           otf2_version: ${{ inputs.otf2_version }}
-          cc: ${{ inputs.cc }}
-          cxx: ${{ inputs.cxx }}
+          cc: ${{ fromJson('{ "gcc": "gcc", "clang": "clang", "intel": "icx" }')[inputs.toolchain] }}
+          cxx: ${{ fromJson('{ "gcc": "g++", "clang": "clang++", "intel": "icpx" }')[inputs.toolchain] }}

@@ -15,8 +15,7 @@ jobs:
         otf2_version: ["2.3", "3.0"]
     uses: ./.github/workflows/build-otter.yml
     with:
-      cc: gcc
-      cxx: g++
+      toolchain: gcc
       os: ${{ matrix.os }}
       otf2_version: ${{ matrix.otf2_version }}
 
@@ -29,7 +28,19 @@ jobs:
         otf2_version: ["2.3", "3.0"]
     uses: ./.github/workflows/build-otter.yml
     with:
-      cc: clang
-      cxx: clang++
+      toolchain: clang
+      os: ${{ matrix.os }}
+      otf2_version: ${{ matrix.otf2_version }}
+
+  build-with-intel:
+    name: Build Otter with intel
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+        otf2_version: ["2.3", "3.0"]
+    uses: ./.github/workflows/build-otter.yml
+    with:
+      toolchain: intel
       os: ${{ matrix.os }}
       otf2_version: ${{ matrix.otf2_version }}

@@ -1,0 +1,33 @@
+name: 'Set up an OTF2 installation'
+description: 'Set up an OTF2 installation with a given version and install location'
+
+inputs:
+  install_root:
+    description: "The install location for OTF2"
+    required: true
+  version:
+    description: "The OTF2 version to use"
+
+runs:
+  using: "composite"
+  steps:
+
+    - name: Check for cached OTF2 build
+      id: check-cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ inputs.install_root }}/${{ inputs.version }}
+        key: ${{ runner.OS }}-otf2-cache-${{ inputs.install_root }}/${{ inputs.version }}
+
+    - name: Re-build OTF2 on cache miss
+      if: ${{ steps.check-cache.outputs.cache-hit != 'true' }}
+      shell: bash
+      env:
+        OTF2_INSTALL_PREFIX: ${{ inputs.install_root }}/${{ inputs.version }}
+        OTF2_VERSION_TARGET: ${{ inputs.version }}
+        CC: gcc
+        CXX: g++
+      run: |
+        ${CC} --version
+        ${CXX} --version
+        ./.github/ci/scripts/download-and-install-otf2.sh

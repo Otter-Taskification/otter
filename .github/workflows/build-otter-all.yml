@@ -1,0 +1,33 @@
+name: Build Otter with various compilers and OF2 versions
+
+on:
+  push:
+    branches: ["dev"]
+
+jobs:
+
+  build-with-gcc:
+    name: Build Otter with gcc
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-20.04]
+        otf2_version: [2.3, 3.0]
+    uses: .github/workflows/build-otter.yml
+    with:
+      cc: gcc
+      cxx: g++
+      os: ${{ matrix.os }}
+      otf2_version: ${{ matrix.otf2_version }}
+
+  build-with-clang:
+    name: Build Otter with gcc
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-20.04]
+        otf2_version: [2.3, 3.0]
+    uses: .github/workflows/build-otter.yml
+    with:
+      cc: clang
+      cxx: clang++
+      os: ${{ matrix.os }}
+      otf2_version: ${{ matrix.otf2_version }}

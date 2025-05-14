@@ -7,6 +7,7 @@ inputs:
     required: true
   version:
     description: "The OTF2 version to use"
+    required: true
 
 runs:
   using: "composite"

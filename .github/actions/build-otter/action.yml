@@ -1,0 +1,53 @@
+name: 'Build Otter'
+description: 'Build Otter with a given OTF2 version and compiler'
+
+inputs:
+  otf2_root:
+    description: "The root of the OTF2 installation"
+    required: true
+  otf2_version:
+    description: "The OTF2 version to use"
+    required: true
+  cc:
+    description: "The C compiler to use"
+    required: true
+  cxx:
+    description: "The C++ compiler to use"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+
+    - name: Configure build
+      id: configure
+      shell: bash
+      env:
+        CC: ${{ inputs.cc }}
+        CXX: ${{ inputs.cxx }}
+        OTF2_ROOT: ${{ inputs.otf2_root }}/${{ inputs.otf2_version }}
+      runs: |
+        command -v ${CC}
+        ${CC} --version
+        command -v ${CXX}
+        ${CXX} --version
+        cmake --version
+        cmake --log-level=verbose
+        mkdir build
+        cd build
+        cmake --log-level=verbose \
+          --debug-find-pkg=OTF2 \
+          -DCMAKE_C_COMPILER="$CC" \
+          -DCMAKE_C_FLAGS="-std=c11 -Wall -Wextra" \
+          -DCMAKE_CXX_COMPILER="$CXX" \
+          -DCMAKE_CXX_FLAGS="-std=c++17 -Wall -Wextra" \
+          -DCMAKE_Fortran_FLAGS="-ffree-line-length-512" \
+          -DCMAKE_BUILD_TYPE="Release" \
+          ../
+        cmake -LA -N .
+
+    - name: Build Otter
+      id: build
+      shell: bash
+      runs: |
+        cmake --build build/

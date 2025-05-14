@@ -9,6 +9,7 @@ jobs:
   build-with-gcc:
     name: Build Otter with gcc
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-22.04, ubuntu-24.04]
         otf2_version: ["2.3", "3.0"]
@@ -22,6 +23,7 @@ jobs:
   build-with-clang:
     name: Build Otter with clang
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-22.04, ubuntu-24.04]
         otf2_version: ["2.3", "3.0"]

@@ -33,8 +33,6 @@ runs:
         ${CXX} --version
         cmake --version
         cmake --log-level=verbose
-        mkdir build
-        cd build
         echo WORKING IN: $(pwd)
         cmake --log-level=verbose \
           --debug-find-pkg=OTF2 \
@@ -44,12 +42,15 @@ runs:
           -DCMAKE_CXX_FLAGS="-std=c++17 -Wall -Wextra" \
           -DCMAKE_Fortran_FLAGS="-ffree-line-length-512" \
           -DCMAKE_BUILD_TYPE="Release" \
-          ../
-        cmake -LA -N .
+          -S . \
+          -B build
+        ls -halR
+        cmake -LA -N -B build
 
     - name: Build Otter
       id: build
       shell: bash
       run: |
         echo WORKING IN: $(pwd)
-        cmake --build build/
+        ls -halR
+        cmake --build build

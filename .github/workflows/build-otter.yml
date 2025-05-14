@@ -37,6 +37,9 @@ jobs:
         with:
           install_root: ${{ env.intel_root }}
           version: ${{ env.intel_version }}
+      - if: ${{ inputs.toolchain == 'intel' }}
+        run: |
+          echo "source=${{ env.intel_root }}/${{ env.intel_version }}/setvars.sh" >> $GITHUB_ENV
       - name: build otter
         uses: ./.github/actions/build-otter
         with:
@@ -44,4 +47,4 @@ jobs:
           otf2_version: ${{ inputs.otf2_version }}
           cc: ${{ inputs.toolchain == 'gcc' && 'gcc' || inputs.toolchain == 'clang' && 'clang' || inputs.toolchain == 'intel' && 'icx' }}
           cxx: ${{ inputs.toolchain == 'gcc' && 'g++' || inputs.toolchain == 'clang' && 'clang++' || inputs.toolchain == 'intel' && 'icpx' }}
-          source: ${{ env.intel_root }}/${{ env.intel_version }}/setvars.sh
+          source: ${{ env.source }}

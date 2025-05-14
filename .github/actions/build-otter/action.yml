@@ -17,6 +17,7 @@ inputs:
   source:
     description: "An optional script to source before compilation"
     required: false
+    default: ""
 
 runs:
   using: "composite"

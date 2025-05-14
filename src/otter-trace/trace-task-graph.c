@@ -1,4 +1,4 @@
-#define _GNU_SOURCE
+#include "public/feature-macros.h"
 #define USE_LOCAL_EVENT_WRITER
 
 /**

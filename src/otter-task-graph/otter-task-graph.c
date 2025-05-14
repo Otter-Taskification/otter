@@ -12,7 +12,7 @@
 
 #define OTTER_USE_PHASES 1
 
-#define __USE_POSIX // HOST_NAME_MAX
+#include "public/feature-macros.h"
 #include <assert.h>
 #include <inttypes.h>
 #include <limits.h>
@@ -548,7 +548,7 @@ static void debug_store_count_in_queue(const char *str, int count, void *data) {
         return;
     }
     otter_queue_t *queue = (otter_queue_t *)data;
-    queue_push(queue, (data_item_t){.ptr = str});
+    queue_push(queue, (data_item_t){.ptr = (void*) str});
     queue_push(queue, (data_item_t){.value = count});
     return;
 }

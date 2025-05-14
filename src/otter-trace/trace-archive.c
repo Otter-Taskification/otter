@@ -6,7 +6,7 @@
  * resources as well as mutexes protecting access to them both.
  */
 
-#define _GNU_SOURCE
+#include "public/feature-macros.h"
 
 #include <assert.h>
 #include <stdlib.h>

@@ -1,4 +1,4 @@
-#define _GNU_SOURCE
+#include "public/feature-macros.h"
 
 #include <errno.h>
 #include <sched.h>

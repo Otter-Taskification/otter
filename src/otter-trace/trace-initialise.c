@@ -1,4 +1,4 @@
-#define _GNU_SOURCE
+#include "public/feature-macros.h"
 #include "public/otter-trace/trace-initialise.h"
 #include "trace-archive-impl.h"
 #include "trace-archive.h"

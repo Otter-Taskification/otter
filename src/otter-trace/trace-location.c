@@ -7,7 +7,7 @@
  * event, and writing a location's definition to the trace.
  */
 
-#define _GNU_SOURCE
+#include "public/feature-macros.h"
 
 #include "public/otter-trace/trace-location.h"
 #include "trace-archive-impl.h"

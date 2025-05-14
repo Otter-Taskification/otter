@@ -1,9 +1,14 @@
+#include "public/feature-macros.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#if !defined(__USE_POSIX)
-#define __USE_POSIX // for HOST_NAME_MAX
-#endif
+#include <limits.h>
+#include <omp-tools.h>
+#include <sys/resource.h> // getrusage
+#include <sys/time.h>     // getrusage
+#include <unistd.h>       // gethostname
+
 #include "callback.h"
 #include "otter-entry.h"
 #include "otter.h"
@@ -14,11 +19,6 @@
 #include "public/otter-trace/trace-parallel-data.h"
 #include "public/otter-trace/trace-task-data.h"
 #include "public/otter-trace/trace-thread-data.h"
-#include <limits.h>
-#include <omp-tools.h>
-#include <sys/resource.h> // getrusage
-#include <sys/time.h>     // getrusage
-#include <unistd.h>       // gethostname
 
 /* Static function prototypes */
 static void print_resource_usage(void);

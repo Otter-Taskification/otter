@@ -16,7 +16,7 @@ on:
 env:
   otf2_root: /opt/deps/otf2
   intel_root: /opt/intel
-  intel_version: "2025.1"
+  intel_version: '2025.1'
 
 jobs:
 
@@ -31,13 +31,13 @@ jobs:
         with:
           install_root: ${{ env.otf2_root }}
           version: ${{ inputs.otf2_version }}
-      - if: ${{ inputs.toolchain == "intel" }}
+      - if: ${{ inputs.toolchain == 'intel' }}
         name: setup intel
         uses: ./.github/actions/setup-intel
         with:
           install_root: ${{ env.intel_root }}
           version: ${{ env.intel_version }}
-      - if: ${{ inputs.toolchain == "intel" }}
+      - if: ${{ inputs.toolchain == 'intel' }}
         name: load intel
         run: |
           source ${{ env.intel_root }}/${{ env.intel_version }}/setvars.sh

@@ -31,8 +31,8 @@ have otf2 available:
 
     module avail otf2
 
-The CMake build system will search for OTF2 in the locations specified by the `OTF2_ROOT` CMake
-variable and the `OTF2_ROOT` environment variable, in that order.
+The CMake build system will search for OTF2 in the locations specified by the ``OTF2_ROOT`` CMake
+variable and the ``OTF2_ROOT`` environment variable, in that order.
 
 Building Otter
 ---------------------------------------------------
@@ -118,10 +118,10 @@ files (among others) will be installed:
    for their users)
 -  ``lib/libotter-task-graph.[a|so]``
 -  ``lib/libotter-ompt.so`` (if requested)
--  ``lib/cmake/Otter/OtterConfig.cmake`` to enable ``find_package(Otter CONFIG)``
-   in CMake projects which depend on Otter.
--  ``lib/cmake/Otter/FindOTF2.cmake`` to allow an Otter installation to find
-   its OTF2 dependency on behalf of dependent projects.
+-  ``lib/cmake/Otter/OtterConfig.cmake`` (to enable ``find_package(Otter CONFIG)``
+   in CMake projects which depend on Otter)
+-  ``lib/cmake/Otter/FindOTF2.cmake`` (to allow an Otter installation to find
+   its OTF2 dependency on behalf of dependent projects)
 -  ``etc/modulefiles/otter/otter`` (to provide ``module load otter`` on
    machines which make use of modulefiles)
 
@@ -198,17 +198,8 @@ programatically.
 Installing PyOtter
 ---------------------------------------------------
 
-The only non-Python dependency is the ``dot`` command, available as part of `graphviz <https://graphviz.org/>`__.
-Full installation instructions are available `here <https://graphviz.org/download/>`__ but should be as
-simple as:
-
-::
-
-   sudo apt install graphviz
-
 The latest version of PyOtter is obtained by running:
 
 ::
 
-   git clone -b dev https://github.com/Otter-Taskification/pyotter.git
-   pip install ./pyotter/
+   pip install git+https://github.com/Otter-Taskification/pyotter.git@dev

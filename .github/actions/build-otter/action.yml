@@ -14,6 +14,9 @@ inputs:
   cxx:
     description: "The C++ compiler to use"
     required: true
+  source:
+    description: "An optional script to source before compilation"
+    required: false
 
 runs:
   using: "composite"
@@ -26,11 +29,14 @@ runs:
         CC: ${{ inputs.cc }}
         CXX: ${{ inputs.cxx }}
         OTF2_ROOT: ${{ inputs.otf2_root }}/${{ inputs.otf2_version }}
+        SOURCE: ${{ inputs.source }}
       run: |
-        printenv
-        command -v ${CC:?not set}
+        [ -n "$SOURCE" ] && source "$SOURCE"
+        type ${CC:?not set} || echo ${CC} not found
+        type ${CXX:?not set} || echo ${CXX} not found
+        command -v ${CC}
+        command -v ${CXX}
         ${CC} --version
-        command -v ${CXX:?not set}
         ${CXX} --version
         cmake --version
         cmake --log-level=verbose

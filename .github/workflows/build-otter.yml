@@ -33,7 +33,7 @@ jobs:
           install_root: ${{ env.otf2_root }}
           version: ${{ inputs.otf2_version }}
       - name: build otter
-        uses: .github/actions/build-otter
+        uses: ./.github/actions/build-otter
         with:
           otf2_root: ${{ env.otf2_root }}
           otf2_version: ${{ inputs.otf2_version }}

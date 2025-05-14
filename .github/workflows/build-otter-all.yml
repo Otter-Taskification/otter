@@ -6,41 +6,16 @@ on:
 
 jobs:
 
-  build-with-gcc:
-    name: Build Otter with gcc
+  build:
+    name: Build Otter with gcc/clang/intel
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, ubuntu-24.04]
         otf2_version: ["2.3", "3.0"]
+        toolchain: ["gcc", "clang", "intel"]
     uses: ./.github/workflows/build-otter.yml
     with:
-      toolchain: gcc
-      os: ${{ matrix.os }}
-      otf2_version: ${{ matrix.otf2_version }}
-
-  build-with-clang:
-    name: Build Otter with clang
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-22.04, ubuntu-24.04]
-        otf2_version: ["2.3", "3.0"]
-    uses: ./.github/workflows/build-otter.yml
-    with:
-      toolchain: clang
-      os: ${{ matrix.os }}
-      otf2_version: ${{ matrix.otf2_version }}
-
-  build-with-intel:
-    name: Build Otter with intel
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-22.04, ubuntu-24.04]
-        otf2_version: ["2.3", "3.0"]
-    uses: ./.github/workflows/build-otter.yml
-    with:
-      toolchain: intel
+      toolchain: ${{ matrix.toolchain }}
       os: ${{ matrix.os }}
       otf2_version: ${{ matrix.otf2_version }}

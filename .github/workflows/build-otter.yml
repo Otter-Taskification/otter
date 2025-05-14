@@ -46,5 +46,5 @@ jobs:
         with:
           otf2_root: ${{ env.otf2_root }}
           otf2_version: ${{ inputs.otf2_version }}
-          cc: ${{ fromJson('{ "gcc": "gcc", "clang": "clang", "intel": "icx" }')[inputs.toolchain] }}
-          cxx: ${{ fromJson('{ "gcc": "g++", "clang": "clang++", "intel": "icpx" }')[inputs.toolchain] }}
+          cc: ${{ inputs.toolchain == 'gcc' && 'gcc' || inputs.toolchain == 'clang' && 'clang' || inputs.toolchain == 'intel' && 'icx' }}
+          cxx: ${{ inputs.toolchain == 'gcc' && 'g++' || inputs.toolchain == 'clang' && 'clang++' || inputs.toolchain == 'intel' && 'icpx' }}

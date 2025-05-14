@@ -50,13 +50,19 @@ For a first build, Otter provides a number of presets:
 
     cmake --list-presets
 
+View the variables pre-defined in a preset with:
+
+::
+
+    cmake --preset <preset-name> --log-level=verbose -N
+
 Configure a preset with:
 
 ::
 
     cmake --preset <preset-name>
 
-View the variables associated with the build:
+View the cached variables in a build directory:
 
 ::
 

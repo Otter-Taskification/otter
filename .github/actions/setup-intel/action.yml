@@ -44,4 +44,4 @@ runs:
         printf "Downloading intel installer ${{ inputs.version }} from ${INTEL_URL}\n"
         wget --no-verbose "${INTEL_URL}" -O install.sh
         sh install.sh -a --action install --components intel.oneapi.lin.dpcpp-cpp-compiler \
-          --install-dir '${{ steps.declare.outputs.path }}'' --silent --cli --eula accept
+          --install-dir '${{ steps.declare.outputs.path }}' --silent --cli --eula accept

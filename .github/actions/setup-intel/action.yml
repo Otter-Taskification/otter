@@ -22,27 +22,26 @@ runs:
       id: declare
       shell: bash
       run: |
-        echo "ver=${{ inputs.version }}" >> "$GITHUB_ENV"
-        echo "path=${{ inputs.install_root }}/${{ inputs.version }}" >> "$GITHUB_ENV"
+        echo "path=${{ inputs.install_root }}/${{ inputs.version }}" >> "$GITHUB_OUTPUTS"
         echo "source=${{ inputs.install_root }}/${{ inputs.version }}/setvars.sh" >> "$GITHUB_OUTPUTS"
 
     - name: Check for cached installation
       id: check-cache
       uses: actions/cache@v4
       with:
-        path: ${{ env.path }}
-        key: ${{ runner.OS }}-intel-cache-${{ env.path }}
+        path: ${{ steps.declare.outputs.path }}
+        key: ${{ runner.OS }}-intel-cache-${{ steps.declare.outputs.path }}
 
     - name: Install intel on cache miss
       if: ${{ steps.check-cache.outputs.cache-hit != 'true' }}
       shell: bash
       run: |
-        INTEL_URL=$(sed -n "s/^${{ env.ver }}@\(.*\)/\1/p" ./.github/ci/static/intel-urls)
+        INTEL_URL=$(sed -n "s/^${{ inputs.version }}@\(.*\)/\1/p" ./.github/ci/static/intel-urls)
         if [[ -z "$INTEL_URL" ]]; then
-          echo "invalid intel version: ${{ env.ver }}"
+          echo "invalid intel version: ${{ inputs.version }}"
           exit 1
         fi
-        printf "Downloading intel installer ${{ env.ver }} from ${INTEL_URL}\n"
+        printf "Downloading intel installer ${{ inputs.version }} from ${INTEL_URL}\n"
         wget --no-verbose "${INTEL_URL}" -O install.sh
         sh install.sh -a --action install --components intel.oneapi.lin.dpcpp-cpp-compiler \
-          --install-dir '${{ env.path }}'' --silent --cli --eula accept
+          --install-dir '${{ steps.declare.outputs.path }}'' --silent --cli --eula accept

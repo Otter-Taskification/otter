@@ -8,23 +8,41 @@ inputs:
   version:
     description: "The oneAPI version to use"
     required: true
+outputs:
+  source:
+    description: "The script to source to activate the installation"
+    value: ${{ steps.declare.outputs.source }}
+
 
 runs:
   using: "composite"
   steps:
 
+    - name: Set installation path
+      id: declare
+      shell: bash
+      run: |
+        echo "ver=${{ inputs.version }}" | tee -a "$GITHUB_ENV"
+        echo "path=${{ inputs.install_root }}/${{ inputs.version }}" | tee -a "$GITHUB_ENV"
+        echo "source=${{ inputs.install_root }}/${{ inputs.version }}/setvars.sh" | tee -a "$GITHUB_OUTPUTS"
+
     - name: Check for cached installation
       id: check-cache
       uses: actions/cache@v4
       with:
-        path: ${{ inputs.install_root }}/${{ inputs.version }}
-        key: ${{ runner.OS }}-intel-cache-${{ inputs.install_root }}/${{ inputs.version }}
+        path: ${{ env.path }}
+        key: ${{ runner.OS }}-intel-cache-${{ env.path }}
 
-    - name: Re-install intel on cache miss
+    - name: Install intel on cache miss
       if: ${{ steps.check-cache.outputs.cache-hit != 'true' }}
       shell: bash
-      env:
-        INTEL_INSTALL_PREFIX: ${{ inputs.install_root }}/${{ inputs.version }}
-        INTEL_VERSION_TARGET: ${{ inputs.version }}
       run: |
-        ./.github/ci/scripts/download-and-install-intel.sh
+        INTEL_URL=$(sed -n "s/^${{ env.ver }}@\(.*\)/\1/p" ./.github/ci/static/intel-urls)
+        if [[ -z "$INTEL_URL" ]]; then
+          echo "invalid intel version: ${{ env.ver }}"
+          exit 1
+        fi
+        printf "Downloading intel installer ${{ env.ver }} from ${INTEL_URL}\n"
+        wget --no-verbose "${INTEL_URL}" -O install.sh
+        sh install.sh -a --action install --components intel.oneapi.lin.dpcpp-cpp-compiler \
+          --install-dir '${{ env.path }}'' --silent --cli --eula accept

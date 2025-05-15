@@ -7,7 +7,6 @@ on:
 env:
   otf2_root: /opt/deps/otf2
   intel_root: /opt/intel
-  intel_version: '2025.1'
 
 jobs:
 
@@ -27,15 +26,31 @@ jobs:
           install_root: ${{ env.otf2_root }}
           version: ${{ matrix.otf2_version }}
 
-  build:
-    name: Build Otter with gcc/clang/intel
+  setup-intel:
+    name: Set up intel versions
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        intel_version: ["2025.1.1"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: get repo
+        uses: actions/checkout@v4
+      - name: setup intel
+        uses: ./.github/actions/setup-intel
+        with:
+          install_root: ${{ env.intel_root }}
+          version: ${{ matrix.intel_version }}
+
+  build-with-gcc-and-clang:
+    name: Build Otter with gcc/clang
     needs: setup-otf2
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
         otf2_version: ["2.3", "3.0"]
-        toolchain: ["gcc", "clang", "intel"]
+        toolchain: ["gcc", "clang"]
     runs-on: ${{ matrix.os }}
     steps:
       - name: get repo
@@ -45,20 +60,43 @@ jobs:
         with:
           install_root: ${{ env.otf2_root }}
           version: ${{ matrix.otf2_version }}
-      - if: ${{ matrix.toolchain == 'intel' }}
-        name: setup intel
-        uses: ./.github/actions/setup-intel
-        with:
-          install_root: ${{ env.intel_root }}
-          version: ${{ env.intel_version }}
-      - if: ${{ matrix.toolchain == 'intel' }}
-        run: |
-          echo "source=${{ env.intel_root }}/${{ env.intel_version }}/setvars.sh" >> $GITHUB_ENV
       - name: build otter
         uses: ./.github/actions/build-otter
         with:
           otf2_root: ${{ env.otf2_root }}
           otf2_version: ${{ matrix.otf2_version }}
-          cc: ${{ matrix.toolchain == 'gcc' && 'gcc' || matrix.toolchain == 'clang' && 'clang' || matrix.toolchain == 'intel' && 'icx' }}
-          cxx: ${{ matrix.toolchain == 'gcc' && 'g++' || matrix.toolchain == 'clang' && 'clang++' || matrix.toolchain == 'intel' && 'icpx' }}
-          source: ${{ env.source }}
+          cc: ${{ matrix.toolchain == 'gcc' && 'gcc' || matrix.toolchain == 'clang' && 'clang' }}
+          cxx: ${{ matrix.toolchain == 'gcc' && 'g++' || matrix.toolchain == 'clang' && 'clang++' }}
+
+  build-with-intel:
+    name: Build Otter with intel oneAPI
+    needs: [setup-otf2, setup-intel]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        otf2_version: ["2.3", "3.0"]
+        intel_version: ["2025.1.1"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: get repo
+        uses: actions/checkout@v4
+      - name: setup otf2
+        uses: ./.github/actions/setup-otf2
+        with:
+          install_root: ${{ env.otf2_root }}
+          version: ${{ matrix.otf2_version }}
+      - name: setup intel
+        id: install-intel
+        uses: ./.github/actions/setup-intel
+        with:
+          install_root: ${{ env.intel_root }}
+          version: ${{ matrix.intel_version }}
+      - name: build otter
+        uses: ./.github/actions/build-otter
+        with:
+          otf2_root: ${{ env.otf2_root }}
+          otf2_version: ${{ matrix.otf2_version }}
+          cc: icx
+          cxx: icpx
+          source: ${{ steps.install-intel.outputs.source }}

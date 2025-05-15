@@ -22,8 +22,8 @@ runs:
       id: declare
       shell: bash
       run: |
-        echo "path=${{ inputs.install_root }}/${{ inputs.version }}" >> "$GITHUB_OUTPUTS"
-        echo "source=${{ inputs.install_root }}/${{ inputs.version }}/setvars.sh" >> "$GITHUB_OUTPUTS"
+        echo "path=${{ inputs.install_root }}/${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+        echo "source=${{ inputs.install_root }}/${{ inputs.version }}/setvars.sh" >> "$GITHUB_OUTPUT"
 
     - name: Check for cached installation
       id: check-cache

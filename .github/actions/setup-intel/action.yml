@@ -22,8 +22,7 @@ runs:
       id: declare
       shell: bash
       run: |
-        echo GITHUB_ENV="$GITHUB_ENV"
-        [ -n "$GITHUB_ENV" ] || exit 99
+        export GITHUB_ENV GITHUB_OUTPUTS
         echo "ver=${{ inputs.version }}" | tee -a "$GITHUB_ENV"
         echo "path=${{ inputs.install_root }}/${{ inputs.version }}" | tee -a "$GITHUB_ENV"
         echo "source=${{ inputs.install_root }}/${{ inputs.version }}/setvars.sh" | tee -a "$GITHUB_OUTPUTS"

@@ -23,6 +23,24 @@ runs:
   using: "composite"
   steps:
 
+    - name: Check versions and paths
+      id: check
+      shell: bash
+      env:
+        CC: ${{ inputs.cc }}
+        CXX: ${{ inputs.cxx }}
+        SOURCE: ${{ inputs.source }}
+      run: |
+        [ -n "$SOURCE" ] && source "$SOURCE"
+        type ${CC:?not set} || echo ${CC} not found
+        echo "${CC}" version:
+        ${CC} --version && echo
+        type ${CXX:?not set} || echo ${CXX} not found
+        echo "${CXX}" version:
+        ${CXX} --version && echo
+        echo cmake version:
+        cmake --version && echo
+
     - name: Configure build
       id: configure
       shell: bash
@@ -33,15 +51,6 @@ runs:
         SOURCE: ${{ inputs.source }}
       run: |
         [ -n "$SOURCE" ] && source "$SOURCE"
-        type ${CC:?not set} || echo ${CC} not found
-        type ${CXX:?not set} || echo ${CXX} not found
-        command -v ${CC}
-        command -v ${CXX}
-        ${CC} --version
-        ${CXX} --version
-        cmake --version
-        cmake --log-level=verbose
-        echo WORKING IN: $(pwd)
         cmake --log-level=verbose \
           --debug-find-pkg=OTF2 \
           -DCMAKE_C_COMPILER="$CC" \
@@ -52,11 +61,12 @@ runs:
           -DCMAKE_BUILD_TYPE="Release" \
           -S . \
           -B build
+        echo "### BUILD VARIABLES: START ###"
         cmake -LA -N -B build
+        echo "### BUILD VARIABLES: END ###"
 
     - name: Build Otter
       id: build
       shell: bash
       run: |
-        echo WORKING IN: $(pwd)
         cmake --build build

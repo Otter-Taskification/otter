@@ -11,12 +11,29 @@ env:
 
 jobs:
 
+  setup-otf2:
+    name: Set up OTF2 versions
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        otf2_version: ["2.3", "3.0"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: get repo
+        uses: actions/checkout@v4
+      - name: setup otf2
+        uses: ./.github/actions/setup-otf2
+        with:
+          install_root: ${{ env.otf2_root }}
+          version: ${{ matrix.otf2_version }}
+
   build:
     name: Build Otter with gcc/clang/intel
+    needs: setup-otf2
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-24.04]
+        os: [ubuntu-latest]
         otf2_version: ["2.3", "3.0"]
         toolchain: ["gcc", "clang", "intel"]
     runs-on: ${{ matrix.os }}

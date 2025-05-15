@@ -36,6 +36,10 @@ jobs:
     steps:
       - name: get repo
         uses: actions/checkout@v4
+      - name: check GITHUB_ENV set
+        run: |
+          echo GITHUB_ENV="$GITHUB_ENV"
+          [ -n "$GITHUB_ENV" ] || exit 42
       - name: setup intel
         uses: ./.github/actions/setup-intel
         with:

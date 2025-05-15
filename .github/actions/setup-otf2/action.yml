@@ -20,15 +20,34 @@ runs:
         path: ${{ inputs.install_root }}/${{ inputs.version }}
         key: ${{ runner.OS }}-otf2-cache-${{ inputs.install_root }}/${{ inputs.version }}
 
-    - name: Re-build OTF2 on cache miss
+    - name: Download OTF2 source
+      id: download-src
+      if: ${{ steps.check-cache.outputs.cache-hit != 'true' }}
+      shell: bash
+      env:
+        VER: ${{ inputs.version }}
+      run: |
+        OTF2_URL=$(sed -n "s/^${VER}@\(.*\)/\1/p" .github/ci/static/otf2-urls)
+        OTF2_TAR="${OTF2_URL##*/}"
+        if [[ -z "$OTF2_URL" ]]; then
+          echo "invalid OTF2 version: ${VER}"
+          exit 1
+        fi
+        wget "${OTF2_URL}" &>/dev/null
+        tar -xzf "$OTF2_TAR"
+        rm "$OTF2_TAR"
+        echo otf2-dir="${OTF2_TAR%.tar.gz}" >> $GITHUB_OUTPUT
+
+    - name: Build and install OTF2
+      id: config
       if: ${{ steps.check-cache.outputs.cache-hit != 'true' }}
       shell: bash
       env:
         OTF2_INSTALL_PREFIX: ${{ inputs.install_root }}/${{ inputs.version }}
-        OTF2_VERSION_TARGET: ${{ inputs.version }}
         CC: gcc
         CXX: g++
       run: |
-        ${CC} --version
-        ${CXX} --version
-        ./.github/ci/scripts/download-and-install-otf2.sh
+        cd "${{ steps.download-src.outputs.otf2-dir }}"
+        PYTHON=: ./configure --prefix="${OTF2_INSTALL_PREFIX}" --enable-static --disable-shared
+        make
+        sudo make install

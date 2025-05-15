@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #include <otf2/OTF2_Pthread_Locks.h>
 #include <otf2/otf2.h>
@@ -129,8 +130,13 @@ bool trace_initialise_archive(const char *archive_path,
 
   /* write global clock properties */
   OTF2_GlobalDefWriter_WriteClockProperties(
-      _defs, 1000000000 / res.tv_nsec, /* ticks per second */
-      epoch, UINT64_MAX                /* length */
+      _defs,
+      1000000000 / res.tv_nsec, /* timer resolution */
+      epoch,                    /* global offset */
+      UINT64_MAX                /* length */
+#if defined(OTF2_VERSION_MAJOR) && OTF2_VERSION_MAJOR >= 3
+      ,OTF2_UNDEFINED_TIMESTAMP /* realtime timestamp */
+#endif
   );
 
   /* write an empty string as the first entry so that string ref 0 is "" */
@@ -156,7 +162,11 @@ bool trace_initialise_archive(const char *archive_path,
   OTF2_GlobalDefWriter_WriteString(_defs, g_loc_grp_name, location_group_name);
   OTF2_GlobalDefWriter_WriteLocationGroup(_defs, g_loc_grp_id, g_loc_grp_name,
                                           OTF2_LOCATION_GROUP_TYPE_PROCESS,
-                                          g_sys_tree_id);
+                                          g_sys_tree_id
+#if defined(OTF2_VERSION_MAJOR) && OTF2_VERSION_MAJOR >= 3
+                                          ,g_loc_grp_id
+#endif
+                                        );
 
   /* define any necessary attributes (their names, descriptions & labels)
      these are defined in trace-attribute-defs.h and included via macros to

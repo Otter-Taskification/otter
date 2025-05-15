@@ -15,7 +15,7 @@ jobs:
     name: Set up OTF2 versions
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest]
         otf2_version: ["2.3", "3.0"]
     runs-on: ${{ matrix.os }}
     steps:
@@ -33,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest]
         otf2_version: ["2.3", "3.0"]
         toolchain: ["gcc", "clang", "intel"]
     runs-on: ${{ matrix.os }}

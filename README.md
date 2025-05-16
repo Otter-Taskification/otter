@@ -1,7 +1,7 @@
 <div align='center'>
 
-  [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
   [![Build Otter with various compilers and OF2 versions](https://github.com/Otter-Taskification/otter/actions/workflows/build-otter-all.yml/badge.svg?event=push)](https://github.com/Otter-Taskification/otter/actions/workflows/build-otter-all.yml)
+  [![foo bar](https://app.readthedocs.org/projects/otter-taskification/badge/?version=latest&style=flat)](https://www.google.com)
 
 </div>
 
@@ -21,9 +21,11 @@ For the **Otter task-graph API** or the **Otter OMPT plugin**, please post [here
 
 For **PyOtter**, please post [here](https://github.com/Otter-Taskification/pyotter/issues).
 
-## Licensing
+## Licence
 
-Otter is released under the BSD 3-clause license. See [LICENSE](LICENSE) for details.
+[![Licence](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+
+Otter is released under the BSD 3-clause licence. See [LICENCE](LICENSE) for details.
 
 Copyright (c) 2021, Adam Tuft
 All rights reserved.

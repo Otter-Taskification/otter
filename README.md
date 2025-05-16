@@ -1,5 +1,6 @@
 <div align='center'>
 
+  [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
   [![Build Otter with various compilers and OF2 versions](https://github.com/Otter-Taskification/otter/actions/workflows/build-otter-all.yml/badge.svg?event=push)](https://github.com/Otter-Taskification/otter/actions/workflows/build-otter-all.yml)
 
 </div>

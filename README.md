@@ -1,3 +1,9 @@
+<div align='center'>
+
+  [![Build Otter with various compilers and OF2 versions](https://github.com/Otter-Taskification/otter/actions/workflows/build-otter-all.yml/badge.svg?event=push)](https://github.com/Otter-Taskification/otter/actions/workflows/build-otter-all.yml)
+
+</div>
+
 # Otter
 
 Developed under the [ExCALIBUR task parallelism cross-cutting research theme](https://excalibur.ac.uk/projects/exposing-parallelism-task-parallelism/), Otter is a tool designed to facilitate data-driven parallelisation of serial code. Otter allows HPC developers to:

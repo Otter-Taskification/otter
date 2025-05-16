@@ -1,7 +1,7 @@
 <div align='center'>
 
   [![Build Otter with various compilers and OF2 versions](https://github.com/Otter-Taskification/otter/actions/workflows/build-otter-all.yml/badge.svg?event=push)](https://github.com/Otter-Taskification/otter/actions/workflows/build-otter-all.yml)
-  [![Docs badge](https://app.readthedocs.org/projects/otter-taskification/badge/?version=latest&style=flat)]([https://www.google.com](https://otter-taskification.readthedocs.io/en/latest/))
+  [![Docs badge](https://app.readthedocs.org/projects/otter-taskification/badge/?version=latest&style=flat)](https://otter-taskification.readthedocs.io/en/latest/)
 
 </div>
 
